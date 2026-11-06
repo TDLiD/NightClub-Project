@@ -1,0 +1,94 @@
+# 🪩 추억의 나이트 · 메타버스 v2
+
+1990년대 감성 나이트클럽을 웹 3D로 옮긴 메타버스입니다. v2에서는 사람형 아바타(인물마다 얼굴이 다름), 밝은 조명, 4구역 공간, AI 부킹 NPC, 웨이터 팁 부킹, 미니게임, 공간 음향, WebRTC 근거리 음성을 추가했습니다.
+
+## 실행
+```bash
+npm install          # express, ws, three(로컬 폴백)
+npm start            # http://localhost:3000
+```
+- 온라인(실제 접속자) / 솔로(AI 손님)는 시작 화면에서 고릅니다.
+- 서버 기능 없이 화면만 보려면 `http://localhost:3000/?mode=demo` 로 엽니다.
+- AI 자유 대화를 쓰려면 `ANTHROPIC_API_KEY=...`(또는 `OPENAI_API_KEY`)를 설정한 뒤 실행합니다. 키가 없으면 로컬 대사 엔진이 대신 답합니다.
+
+## 조작
+| 입력 | 동작 |
+|---|---|
+| WASD / 방향키 / 바닥 클릭 | 이동 |
+| 드래그 · 휠 | 시점 · 줌 |
+| **E** | 말 걸기 · 앉기 · 웨이터 호출 · 부킹 초대 |
+| Z X C V B N M | 스테이지 댄스 · 리듬 · 짠 · 마시기 · 인사 · 박수 · 꾸벅 |
+| Esc | 대화 종료 |
+| 대화창 🎤 / 🔊 | 음성으로 말하기(STT) / NPC 음성 듣기(TTS) |
+| 채팅 🎙 (온라인) | 근거리 음성 켜기 |
+
+## 요청 항목과 구현 위치
+| 요청 | 코드 (동작) | 문서 |
+|---|---|---|
+| 사람다운 인물, 각자 다른 얼굴 | `public/js/avatar.js`: 관절 리그, 얼굴 파라미터 20여 개, 헤어 11종, 의상 5종 | 02 |
+| 밝은 내부 | `core.js`(sRGB+ACES, 노출 1.3), `world.js`(밝은 앰비언트·헤미스피어·밝은 벽/바닥) | 05 |
+| NPC 페르소나 5명 · 호감도 1~100 | `data/npcs.json`, `js/affinity.js`, `js/dialog.js` | 01 |
+| 3D 모델링 지침 · 이미지 프롬프트 5종 | — | 02 |
+| 모션 목록 · 트리거 | `js/motion.js` (베이스 6 + 제스처 14 + 트리거 표) | 03 |
+| 4구역 공간 · 동선 | `js/world.js` (스테이지/DJ · 테이블/바 · VIP 3실 · 부킹 통로) | 04 |
+| 미러볼 · 네온 · 레이저 · 연기 | `js/world.js` | 05 |
+| 공간 음향 · VIP 사운드 댐핑 | `js/audio.js` (HRTF 패너 · 구역별 LPF · 리버브 · 덕킹) | 06 |
+| LLM 시스템 프롬프트 · 음성/텍스트 대화 | `prompts/booking-npc.system.txt`, `server-llm.js`, `js/dialog.js` | 07 |
+| 웨이터 팁 부킹 · 대화 트리 · 룸 매칭 | `js/waiter.js`, `data/waiter.json`, 서버 `roomClaim` | 08 |
+| 미니게임 3종 | `js/minigames.js` (진실게임 룰렛 · 밸런스 게임 · 커플 댄스) | 09 |
+| WebRTC 근거리 음성/채팅 웹 기초 코드 | `js/voice.js`, `multi.js`, `server.js` | 10 |
+| Unity + Photon VIP 비밀 대화방 | `unity/Scripts/*.cs` (+ Unreal 블루프린트 구조) | 11 |
+
+## 폴더 구조
+```
+server.js            HTTP/WS 서버 · 채팅 범위 · VIP 잠금 · WebRTC 시그널링 · LLM 프록시
+server-ops.js        성인 인증 토큰 · 입장 제한 · 신고/차단/제재 · 채팅 필터 · 관리자 API
+server-llm.js        NPC 대화 엔진 (Anthropic / OpenAI 호환, 출력 검증)
+server-look.js       아바타 외형 검증(화이트리스트)
+prompts/             LLM 시스템 프롬프트 템플릿
+public/
+  index.html, css/style.css
+  js/core.js         공용 NC 네임스페이스 · 렌더러 · UI · 지갑(🪙)
+  js/avatar.js       사람형 아바타 · 얼굴 텍스처 · 메시 병합
+  js/motion.js       모션 · 표정 · 트리거
+  js/world.js        4구역 클럽 · 조명 · 충돌 · 좌석
+  js/audio.js        음악 · 공간 음향 · 효과음 · TTS
+  js/affinity.js     호감도 규칙 엔진 · 로컬 대사 · LLM 클라이언트
+  js/npc.js          NPC 런타임 (페르소나 · 손님 · DJ · 바텐더)
+  js/dialog.js       부킹 대화 패널
+  js/waiter.js       웨이터 · 매칭 · VIP 에스코트
+  js/minigames.js    미니게임 3종
+  js/voice.js        WebRTC 근거리 음성 (서버 모드)
+  js/main.js         플레이어 · 카메라 · 루프 · 시작 화면
+  ops.js, multi.js   운영 UI · 멀티플레이 (서버 모드)
+  data/*.json        NPC · 대사 · 웨이터 · 미니게임 데이터 (수정 후 새로고침하면 반영)
+docs/01~11           기획 · 설계 문서
+unity/Scripts/       Unity(PUN 2 · Photon Voice 2) 스크립트
+```
+
+## 환경 변수
+| 변수 | 기본값 | 설명 |
+|---|---|---|
+| PORT | 3000 | |
+| MAX_PLAYERS / MAX_PER_IP | 50 / 3 | 동시 접속 제한 |
+| NEAR_RADIUS | 8 | 근거리 채팅·음성 반경(m) |
+| TOKEN_SECRET | (임시 랜덤) | 운영 시 반드시 고정. 미설정이면 재시작할 때 모든 인증이 풀립니다 |
+| ADMIN_TOKEN | — | 관리자 API(`/admin/*`) 활성화 |
+| VERIFY_MODE | mock | **mock은 생년월일 자기신고(데모용)입니다.** 실서비스는 본인인증 연동(`providers.pass`)이 필요합니다 |
+| TRUST_PROXY | — | 리버스 프록시 뒤라면 `true` |
+| ANTHROPIC_API_KEY / OPENAI_API_KEY | — | AI 대화 |
+| LLM_PROVIDER / LLM_MODEL | 자동 / claude-haiku-5-5 | |
+| ICE_SERVERS | Google STUN | TURN 서버 JSON (회사망·모바일 음성 연결에 필요) |
+
+## 운영 전 확인
+- **성인 인증**: 기본값(mock)은 법적 의미의 성인 인증이 아닙니다.
+- **HTTPS**: 마이크(음성 채팅·음성 입력)는 HTTPS 또는 localhost에서만 동작합니다.
+- **TURN 서버**: STUN만으로는 일부 네트워크에서 음성이 연결되지 않습니다.
+- **음성 인식**: Chrome의 음성 인식은 음성을 구글 서버로 보냅니다. 개인정보 처리방침에 적어 두어야 합니다.
+- **🪙 코인**: 현금 가치가 없는 게임 재화입니다. 유료 결제를 붙이려면 확률형 아이템 관련 규제를 검토해야 합니다.
+- **성능**: 데스크톱 기준으로 드로우콜이 약 430입니다(아바타 메시 병합·장식 인스턴싱 적용 후). 저사양 모바일용 품질 옵션은 아직 없습니다(05 문서에 방향 정리).
+
+## v1 → v2 변경 요약
+- 기존 운영 기능(인증·신고·차단·제재·필터·관리자 API)은 그대로 유지했습니다. 다만 레이트리밋 정리 주기가 120초로 고정돼 있어 '1시간 5건' 같은 긴 제한이 실제로 풀리던 버그를 고쳤습니다.
+- 기존 `npcs.json` 손님 10명과 `dialogs.json` 대사는 그대로 쓰고, 성격별 폴백 대사와 페르소나 5명을 추가했습니다.
+- `index.html` 단일 스크립트를 기능별 파일 12개로 나눴습니다.

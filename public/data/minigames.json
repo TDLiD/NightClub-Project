@@ -1,0 +1,53 @@
+{
+  "_설명": [
+    "아이스브레이킹 미니게임 데이터. 문구·확률·보상을 수정하면 새로고침 후 반영됩니다.",
+    "roulette: 진실게임 룰렛 칸(type: truth=질문, penalty=가상 벌칙, pass=패스권). asks=NPC가 플레이어에게 묻는 질문",
+    "balance: 밸런스 게임. trait=성격별 기본 선택(a/b). 페르소나는 npcs.json 의 balance 값을 우선 사용",
+    "dance: 커플 댄스 챌린지(리듬). 판정 창(ms)·파트너 성격별 정확도·보상"
+  ],
+  "rewards": { "roulette": { "coins": 15, "aff": 6 }, "balance": { "coinsPerMatch": 4, "affPerMatch": 3, "affPerMiss": -1 }, "dance": { "coinsMax": 40, "affMax": 14 } },
+  "roulette": {
+    "rounds": 4,
+    "sectors": [
+      { "label": "첫인상", "type": "truth", "color": "#ff5ca8" },
+      { "label": "연애관", "type": "truth", "color": "#9b5cff" },
+      { "label": "벌칙: 원샷(가상)", "type": "penalty", "motion": "drink", "color": "#ffb340" },
+      { "label": "취향", "type": "truth", "color": "#3de6ff" },
+      { "label": "흑역사", "type": "truth", "color": "#ff7a5c" },
+      { "label": "패스권", "type": "pass", "color": "#6dff8a" },
+      { "label": "이상형", "type": "truth", "color": "#ff3d9a" },
+      { "label": "최근 고민", "type": "truth", "color": "#5c8aff" },
+      { "label": "벌칙: 애교 3초", "type": "penalty", "motion": "shy", "color": "#ffd23d" }
+    ],
+    "asks": {
+      "첫인상": ["저 처음 봤을 때 솔직히 무슨 생각 했어요?", "제 첫인상 한 단어로!"],
+      "연애관": ["연애할 때 제일 중요한 거 하나만 꼽으면요?", "썸 탈 때 연락은 몇 번이 적당해요?"],
+      "취향": ["요즘 제일 꽂힌 거 하나만 말해 봐요.", "주말 완벽한 하루를 설명해 봐요."],
+      "흑역사": ["인생 최대 흑역사 하나만 풀어 봐요. 저도 했잖아요!", "술자리 실수 레전드 있어요?"],
+      "이상형": ["이상형 3초 안에 말하기! 하나, 둘…", "절대 못 만나는 스타일은요?"],
+      "최근 고민": ["요즘 제일 머리 아픈 고민이 뭐예요?", "요즘 잠 못 자게 하는 거 있어요?"]
+    },
+    "penaltyLines": { "drink": "🍸 (가상의 잔을 비웠다) …크으~ 다음 판!", "shy": "(두 손으로 볼을 감싸며) …뿌잉? 아 몰라 부끄러워!" }
+  },
+  "balance": {
+    "rounds": 5,
+    "questions": [
+      { "id": "b1", "a": "평생 여름", "b": "평생 겨울", "trait": { "outgoing": "a", "shy": "b", "playful": "a", "cool": "b" } },
+      { "id": "b2", "a": "깜짝 이벤트", "b": "계획된 데이트", "trait": { "outgoing": "a", "shy": "b", "playful": "a", "cool": "b" } },
+      { "id": "b3", "a": "연락 자주 하는 연인", "b": "각자 시간 존중", "trait": { "outgoing": "a", "shy": "a", "playful": "a", "cool": "b" } },
+      { "id": "b4", "a": "노래방 2차", "b": "조용한 바 2차", "trait": { "outgoing": "a", "shy": "b", "playful": "a", "cool": "b" } },
+      { "id": "b5", "a": "첫 데이트는 놀이공원", "b": "첫 데이트는 미술관", "trait": { "outgoing": "a", "shy": "b", "playful": "a", "cool": "b" } },
+      { "id": "b6", "a": "짜장면", "b": "짬뽕", "trait": { "outgoing": "b", "shy": "a", "playful": "b", "cool": "a" } },
+      { "id": "b7", "a": "밤새 수다 떠는 친구", "b": "말없이 편한 친구", "trait": { "outgoing": "a", "shy": "b", "playful": "a", "cool": "b" } },
+      { "id": "b8", "a": "매일 춤추기", "b": "매일 노래하기", "trait": { "outgoing": "a", "shy": "b", "playful": "a", "cool": "b" } }
+    ],
+    "same": ["통했다! 🙌", "어? 우리 좀 맞는데요?", "찌찌뽕!"],
+    "diff": ["에이~ 거기서 갈리네", "흠… 그건 설득 좀 해 봐요", "의외인데요?"]
+  },
+  "dance": {
+    "beats": 32, "leadIn": 4,
+    "window": { "perfect": 90, "good": 170 },
+    "partnerSkill": { "playful": 0.93, "outgoing": 0.86, "cool": 0.78, "shy": 0.62 },
+    "patterns": ["x.x.x.x.", "x.xxx.x.", "xx.xx.x.", "x..xx..x", "x.x.xx.x"]
+  }
+}

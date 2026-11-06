@@ -1,19 +1,19 @@
 {
   "name": "nostalgia-night-metaverse",
-  "version": "1.0.0",
-  "description": "추억의 나이트 메타버스 (3D 웹)",
+  "version": "2.0.0",
+  "description": "추억의 나이트 메타버스 (3D 웹) — 4구역 클럽 · AI 부킹 NPC · 웨이터 부킹 · 미니게임 · 공간음향 · WebRTC 근거리 음성",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "check": "node --check server.js && node --check server-ops.js && node --check server-llm.js && node --check server-look.js && for f in public/js/*.js public/*.js; do node --check $f || exit 1; done"
   },
+  "engines": { "node": ">=18" },
   "keywords": [],
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
     "express": "^4.22.3",
+    "three": "^0.128.0",
     "ws": "^8.22.1"
-  },
-  "devDependencies": {
-    "three": "^0.128.0"
   }
 }

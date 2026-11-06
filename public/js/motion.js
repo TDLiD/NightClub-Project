@@ -1,0 +1,139 @@
+/* motion.js — 절차적 애니메이션 + 인터랙션 트리거
+ *  ■ 베이스 루프: idle · walk · groove(리듬 타기) · stageDance(스테이지 댄스) · sit · sitTalk
+ *  ■ 제스처(1회성, 상체 오버레이): drink · cheers(짠) · shy(쑥스러움) · laugh · wave · clap · cheer(만세) · bow(꾸벅)
+ *                                 nod · headshake · think · point · lookAround · crossArms
+ *  ■ 트리거: NC.Motion.trigger(avatar, 'drink:cheers') 처럼 이벤트 이름으로 모션+표정+효과음을 한 번에 실행
+ *  포즈 = { 관절: [x,y,z] } 를 매 프레임 계산 → 제스처 가중치로 블렌드 → 지수 감쇠로 부드럽게 적용
+ *  groove/stageDance 는 audio.js 의 박자(beat phase)에 동기화됩니다.
+ */
+(() => {
+'use strict';
+const NC = window.NC; if (!NC) return;
+const U = NC.util, PI = Math.PI;
+const JOINTS = ['torso', 'neck', 'head', 'shL', 'elL', 'shR', 'elR', 'legL', 'knL', 'legR', 'knR'];
+const REST = { shL: [0, 0, -.12], shR: [0, 0, .12], elL: [-.12, 0, 0], elR: [-.12, 0, 0] };
+const beatInfo = () => (NC.Audio && NC.Audio.beat ? NC.Audio.beat() : (() => { const b = performance.now() / 1000 * 118 / 60; return { phase: b % 1, n: Math.floor(b), bpm: 118 }; })());
+
+/* ── 베이스 루프 ── */
+const BASE = {
+  idle(p, t, u) { const s = Math.sin(t * 1.7 + u.seed * 9); p.torso = [.02 * s, 0, 0]; p.head = [.03 * Math.sin(t * .9 + u.seed * 5), .22 * Math.sin(t * .23 + u.seed * 13), 0]; p.shL = [.03 * s, 0, -.12]; p.shR = [-.03 * s, 0, .12]; },
+  walk(p, t, u) {
+    const ph = u.walkPh, s = Math.sin(ph), c = Math.cos(ph);
+    p.legL = [s * .5, 0, -.02]; p.legR = [-s * .5, 0, .02]; p.knL = [Math.max(0, -c) * .9 + .05, 0, 0]; p.knR = [Math.max(0, c) * .9 + .05, 0, 0];
+    p.shL = [-s * .42, 0, -.1]; p.shR = [s * .42, 0, .1]; p.elL = [-.35 - Math.max(0, -s) * .3, 0, 0]; p.elR = [-.35 - Math.max(0, s) * .3, 0, 0];
+    p.torso = [.04, s * .07, 0]; p.head = [-.03, -s * .05, 0]; p.bodyY = (Math.abs(c) - .5) * .04;
+  },
+  groove(p, t, u, b) {
+    const dip = (1 + Math.cos(b.phase * 2 * PI)) / 2, sw = Math.sin((b.n % 2 + b.phase) * PI) * (b.n % 4 < 2 ? 1 : -1);
+    p.hipsY = u.hipH - .045 * dip; p.legL = [-.12 * dip, 0, -.04]; p.legR = [-.12 * dip, 0, .04]; p.knL = [.28 * dip, 0, 0]; p.knR = [.28 * dip, 0, 0];
+    p.torso = [.06 * dip, .15 * sw, .05 * sw]; p.head = [.12 * dip, -.1 * sw, 0];
+    p.shL = [-.45 - .15 * dip, .1 * sw, -.25]; p.elL = [-1.5 + .2 * dip, 0, 0]; p.shR = [-.45 - .15 * dip, .1 * sw, .25]; p.elR = [-1.5 + .2 * dip, 0, 0];
+  },
+  stageDance(p, t, u, b) {
+    BASE.groove(p, t, u, b);
+    const dip = (1 + Math.cos(b.phase * 2 * PI)) / 2, sw = Math.sin((b.n % 2 + b.phase) * PI) * (b.n % 4 < 2 ? 1 : -1), move = Math.floor(b.n / 8 + u.seed * 4) % 4;
+    p.bodyY = .07 * Math.sin(b.phase * PI);
+    if (move === 0) { p.shR = [-.2, 0, 2.6 - .5 * dip]; p.elR = [-.3 * dip, 0, 0]; p.shL = [-.6, 0, -.3]; p.elL = [-1.4, 0, 0]; }
+    else if (move === 1) { if (b.n % 2 === 0) p.shR = [-.3, 0, 2.5]; else p.shR = [-.7, 0, -.35]; p.elR = [-.1, 0, 0]; p.shL = [.2, 0, -.55]; p.elL = [-1.6, 0, .3]; p.torso = [.04, .3 * sw, 0]; }
+    else if (move === 2) { p.shL = [0, 0, -2.6 + .3 * sw]; p.shR = [0, 0, 2.6 + .3 * sw]; p.elL = [-.3, 0, 0]; p.elR = [-.3, 0, 0]; p.torso = [0, 0, .12 * sw]; p.bodyX = .05 * sw; }
+    else { p.bodyX = .18 * sw; p.legL = [-.12 * dip, 0, -.15 * Math.max(0, sw)]; p.legR = [-.12 * dip, 0, .15 * Math.max(0, -sw)]; p.shL = [-.6 * sw - .3, 0, -.2]; p.shR = [.6 * sw - .3, 0, .2]; p.elL = [-.8, 0, 0]; p.elR = [-.8, 0, 0]; }
+  },
+  sit(p, t, u) {
+    const s = Math.sin(t * 1.5 + u.seed * 7);
+    p.hipsY = (u.seatH + .03) / u.figScale; p.legL = [-1.5, 0, -.06]; p.legR = [-1.5, 0, .06]; p.knL = [1.45, 0, 0]; p.knR = [1.45, 0, 0];
+    p.torso = [.04 + .015 * s, 0, 0]; p.shL = [-.55, 0, -.06]; p.elL = [-.7, 0, 0]; p.shR = [-.55, 0, .06]; p.elR = [-.7, 0, 0]; p.head = [.02, .15 * Math.sin(t * .3 + u.seed), 0];
+  },
+  sitTalk(p, t, u) { BASE.sit(p, t, u); p.shR = [-.7 + .15 * Math.sin(t * 3.1), 0, .15]; p.elR = [-1.3 + .35 * Math.sin(t * 4.3), 0, 0]; p.head = [.05 * Math.sin(t * 2.3), .1 * Math.sin(t * 1.1), 0]; },
+};
+
+/* ── 제스처 (dur 초, 기본 표정) ── */
+const GEST = {
+  drink: { dur: 2.2, f(p, t) { const k = U.clamp((t - .6) / .4, 0, 1) * U.clamp((1.6 - t) / .3, 0, 1); p.shR = [-.55, 0, -.38]; p.elR = [-2.35, 0, 0]; p.head = [-.22 * k, 0, 0]; }, glass: true },
+  cheers: { dur: 1.8, expr: 'smile', f(p, t) { const bump = Math.exp(-Math.pow((t - .8) * 8, 2)); p.shR = [-1.35 - .14 * bump, 0, -.15]; p.elR = [-.45, 0, 0]; p.torso = [.08, 0, 0]; }, glass: true },
+  shy: { dur: 2.6, expr: 'shy', f(p, t) { p.head = [.35, 0, .2]; p.neck = [.1, 0, 0]; p.torso = [.12, .08 * Math.sin(t * 2), 0]; p.shR = [-.85, 0, -.4]; p.elR = [-2.3, 0, 0]; p.shL = [-.2, 0, .1]; p.elL = [-1.2, 0, .2]; } },
+  laugh: { dur: 1.8, expr: 'laugh', f(p, t) { const q = Math.sin(t * 16); p.torso = [.18 + .06 * q, 0, 0]; p.head = [-.15 + .06 * q, 0, 0]; p.shL = [-.45, 0, .15]; p.elL = [-1.7, 0, 0]; p.shR = [-.45, 0, -.15]; p.elR = [-1.7, 0, 0]; p.bodyY = .01 * q; } },
+  wave: { dur: 2.0, expr: 'smile', f(p, t) { p.shR = [-.1, 0, 2.5]; p.elR = [0, 0, .5 * Math.sin(t * 10)]; p.head = [0, 0, -.12]; } },
+  clap: { dur: 2.0, expr: 'smile', f(p, t) { const q = Math.max(0, Math.sin(t * 13)); p.shL = [-1.05, 0, .38 - .12 * q]; p.shR = [-1.05, 0, -.38 + .12 * q]; p.elL = [-.95, 0, 0]; p.elR = [-.95, 0, 0]; } },
+  cheer: { dur: 2.0, expr: 'laugh', f(p, t) { p.shL = [0, 0, -2.85]; p.shR = [0, 0, 2.85]; p.elL = [-.2, 0, 0]; p.elR = [-.2, 0, 0]; p.bodyY = .08 * Math.abs(Math.sin(t * 7)); } },
+  bow: { dur: 1.4, expr: 'smile', f(p, t, d) { const k = Math.sin(U.clamp(t / d, 0, 1) * PI); p.torso = [.75 * k, 0, 0]; p.head = [.25 * k, 0, 0]; p.shL = [.15 * k, 0, -.05]; p.shR = [.15 * k, 0, .05]; } },
+  nod: { dur: 1.1, f(p, t) { p.head = [.22 * Math.max(0, Math.sin(t * 9)), 0, 0]; } },
+  headshake: { dur: 1.2, f(p, t) { p.head = [0, .35 * Math.sin(t * 11), 0]; } },
+  think: { dur: 2.5, f(p) { p.shR = [-1.0, 0, -.45]; p.elR = [-2.1, 0, 0]; p.shL = [-.5, 0, .45]; p.elL = [-1.6, 0, 0]; p.head = [.05, 0, .15]; } },
+  point: { dur: 2.2, expr: 'smile', f(p) { p.shR = [-1.45, 0, .55]; p.elR = [-.05, 0, 0]; p.head = [0, .3, 0]; } },
+  lookAround: { dur: 3.0, f(p, t) { p.head = [0, .7 * Math.sin(t * 1.6), 0]; } },
+  crossArms: { dur: 2.5, expr: 'annoyed', f(p) { p.shL = [-.55, 0, .5]; p.elL = [-1.95, 0, 0]; p.shR = [-.55, 0, -.5]; p.elR = [-1.95, 0, 0]; p.head = [-.05, 0, 0]; } },
+};
+
+/* ── 인터랙션 트리거 표 (이벤트 → 모션/표정/효과음) — docs/03 과 동일 ── */
+const TRIGGERS = {
+  'zone:stage': { base: 'stageDance' }, 'zone:dance': { base: 'groove' }, 'zone:other': { base: null },
+  'music:drop': { gesture: 'cheer', chance: .35 },
+  'social:greet': { gesture: 'wave', expr: 'smile' }, 'social:bow': { gesture: 'bow', expr: 'smile' },
+  'drink:order': { gesture: 'drink' }, 'drink:cheers': { gesture: 'cheers', expr: 'smile', sfx: 'clink' },
+  'talk:compliment': { gesture: 'shy', expr: 'shy' }, 'talk:joke': { gesture: 'laugh', expr: 'laugh' }, 'talk:tease': { expr: 'wink' }, 'talk:think': { gesture: 'think' },
+  'affinity:up': { gesture: 'nod', expr: 'smile' }, 'affinity:bigUp': { gesture: 'laugh', expr: 'laugh' },
+  'affinity:down': { gesture: 'headshake', expr: 'sad' }, 'affinity:rude': { gesture: 'crossArms', expr: 'annoyed' },
+  'game:win': { gesture: 'cheer', expr: 'laugh', sfx: 'win' }, 'game:lose': { gesture: 'shy', expr: 'sad' },
+  'idle:long': { gesture: 'lookAround' }, 'waiter:guide': { gesture: 'point', expr: 'smile' },
+};
+/* LLM emotion → 트리거 */
+const EMOTION_TRIGGER = { smile: 'affinity:up', laugh: 'talk:joke', shy: 'talk:compliment', annoyed: 'affinity:rude', sad: 'affinity:down', wink: 'talk:tease' };
+
+function play(a, name, opt = {}) {
+  const u = a && a.userData, g = GEST[name]; if (!u || !u.motion || !g) return;
+  const m = u.motion; m.g = name; m.gT = 0; m.gDur = opt.dur || g.dur;
+  const ex = opt.expr || g.expr; if (ex) u.setExpr(ex, m.gDur + .6);
+}
+function trigger(a, ev, opt = {}) {
+  const tr = TRIGGERS[ev]; if (!tr || !a) return;
+  if (tr.chance && Math.random() > tr.chance) return;
+  const u = a.userData;
+  if ('base' in tr) u.dance = tr.base;
+  if (tr.gesture) play(a, tr.gesture, { expr: tr.expr });
+  else if (tr.expr) u.setExpr(tr.expr, opt.dur || 2.5);
+  if (tr.sfx && NC.Audio && !opt.silent) NC.Audio.sfx(tr.sfx);
+  NC.emit('motion', a, ev);
+}
+
+const ZERO = [0, 0, 0];
+function update(a, dt, opt = {}) {
+  const u = a.userData, m = u.motion, R = u.rig; if (!R) return;
+  m.t += dt; const b = beatInfo();
+  if (u.moving) u.walkPh += dt * (opt.speed || 1) * 9;
+  const baseName = u.seated ? (u.talk ? 'sitTalk' : 'sit') : u.moving ? 'walk' : (u.dance && !u.seated ? u.dance : 'idle');
+  const p = {}; BASE[baseName](p, m.t, u, b);
+  let glass = !!u.holdGlass;
+  if (m.g) {
+    m.gT += dt; const G = GEST[m.g], w = U.clamp(Math.min(m.gT / .25, (m.gDur - m.gT) / .3), 0, 1);
+    const gp = {}; G.f(gp, m.gT, m.gDur);
+    for (const k in gp) { if (Array.isArray(gp[k])) { const a0 = p[k] || REST[k] || ZERO; p[k] = [U.lerp(a0[0], gp[k][0], w), U.lerp(a0[1], gp[k][1], w), U.lerp(a0[2], gp[k][2], w)]; } else p[k] = U.lerp(p[k] || 0, gp[k], w); }
+    if (G.glass) glass = true;
+    if (m.gT >= m.gDur) m.g = null;
+  }
+  // 시선(lookAt): 걷는 중이 아니면 머리를 대상 쪽으로
+  if (u.lookAt && !u.moving) {
+    const yw = Math.atan2(u.lookAt.x - a.position.x, u.lookAt.z - a.position.z);
+    const rel = U.clamp(((yw - a.rotation.y + PI) % (PI * 2) + PI * 2) % (PI * 2) - PI, -1.1, 1.1);
+    const h = p.head || [0, 0, 0]; p.head = [h[0], h[1] * .3 + rel * .6, h[2]]; const n = p.neck || [0, 0, 0]; p.neck = [n[0], rel * .35, n[2]];
+  }
+  const k = 1 - Math.exp(-dt * 14);
+  for (const j of JOINTS) { const tg = p[j] || REST[j] || ZERO, r = R[j].rotation; r.x += (tg[0] - r.x) * k; r.y += (tg[1] - r.y) * k; r.z += (tg[2] - r.z) * k; }
+  R.hips.position.y += ((p.hipsY != null ? p.hipsY : u.hipH) - R.hips.position.y) * k;
+  R.body.position.y += ((p.bodyY || 0) - R.body.position.y) * k; R.body.position.x += ((p.bodyX || 0) - R.body.position.x) * k;
+  if (u.skirt) u.skirt.scale.y += ((u.seated ? .45 : 1) - u.skirt.scale.y) * k;
+  if (u.glass) u.glass.visible = glass;
+  // 얼굴: 표정 만료 · 깜빡임 · 말할 때 입 움직임
+  const now = performance.now();
+  if (u.exprUntil && now > u.exprUntil) { u.exprUntil = 0; u.expr = u.baseExpr; u.faceDirty = true; }
+  u.blinkT -= dt; if (u.blinkT < 0) { u.blink = true; u.blinkEnd = .13; u.blinkT = 2.4 + Math.random() * 3.6; u.faceDirty = true; }
+  if (u.blink) { u.blinkEnd -= dt; if (u.blinkEnd < 0) { u.blink = false; u.faceDirty = true; } }
+  const talking = now < u.talkUntil;
+  if (talking) { u.mouthT -= dt; if (u.mouthT < 0) { u.mouthT = .09 + Math.random() * .08; u.mouthOpen = !u.mouthOpen; u.faceDirty = true; } } else if (u.mouthOpen) { u.mouthOpen = false; u.faceDirty = true; }
+  if (u.faceDirty && (opt.near !== false || talking)) u.redraw();
+}
+
+NC.Motion = { update, play, trigger, TRIGGERS, EMOTION_TRIGGER, GEST: Object.keys(GEST), BASE: Object.keys(BASE) };
+// 기존 API 호환
+NC.seatAvatar = (a, x, z, ry, h = .5) => { a.position.set(x, 0, z); a.rotation.y = ry; const u = a.userData; u.seated = true; u.moving = false; u.dance = null; u.seatH = h; };
+NC.unseatAvatar = (a, x, z) => { const u = a.userData; u.seated = false; u.talk = false; if (x != null) a.position.set(x, 0, z); };
+})();

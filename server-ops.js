@@ -81,12 +81,13 @@ async function verifyHandler(req, res) {
 }
 
 /* ── 레이트 리밋(슬라이딩 윈도) ── */
-const hits = new Map();
+// v2: 키마다 윈도 길이를 함께 저장 (기존엔 정리 주기가 120초 고정이라 '1시간 5건' 같은 긴 윈도가 무력화됐음)
+const hits = new Map();   // key → { w: windowMs, a: [timestamps] }
 function rate(key, max, windowMs) {
-  const now = Date.now(); const arr = (hits.get(key) || []).filter(t => now - t < windowMs);
-  if (arr.length >= max) { hits.set(key, arr); return false; } arr.push(now); hits.set(key, arr); return true;
+  const now = Date.now(); const h = hits.get(key) || { w: windowMs, a: [] }; h.w = windowMs; h.a = h.a.filter(t => now - t < windowMs);
+  if (h.a.length >= max) { hits.set(key, h); return false; } h.a.push(now); hits.set(key, h); return true;
 }
-setInterval(() => { const now = Date.now(); for (const [k, a] of hits) { const f = a.filter(t => now - t < 120e3); if (f.length) hits.set(k, f); else hits.delete(k); } }, 60e3).unref();
+setInterval(() => { const now = Date.now(); for (const [k, h] of hits) { h.a = h.a.filter(t => now - t < h.w); if (!h.a.length) hits.delete(k); } }, 60e3).unref();
 
 /* ── 제재 ── */
 function banStatus(uid) { const b = db.bans[uid]; if (!b) return null; if (b.until && b.until < Date.now()) { delete db.bans[uid]; save(); return null; } return b; }

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>추억의 나이트 · 메타버스 v2</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="topbar">
+  <div id="title" class="neon">🪩 추억의 나이트 <span id="badge">DEMO</span></div>
+  <div id="topbtns"><button class="ibtn" id="btnMusic" title="음악">🔊</button><button class="ibtn" id="btnHelp" title="도움말">❓</button></div>
+</div>
+<div id="hud" style="display:none"><span id="coins">🪙 0</span><span id="zone">📍 부킹 통로</span></div>
+<div id="help">이동 <b>WASD</b> · 클릭 이동 · 드래그 시점 · <b>E</b> 상호작용 · 이모트 <b>Z X C V B N M</b></div>
+<div id="toast"></div>
+<button id="act"></button>
+<div id="dlg"></div>
+<div id="fade"></div>
+<div id="joy"><i></i></div>
+<div id="emotes" style="display:none">
+  <button data-e="stageDance" title="스테이지 댄스 (Z)">💃</button><button data-e="groove" title="리듬 타기 (X)">🎵</button><button data-e="cheers" title="짠 (C)">🥂</button>
+  <button data-e="drink" title="마시기 (V)">🍸</button><button data-e="wave" title="인사 (B)">👋</button><button data-e="clap" title="박수 (N)">👏</button><button data-e="bow" title="꾸벅 (M)">🙇</button><button data-e="shy" title="쑥스러움">☺️</button>
+</div>
+<div id="chat"><div id="chatlog"></div><div id="chatrow"><input id="chatin" maxlength="120" placeholder="메시지 입력 후 Enter"><button id="chatscope">근처</button><button id="btnVoice" title="근거리 음성">🎙</button></div></div>
+
+<!-- 부킹 대화 패널 -->
+<div id="talk">
+  <div class="th"><canvas id="tFace" width="84" height="96"></canvas>
+    <div class="ti"><div><b id="tName"></b> <span id="tTag" class="tag"></span></div><div id="tJob"></div>
+      <div class="affrow"><div class="aff"><i id="tAff"></i></div><span id="tNum">40</span></div><div id="tStage"></div></div>
+    <button id="tClose" title="대화 종료 (Esc)">✕</button></div>
+  <div id="tLog"></div>
+  <div id="tChips"></div>
+  <div class="trow"><button id="tMic" title="음성으로 말하기">🎤</button><button id="tTts" title="NPC 음성 꺼짐">🔈</button><input id="tIn" maxlength="200" placeholder="말 걸기… (Enter)"><button id="tSend" class="pri">보내기</button></div>
+  <div id="tSrc"></div>
+</div>
+<div id="game"></div>
+
+<div id="start"><div class="card">
+  <h1 class="neon">🪩 추억의 나이트</h1>
+  <p>그 시절 그 조명 아래, 부킹 한 번 해볼까요?<br>(메타버스 · 3D 웹 · AI 부킹)</p>
+  <div class="custom">
+    <canvas id="facePrev" width="120" height="138"></canvas>
+    <div class="copts">
+      <input type="text" id="nick" maxlength="10" placeholder="닉네임 (2~10자)" value="">
+      <div id="cGender" class="seg"><button data-g="f">👩 여성</button><button data-g="m">👨 남성</button></div>
+      <div class="row2"><select id="cHair"></select><select id="cTop"></select></div>
+      <button id="cFace" class="ghost">🎲 얼굴 바꾸기</button>
+    </div>
+  </div>
+  <div class="swatches" id="sws"></div>
+  <div id="modeSel" class="seg" style="display:none"><button data-m="online">🌐 온라인 (실제 접속자)</button><button data-m="solo">🤖 솔로 (AI 손님)</button></div>
+  <button id="go">입장하기</button>
+  <div id="err"></div>
+  <p style="font-size:11px;margin-top:10px">가상공간 오락 콘텐츠 · 만 19세 이상 이용 · 🪙코인은 현금 가치가 없는 게임 재화입니다</p>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>window.THREE || document.write('<script src="vendor/three.min.js"><\/script>');</script>
+<script>if (!window.THREE) { document.getElementById('err').textContent = '3D 라이브러리(three.js)를 불러오지 못했습니다. 인터넷 연결을 확인하거나 npm install 후 서버로 여세요.'; document.getElementById('go').disabled = true; }</script>
+<script src="js/core.js"></script>
+<script src="js/avatar.js"></script>
+<script src="js/motion.js"></script>
+<script src="js/world.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/affinity.js"></script>
+<script src="js/npc.js"></script>
+<script src="js/dialog.js"></script>
+<script src="js/waiter.js"></script>
+<script src="js/minigames.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
