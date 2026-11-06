@@ -77,25 +77,95 @@ function intentReply(npc, text) {
       : a < 60 ? pickOne(['솔직히 나쁘진 않아요. 근데 지금 다 말하면 재미없잖아요 ㅎㅎ', '음~ 생각보다 괜찮은 사람 같아요. 아직은 여기까지!'])
       : a < 80 ? pickOne(['…좋은 쪽이에요. 너무 티 났어요?', '대화할수록 점점 좋아지는 중이에요 😊'])
       : pickOne(['그걸 꼭 말로 들어야 알아요? 좋아요 😊', '오늘 만난 사람 중엔 제일 좋아요. 됐죠?']), 'shy'],
-    [/몇\s*살|나이/, () => `${def.age || '스물 몇'}살이에요. 그쪽은요? 비슷해 보이는데요?`, 'smile'],
-    [/무슨\s*일|직업|뭐\s*하는\s*사람|어떤\s*일|회사/, () => `${def.job || '평범한 회사원'} 일 하고 있어요. ${likes[0] ? likes[0] + ' 좋아하는 게 일에도 도움이 많이 돼요.' : ''} 그쪽은 무슨 일 해요?`, 'smile'],
+    [/몇\s*살|나이가|나이는/, () => `${def.age || '스물 몇'}살이에요. 그쪽은요? 비슷해 보이는데요?`, 'smile', 'age'],
+    [/무슨\s*일|직업|뭐\s*하는\s*사람|어떤\s*일|회사/, () => `${def.job || '평범한 회사원'} 일 하고 있어요. ${likes[0] ? likes[0] + ' 좋아하는 게 일에도 도움이 많이 돼요.' : ''} 그쪽은 무슨 일 해요?`, 'smile', 'work'],
     [/이름/, () => `${name}${josa(name, '이에요', '예요')}. 그쪽 이름도 알려 줄래요?`, 'smile'],
-    [/혼자|누구랑|친구랑/, () => pickOne(['친구들이랑 왔는데 다들 스테이지에 가 버렸어요 ㅎㅎ 그쪽은요?', '반은 혼자예요. 친구가 늦는대서요. 그쪽은 누구랑 왔어요?']), 'smile'],
-    [/자주\s*와|처음\s*와|여기\s*처음|단골/, () => pickOne(['가끔 와요. 오늘은 음악이 좋다고 해서 왔어요.', '사실 오랜만에 왔어요. 분위기가 예전이랑 좀 달라졌네요.']), 'smile'],
-    [/주말|쉬는\s*날|퇴근\s*후|시간\s*날\s*때|평소에/, () => likes.length > 1 ? `쉬는 날엔 ${likes[0]} 관련된 거 찾아보거나 ${likes[1]} 즐기면서 보내요. 그쪽은 주로 뭐 해요?` : '집에서 푹 쉬어요. 그쪽은요?', 'smile'],
-    [/이상형|어떤\s*사람\s*좋아/, () => truths['이상형'] || '대화가 잘 통하는 사람이요. 지금처럼요?', 'shy'],
-    [/뭐\s*좋아|취미|좋아하는\s*(거|것)|관심/, () => likes.length ? `${likes.slice(0, 2).join(', ')} 좋아해요. 특히 ${likes[0]} 얘기하면 시간 가는 줄 몰라요. 그쪽은요?` : '음악 듣는 거 좋아해요. 그쪽은요?', 'laugh'],
-    [/(술|뭐|한\s*잔)\s*(마실|마셔|드실)/, () => pickOne(['가볍게 하이볼이요. 너무 세게 마시면 내일 출근 못 해요 ㅎㅎ', '맥주 한 잔이면 충분해요. 같이 짠 할래요?']), 'smile'],
-    [/^(안녕|반가|처음\s*뵙)/, () => pickOne([`반가워요! ${name}${josa(name, '이에요', '예요')}.`, '안녕하세요~ 말 걸어 줘서 고마워요.']), 'smile'],
-    [/고마워|감사/, () => pickOne(['에이, 별말씀을요 ㅎㅎ', '천만에요. 저도 즐거워요.']), 'smile'],
+    [/주말|쉬는\s*날|퇴근\s*후|시간\s*날\s*때|평소에/, () => likes.length > 1 ? `쉬는 날엔 ${likes[0]} 관련된 거 찾아보거나 ${likes[1]} 즐기면서 보내요. 그쪽은 주로 뭐 해요?` : '집에서 푹 쉬어요. 그쪽은요?', 'smile', 'hobby'],
+    [/이상형|어떤\s*사람\s*좋아/, () => truths['이상형'] || '대화가 잘 통하는 사람이요. 지금처럼요?', 'shy', 'ideal'],
+    [/뭐\s*좋아|취미|좋아하는\s*(거|것)|관심/, () => likes.length ? `${likes.slice(0, 2).join(', ')} 좋아해요. 특히 ${likes[0]} 얘기하면 시간 가는 줄 몰라요. 그쪽은요?` : '음악 듣는 거 좋아해요. 그쪽은요?', 'laugh', 'hobby'],
     [/(춤|댄스).*(잘|출|추)/, () => likes.some(l => /춤|댄스/.test(l)) ? '춤이요? 제 전공이죠 ㅎㅎ 이따 같이 스테이지 갈래요?' : '잘은 못 춰요… 그래도 리듬 타는 건 좋아해요.', 'laugh'],
   ];
   // "OO 좋아해요?" → 페르소나 관심사면 구체적으로 답함
   const topicQ = (P.likes || []).find(l => (l.kw || []).concat(l.topic).some(k => t.includes(k)));
-  if (topicQ && /\?|좋아|어때/.test(t)) return { reply: pickOne([`네, ${topicQ.topic} 진짜 좋아해요! 어떻게 알았어요?`, `${topicQ.topic}${josa(topicQ.topic, '은', '는')} 제 최애 얘기예요. 그쪽도 좋아해요?`]), emotion: 'laugh' };
-  for (const [re, f, emo] of R) if (re.test(t)) return { reply: f(), emotion: emo };
+  if (topicQ && /\?|좋아|어때/.test(t)) return { reply: pickOne([`네, ${topicQ.topic} 진짜 좋아해요! 어떻게 알았어요?`, `${topicQ.topic}${josa(topicQ.topic, '은', '는')} 제 최애 얘기예요. 그쪽도 좋아해요?`]), emotion: 'laugh', fu: 'hobby' };
+  for (const [re, f, emo, fu] of R) if (re.test(t)) return { reply: f(), emotion: emo, fu: fu || null };
   return null;
 }
+
+
+/* ═══════════ 대화 코퍼스 엔진 (data/conversations.json · 대화쌍 1,100+) ═══════════
+ * 매칭 점수 = 키워드 점수(긴 키워드일수록 가중) + 예문과의 글자 바이그램 유사도(Dice) × 4
+ *  · 리액션류(네/아니요/와/ㅋㅋ…)는 짧은 말일 때만 강하게 매칭 → 긴 문장 속 '진짜' 같은 단어에 끌려가지 않음
+ *  · 1글자 키워드는 그 단어 단독으로 말했을 때만 인정
+ *  · NPC가 질문으로 끝냈으면 '후속 반응 뱅크'를 기억했다가, 다음 플레이어 답이 다른 의도와 안 맞으면 그 뱅크로 받아 줌
+ *  · 같은 NPC가 같은 문장을 반복하지 않도록 사용한 문장 기록
+ *  · 문장 안의 {like1} {like2} {name} {age} {job} {mbti} 는 NPC 데이터로 치환(받침에 맞춰 조사 자동 보정)
+ */
+const Conv = NC.Conv = { data: null };
+const WEAK = new Set(['yes', 'no', 'really', 'wow', 'hmm', 'agree', 'laugh_react', 'thanks', 'sorry', 'why', 'you_first', 'disagree']);
+const normT = s => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}?\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+// 어미·추임새처럼 어느 문장에나 나오는 바이그램은 유사도 계산에서 제외 (예: '좋아해요'만 같아서 엉뚱한 의도로 가는 것 방지)
+const STOP2 = new Set(['해요', '세요', '에요', '예요', '어요', '아요', '나요', '네요', '까요', '아해', '좋아', '있어', '하세', '했어', '진짜', '정말', '그쪽', '저는', '오늘', '너무', '이에', '이요', '요ㅎ', '하는', '는데', '거예', '같아', '것같', '하고', '어서']);
+const bigr = s => { s = s.replace(/[\s?]/g, ''); const o = new Set(); for (let i = 0; i < s.length - 1; i++) { const b = s.slice(i, i + 2); if (!STOP2.has(b)) o.add(b); } if (s.length === 1) o.add(s); return o; };
+const dice = (a, b) => { if (!a.size || !b.size) return 0; let n = 0; a.forEach(x => { if (b.has(x)) n++; }); return 2 * n / (a.size + b.size); };
+fetch('data/conversations.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
+  if (!d) return; d.intents.forEach(it => { it._ex = it.ex.map(e => bigr(normT(e))); }); Conv.data = d;
+  console.info(`[conv] 의도 ${d.stats.intents} · 대화쌍 ${d.stats.pairs}`);
+}).catch(() => { });
+
+const TRAIT_MBTI = { outgoing: 'ENFP', shy: 'ISFJ', playful: 'ESFP', cool: 'INTJ' };
+const PAIRS = [['이에요', '예요'], ['이랑', '랑'], ['은', '는'], ['을', '를'], ['과', '와'], ['이', '가']];
+function convVars(npc) {
+  const def = npc.def || {}, P = npc.persona || {}, likes = (P.likes || []).map(l => l.topic);
+  const job = def.mbti ? def.job : String(def.job || '').split('·').pop().trim();
+  return { name: npc.name, age: def.age || '스물 몇', job: job && job !== '직업' ? job : '회사원', mbti: def.mbti || TRAIT_MBTI[npc.trait] || 'ENFP',
+           like1: likes[0] || '음악 듣기', like2: likes[1] || '여행' };
+}
+function convFill(s, v) {
+  return s.replace(/\{(\w+)\}(이에요|예요|이랑|랑|은|는|을|를|과|와|이|가)?/g, (_, k, p) => {
+    const w = String(v[k] ?? ''); if (!p) return w;
+    const pair = PAIRS.find(x => x.includes(p)); const c = w.charCodeAt(w.length - 1);
+    const bat = c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 !== 0;
+    return w + (pair ? (bat ? pair[0] : pair[1]) : p);
+  });
+}
+Conv.match = function (text) {
+  const d = Conv.data; if (!d) return null;
+  const t = normT(text), tb = bigr(t), compact = t.replace(/[\s?]/g, ''), short = compact.length <= 6, toks = t.split(' ');
+  let best = null, bs = 0;
+  for (const it of d.intents) {
+    let kw = 0;
+    for (const k of it.k) {
+      if (k.length === 1) { if (compact === k || toks.includes(k)) kw += 1.6; }
+      else if (t.includes(k)) kw += 1 + k.length * .6;
+    }
+    let sim = 0; for (const e of it._ex) sim = Math.max(sim, dice(tb, e));
+    if (!kw && sim < .5) continue;                 // 키워드 없이 어설프게 비슷한 문장은 무시
+    let sc = kw + sim * 4;
+    if (WEAK.has(it.id) && !short) sc *= .35;
+    if (sc > bs) { bs = sc; best = it; }
+  }
+  return bs >= 1.9 ? { it: best, score: bs } : null;
+};
+function pickFresh(npc, list) {
+  const used = npc.convUsed || (npc.convUsed = new Set()); let pool = list.filter(x => !used.has(x)); if (!pool.length) pool = list;
+  const s = pool[Math.floor(Math.random() * pool.length)]; used.add(s); if (used.size > 400) used.clear(); return s;
+}
+Conv.reply = function (npc, text) {
+  const d = Conv.data; if (!d) return null;
+  const tr = npc.trait in TRAIT_MBTI ? npc.trait : 'outgoing', v = convVars(npc);
+  const m = Conv.match(text), isQ = /\?|요\?|까$|나요$|세요$/.test(String(text).trim());
+  let src = null, emotion = 'smile', fu = null, id = null;
+  // 직전 주제에 대한 '대답'으로 보이면 후속 반응을 우선 (같은 질문 반복·짧은 네/아니요 오해 방지)
+  const pend = npc.pendingFu && d.followups[npc.pendingFu];
+  const useFu = pend && !isQ && (!m || WEAK.has(m.it.id) || m.it.id === npc.lastConvId || m.score < 3);
+  if (useFu) { const b = d.followups[npc.pendingFu]; src = b.r[tr] || b.r.outgoing; id = 'fu:' + npc.pendingFu; emotion = 'smile'; }
+  else if (m) { src = m.it.r[tr] || m.it.r.outgoing; emotion = m.it.e; fu = m.it.fu; id = m.it.id; }
+  if (!src) return null;
+  const reply = convFill(pickFresh(npc, src), v);
+  npc.pendingFu = fu || null; npc.lastConvId = id;   // 주제 후속 반응은 다음 한 턴 동안 유효
+  return { reply, emotion: emotion === 'neutral' ? 'smile' : emotion, id };
+};
 
 /* ── 로컬 대사 엔진 (LLM 미설정 시) ── */
 function linesFor(npc, key) { const P = npc.persona || {}, own = P.lines && P.lines[key]; const fb = (NC.fallbackLines || {})[npc.trait || 'outgoing'] || {}; return (own && own.length ? own : fb[key]) || fb.generic || ['…그렇군요.']; }
@@ -115,16 +185,21 @@ function localReply(npc, an, ctx = {}) {
   else if (f.boring) { key = 'boring'; emotion = 'neutral'; }
   if (f.cheers) { key = 'cheers'; emotion = 'smile'; action = 'cheers'; }
   let reply = fill(U.pick(linesFor(npc, key)), v);
-  // 질문 의도를 알아들으면 그 질문에 직접 답함 (무례·선넘기·밀당 상황 제외)
-  const ir = !f.rude && !f.pushy && !f.tease && key !== 'cheers' ? intentReply(npc, ctx.text || '') : null;
-  if (ir) { reply = ir.reply; emotion = ir.emotion; }
+  // 우선순위: ① 무례·선넘기·밀당·싫은 주제 = 규칙 대사 유지  ② 페르소나 사실 질문(나이·직업·이상형…)  ③ 대화 코퍼스  ④ 성격별 기본 대사
+  const ruleFirst = f.rude || f.pushy || f.tease || an.dislike || f.brag;
+  let src = 'rule';
+  if (!ruleFirst) {
+    const ir = intentReply(npc, ctx.text || '');
+    if (ir) { reply = ir.reply; emotion = ir.emotion; npc.pendingFu = ir.fu || null; src = 'persona'; }
+    else if (!an.topic) { const cv = Conv.reply(npc, ctx.text || ''); if (cv) { reply = cv.reply; emotion = cv.emotion; src = cv.id; } }
+  } else npc.pendingFu = null;
   if (f.dance && !f.rude) action = 'dance'; if (f.game && !f.rude) action = 'game';
   // 훅: 플레이어가 질문하지 않았고, 답에 이미 되묻기가 없을 때만 새 질문을 한 번 붙임 (같은 질문 반복 금지)
   const asked = npc.askedSet || (npc.askedSet = new Set());
-  if (!f.rude && !f.pushy && !f.question && !/\?\s*$/.test(reply) && key !== 'cheers' && Math.random() < .45) {
+  if (!f.rude && !f.pushy && !f.question && !/\?\s*$/.test(reply) && key !== 'cheers' && src === 'rule' && Math.random() < .45) {
     const asks = ((P.lines && P.lines.ask) || []).filter(q => !asked.has(q)); if (asks.length) { const q = U.pick(asks); asked.add(q); reply += ' ' + q; }
   }
-  return { reply, emotion, action };
+  return { reply, emotion, action, src };
 }
 
 /* ── LLM 클라이언트 ── */
