@@ -66,6 +66,37 @@ function analyze(text, npc, ctx = {}) {
   return { delta: d, tags, topic, dislike, flags: f };
 }
 
+/* ── 질문 의도 인식: 플레이어 질문에 '실제로 답하는' 로컬 응답 ── */
+const josa = (w, a, b) => { const c = String(w).charCodeAt(String(w).length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b; };   // 받침 있으면 a
+const pickOne = a => a[Math.floor(Math.random() * a.length)];
+function intentReply(npc, text) {
+  const t = text.replace(/\s+/g, ' ').trim(), P = npc.persona || {}, a = npc.aff, def = npc.def || {};
+  const likes = (P.likes || []).map(l => l.topic), truths = P.truths || {}, name = npc.name;
+  const R = [
+    [/(저|나|날|나를|저를)\s*(어때|좋아|맘에|마음에|괜찮)/, () => a < 40 ? pickOne(['음… 아직은 잘 모르겠어요. 얘기를 좀 더 해 봐야 알 것 같은데요?', '벌써 그걸 물어봐요? 조금만 더 지켜볼게요 ㅎㅎ'])
+      : a < 60 ? pickOne(['솔직히 나쁘진 않아요. 근데 지금 다 말하면 재미없잖아요 ㅎㅎ', '음~ 생각보다 괜찮은 사람 같아요. 아직은 여기까지!'])
+      : a < 80 ? pickOne(['…좋은 쪽이에요. 너무 티 났어요?', '대화할수록 점점 좋아지는 중이에요 😊'])
+      : pickOne(['그걸 꼭 말로 들어야 알아요? 좋아요 😊', '오늘 만난 사람 중엔 제일 좋아요. 됐죠?']), 'shy'],
+    [/몇\s*살|나이/, () => `${def.age || '스물 몇'}살이에요. 그쪽은요? 비슷해 보이는데요?`, 'smile'],
+    [/무슨\s*일|직업|뭐\s*하는\s*사람|어떤\s*일|회사/, () => `${def.job || '평범한 회사원'} 일 하고 있어요. ${likes[0] ? likes[0] + ' 좋아하는 게 일에도 도움이 많이 돼요.' : ''} 그쪽은 무슨 일 해요?`, 'smile'],
+    [/이름/, () => `${name}${josa(name, '이에요', '예요')}. 그쪽 이름도 알려 줄래요?`, 'smile'],
+    [/혼자|누구랑|친구랑/, () => pickOne(['친구들이랑 왔는데 다들 스테이지에 가 버렸어요 ㅎㅎ 그쪽은요?', '반은 혼자예요. 친구가 늦는대서요. 그쪽은 누구랑 왔어요?']), 'smile'],
+    [/자주\s*와|처음\s*와|여기\s*처음|단골/, () => pickOne(['가끔 와요. 오늘은 음악이 좋다고 해서 왔어요.', '사실 오랜만에 왔어요. 분위기가 예전이랑 좀 달라졌네요.']), 'smile'],
+    [/주말|쉬는\s*날|퇴근\s*후|시간\s*날\s*때|평소에/, () => likes.length > 1 ? `쉬는 날엔 ${likes[0]} 관련된 거 찾아보거나 ${likes[1]} 즐기면서 보내요. 그쪽은 주로 뭐 해요?` : '집에서 푹 쉬어요. 그쪽은요?', 'smile'],
+    [/이상형|어떤\s*사람\s*좋아/, () => truths['이상형'] || '대화가 잘 통하는 사람이요. 지금처럼요?', 'shy'],
+    [/뭐\s*좋아|취미|좋아하는\s*(거|것)|관심/, () => likes.length ? `${likes.slice(0, 2).join(', ')} 좋아해요. 특히 ${likes[0]} 얘기하면 시간 가는 줄 몰라요. 그쪽은요?` : '음악 듣는 거 좋아해요. 그쪽은요?', 'laugh'],
+    [/(술|뭐|한\s*잔)\s*(마실|마셔|드실)/, () => pickOne(['가볍게 하이볼이요. 너무 세게 마시면 내일 출근 못 해요 ㅎㅎ', '맥주 한 잔이면 충분해요. 같이 짠 할래요?']), 'smile'],
+    [/^(안녕|반가|처음\s*뵙)/, () => pickOne([`반가워요! ${name}${josa(name, '이에요', '예요')}.`, '안녕하세요~ 말 걸어 줘서 고마워요.']), 'smile'],
+    [/고마워|감사/, () => pickOne(['에이, 별말씀을요 ㅎㅎ', '천만에요. 저도 즐거워요.']), 'smile'],
+    [/(춤|댄스).*(잘|출|추)/, () => likes.some(l => /춤|댄스/.test(l)) ? '춤이요? 제 전공이죠 ㅎㅎ 이따 같이 스테이지 갈래요?' : '잘은 못 춰요… 그래도 리듬 타는 건 좋아해요.', 'laugh'],
+  ];
+  // "OO 좋아해요?" → 페르소나 관심사면 구체적으로 답함
+  const topicQ = (P.likes || []).find(l => (l.kw || []).concat(l.topic).some(k => t.includes(k)));
+  if (topicQ && /\?|좋아|어때/.test(t)) return { reply: pickOne([`네, ${topicQ.topic} 진짜 좋아해요! 어떻게 알았어요?`, `${topicQ.topic}${josa(topicQ.topic, '은', '는')} 제 최애 얘기예요. 그쪽도 좋아해요?`]), emotion: 'laugh' };
+  for (const [re, f, emo] of R) if (re.test(t)) return { reply: f(), emotion: emo };
+  return null;
+}
+
 /* ── 로컬 대사 엔진 (LLM 미설정 시) ── */
 function linesFor(npc, key) { const P = npc.persona || {}, own = P.lines && P.lines[key]; const fb = (NC.fallbackLines || {})[npc.trait || 'outgoing'] || {}; return (own && own.length ? own : fb[key]) || fb.generic || ['…그렇군요.']; }
 function fill(s, v) { return String(s).replace(/\{(\w+)\}/g, (_, k) => v[k] ?? ''); }
@@ -84,11 +115,15 @@ function localReply(npc, an, ctx = {}) {
   else if (f.boring) { key = 'boring'; emotion = 'neutral'; }
   if (f.cheers) { key = 'cheers'; emotion = 'smile'; action = 'cheers'; }
   let reply = fill(U.pick(linesFor(npc, key)), v);
-  // 질문엔 취향으로 답하기
-  if (key === 'question' && P.likes && P.likes.length && /좋아|취미|뭐 해|주말|관심/.test(ctx.text || '')) reply = `저는 ${U.pick(P.likes).topic} 좋아해요! ` + reply;
+  // 질문 의도를 알아들으면 그 질문에 직접 답함 (무례·선넘기·밀당 상황 제외)
+  const ir = !f.rude && !f.pushy && !f.tease && key !== 'cheers' ? intentReply(npc, ctx.text || '') : null;
+  if (ir) { reply = ir.reply; emotion = ir.emotion; }
   if (f.dance && !f.rude) action = 'dance'; if (f.game && !f.rude) action = 'game';
-  // 훅: 대화를 이어갈 되묻기
-  if (!f.rude && !f.pushy && key !== 'cheers' && Math.random() < .55) { const asks = (P.lines && P.lines.ask) || []; if (asks.length) reply += ' ' + U.pick(asks); }
+  // 훅: 플레이어가 질문하지 않았고, 답에 이미 되묻기가 없을 때만 새 질문을 한 번 붙임 (같은 질문 반복 금지)
+  const asked = npc.askedSet || (npc.askedSet = new Set());
+  if (!f.rude && !f.pushy && !f.question && !/\?\s*$/.test(reply) && key !== 'cheers' && Math.random() < .45) {
+    const asks = ((P.lines && P.lines.ask) || []).filter(q => !asked.has(q)); if (asks.length) { const q = U.pick(asks); asked.add(q); reply += ' ' + q; }
+  }
   return { reply, emotion, action };
 }
 
