@@ -1,0 +1,19 @@
+{
+  "name": "nostalgia-night-metaverse",
+  "version": "1.0.0",
+  "description": "추억의 나이트 메타버스 (3D 웹)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^4.22.3",
+    "ws": "^8.22.1"
+  },
+  "devDependencies": {
+    "three": "^0.128.0"
+  }
+}
