@@ -32,10 +32,24 @@ const TRAIT_W = {
   cool: { compliment: 1, looks: -2, joke: 3, question: 5, brag: -7, cheesy: -6, boring: -3 },
 };
 
+/* 19금 드립 호감도: 친해지기 전엔 감점, 충분히 친하면 농담으로 받아 줌. 장난형은 관대, 수줍/시크형은 엄격.
+ *  tier1(스킨십·플러팅): <40 −4 / <60 0 / 60↑ +3     tier2(직설·수위↑): <40 −10 / <60 −6 / <80 −3 / 80↑ +1
+ *  불쾌형(신체 노골 언급·만지기 등, 감정 annoyed)은 −2 추가 + 가점 없음 */
+const ADULT_TRAIT = { playful: 2, outgoing: 1, shy: -2, cool: -2 };
+function adultDelta(tier, crude, aff, trait) {
+  let d = tier === 1 ? (aff < 40 ? -4 : aff < 60 ? 0 : 3) : (aff < 40 ? -10 : aff < 60 ? -6 : aff < 80 ? -3 : 1);
+  d += (ADULT_TRAIT[trait] || 0) * (tier === 1 ? .5 : 1);
+  if (crude) d = Math.min(d - 2, 0);
+  return Math.round(d);
+}
 function analyze(text, npc, ctx = {}) {
   const t = String(text || '').toLowerCase().trim(), P = npc.persona || {}, trait = npc.trait || 'outgoing', W = TRAIT_W[trait] || TRAIT_W.outgoing;
   const aff = npc.aff, tags = [], f = {}; let d = 0, topic = null, dislike = null;
-  f.rude = has(t, KW.rude); f.sexual = has(t, KW.sexual); f.pushy = f.sexual || has(t, KW.pushy);
+  f.rude = has(t, KW.rude);
+  // 19금 드립: 코퍼스의 x1_(가벼운 스킨십)·x2_(수위↑) 의도와 맞으면 '선넘기' 대신 호감도 단계별로 판정
+  const am = NC.Conv && NC.Conv.match ? NC.Conv.match(text) : null;
+  f.adult = am && /^x[12]_/.test(am.it.id) ? (am.it.id[1] === '1' ? 1 : 2) : 0; f.adultCrude = f.adult && am.it.e === 'annoyed';
+  f.sexual = !f.adult && has(t, KW.sexual); f.pushy = f.sexual || (!f.adult && has(t, KW.pushy));
   f.compliment = has(t, KW.compliment); f.looks = f.compliment && has(t, KW.looks); f.joke = has(t, KW.joke);
   f.brag = has(t, KW.brag); f.cheesy = has(t, KW.cheesy); f.question = has(t, KW.askAbout);
   f.boring = t.length < 3 || KW.boringExact.includes(t.replace(/[.!~?]/g, ''));
@@ -45,7 +59,8 @@ function analyze(text, npc, ctx = {}) {
   (P.dislikes || []).forEach(l => { if (!dislike && has(t, (l.kw || []).map(k => k.toLowerCase()))) dislike = l.topic; });
   if (f.rude) { d -= 15; tags.push('무례·비하'); }
   if (f.pushy) { d -= f.sexual ? 12 : 8; tags.push(f.sexual ? '성적 발언(선넘기)' : '선넘기(연락처/실제만남)'); }
-  if (!f.rude && !f.pushy) {
+  if (f.adult && !f.rude) { d += adultDelta(f.adult, f.adultCrude, aff, trait); tags.push(f.adult === 1 ? '19금 드립(가벼움)' : '19금 드립(수위↑)'); }
+  if (!f.rude && !f.pushy && !f.adult) {
     if (topic) { const n = (npc.topicHits[topic] = (npc.topicHits[topic] || 0) + 1); d += Math.round(7 * Math.pow(.5, n - 1)); tags.push('관심사:' + topic + (n > 1 ? `(반복${n})` : '')); }
     if (dislike) { d -= 6; tags.push('싫어하는 주제:' + dislike); }
     if (f.compliment) { let c = f.looks ? W.looks : W.compliment; if (aff < 40) c = Math.round(c / 2); d += c; tags.push(f.looks ? '외모 칭찬' : '칭찬'); }
@@ -119,7 +134,7 @@ function convVars(npc) {
   const def = npc.def || {}, P = npc.persona || {}, likes = (P.likes || []).map(l => l.topic);
   const job = def.mbti ? def.job : String(def.job || '').split('·').pop().trim();
   return { name: npc.name, age: def.age || '스물 몇', job: job && job !== '직업' ? job : '회사원', mbti: def.mbti || TRAIT_MBTI[npc.trait] || 'ENFP',
-           like1: likes[0] || '음악 듣기', like2: likes[1] || '여행' };
+           like1: likes[0] || '음악 듣기', like2: likes[1] || '여행', them: (def.gender || npc.gender) === 'm' ? '여자' : '남자' };
 }
 function convFill(s, v) {
   return s.replace(/\{(\w+)\}(이에요|예요|이랑|랑|은|는|을|를|과|와|이|가)?/g, (_, k, p) => {
@@ -158,7 +173,8 @@ Conv.reply = function (npc, text) {
   let src = null, emotion = 'smile', fu = null, id = null;
   // 직전 주제에 대한 '대답'으로 보이면 후속 반응을 우선 (같은 질문 반복·짧은 네/아니요 오해 방지)
   const pend = npc.pendingFu && d.followups[npc.pendingFu];
-  const useFu = pend && !isQ && (!m || WEAK.has(m.it.id) || m.it.id === npc.lastConvId || m.score < 3);
+  const adult = m && /^x[12]_/.test(m.it.id);
+  const useFu = pend && !adult && !isQ && (!m || WEAK.has(m.it.id) || m.it.id === npc.lastConvId || m.score < 3);
   if (useFu) { const b = d.followups[npc.pendingFu]; src = b.r[tr] || b.r.outgoing; id = 'fu:' + npc.pendingFu; emotion = 'smile'; }
   else if (m) { src = m.it.r[tr] || m.it.r.outgoing; emotion = m.it.e; fu = m.it.fu; id = m.it.id; }
   if (!src) return null;
@@ -175,6 +191,7 @@ function localReply(npc, an, ctx = {}) {
   let key = 'generic', emotion = 'neutral', action = 'none';
   if (f.rude) { key = 'rude'; emotion = 'annoyed'; }
   else if (f.pushy) { key = 'pushy'; emotion = 'annoyed'; }
+  else if (f.adult) { key = 'tease'; emotion = 'wink'; }
   else if (f.tease) { key = 'tease'; emotion = 'wink'; }
   else if (an.dislike) { key = 'dislike'; emotion = 'sad'; }
   else if (f.brag || f.cheesy) { key = 'dislike'; emotion = 'annoyed'; }
@@ -188,7 +205,9 @@ function localReply(npc, an, ctx = {}) {
   // 우선순위: ① 무례·선넘기·밀당·싫은 주제 = 규칙 대사 유지  ② 페르소나 사실 질문(나이·직업·이상형…)  ③ 대화 코퍼스  ④ 성격별 기본 대사
   const ruleFirst = f.rude || f.pushy || f.tease || an.dislike || f.brag;
   let src = 'rule';
-  if (!ruleFirst) {
+  if (f.adult && !f.rude) {   // 19금 드립은 코퍼스의 재치 있는 받아치기로 응답
+    const cv = Conv.reply(npc, ctx.text || ''); if (cv) { reply = cv.reply; emotion = cv.emotion; src = cv.id; }
+  } else if (!ruleFirst) {
     const ir = intentReply(npc, ctx.text || '');
     if (ir) { reply = ir.reply; emotion = ir.emotion; npc.pendingFu = ir.fu || null; src = 'persona'; }
     else if (!an.topic) { const cv = Conv.reply(npc, ctx.text || ''); if (cv) { reply = cv.reply; emotion = cv.emotion; src = cv.id; } }
