@@ -89,6 +89,7 @@ function doCheers(fromNpc) {
 const CHIP = (label, fn, cls) => { const b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls; b.onclick = fn; el.chips.appendChild(b); };
 function chips() {
   const c = D.cur; el.chips.innerHTML = ''; if (!c) return; const n = c.n, P = NC.player;
+  if (NC.dialogChipsOverride) { try { if (NC.dialogChipsOverride(n, CHIP, c)) return; } catch (e) { console.error(e); } }   // v9: 부르스 등 특수 상황 전용 칩
   if (n.ended) CHIP('💌 가상 인스타 교환 (엔딩)', () => { NC.Wallet.add(50, `${n.name}님과 엔딩`); Mo.trigger(n.g, 'game:win'); Mo.trigger(P.group, 'game:win', { silent: true }); sys(`🎉 ${n.name}님과 가상 인스타 교환 성공! (게임 내 엔딩 · 실제 연락처 아님)`); n.aff = 100; renderHead(); setTimeout(() => D.close('ending'), 2600); }, 'pri');
   if (n.history.length <= 1) (NC.openers || []).forEach(o => CHIP('🗨 ' + o.t, () => send(o.t)));
   const likes = ((n.persona && n.persona.likes) || []).slice().sort(() => Math.random() - .5).slice(0, 2);
@@ -98,6 +99,7 @@ function chips() {
   CHIP('🎲 미니게임', () => NC.Games && NC.Games.menu(n));
   CHIP('💃 같이 춤춰요', () => { const now = Date.now(); Mo.play(n.g, 'cheer'); Mo.play(P.group, 'cheer'); NC.net && NC.net.send({ type: 'emote', name: 'cheer' }); if (now - c.danceAt > 60e3) { c.danceAt = now; const d = n.trait === 'shy' ? 1 : 3; n.aff = Math.min(100, n.aff + d); floatDelta(d); } npcSay(n.trait === 'shy' ? '아… 저 춤 잘 못 추는데… 헤헤' : '오 좋아요! 리듬 타 리듬~', 'laugh'); renderHead(); });
   if (!P.seat && n.state !== 'seated' && n.aff >= 50 && NC.VIP) CHIP('🚪 VIP 룸으로 갈래요?', () => NC.VIP.moveWith(n));
+  (NC.dialogChips || []).forEach(f => { try { f(n, CHIP, c); } catch (e) { console.error(e); } });
   CHIP('👋 일어날게요', () => D.close('bye'));
 }
 

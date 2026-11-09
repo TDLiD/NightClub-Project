@@ -21,7 +21,7 @@ function standLocal() {
 NC.standLocal = standLocal;
 NC.requestStand = () => { if (P.seat && P.seat.kind === 'table' && NC.net && NC.mode === 'online') NC.net.send({ type: 'stand' }); else standLocal(); };
 NC.requestSit = t => { if (P.busy) return; if (NC.mode === 'online' && NC.net) return NC.net.send({ type: 'sit', table: t }); const free = NC.tableOcc[t].findIndex(v => v == null); if (free >= 0) NC.ui.fade(() => { NC.tableOcc[t][free] = 'me'; NC.sitPlayer({ kind: 'table', t, s: free }, NC.seatPos(t, free)); }); };
-NC.walkPlayer = (path, done) => { if (P.seat) standLocal(); P.autoPath = path.slice(); P.onAuto = done; P.target = null; P.autoStuck = 0; };
+NC.walkPlayer = (path, done) => { if (P.seat) standLocal(); P.autoPath = path.slice(); P.onAuto = done; P.target = null; P.autoStuck = 0; P.autoSpeed = 0; };
 
 /* ───────── 입력 ───────── */
 const typing = NC.ui.typing;
@@ -52,9 +52,30 @@ addEventListener('pointerup', e => {
   if (!pt.down || e.pointerId !== pt.id) return; pt.down = false;
   if (pt.moved < 8 && P.group && !P.busy && e.target === NC.canvas) {
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
-    const v = new T.Vector3(); if (ray.ray.intersectPlane(plane, v)) { if (P.seat) NC.requestStand(); P.autoPath = null; P.target = { x: v.x, z: v.z }; }
+    const v = new T.Vector3(); if (ray.ray.intersectPlane(plane, v)) clickMove(v, ray.ray);
   }
 });
+/* v9: 클릭 이동 = 길찾기. 유리벽·VIP 간판을 눌러도 그 방 입구로, 바 카운터를 누르면 빈 바 의자로 걸어간다 */
+const marker = new T.Mesh(new T.RingGeometry(.22, .3, 32).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0xff5fd2, transparent: true, opacity: 0, depthWrite: false }));
+marker.renderOrder = 5; NC.scene.add(marker);
+NC.clickMove = (v, r) => clickMove(v, r);
+function clickMove(v, r) {
+  let to = { x: v.x, z: v.z }, sitAfter = false;
+  const inExtra = W.extraZones.some(e => e.test(P.x, P.z));
+  if (!inExtra && W.vipAt(to.x, to.z) < 0 && P.z < W.vip[0].z0 && r.direction.z > 0) {        // 앞 유리벽·문·간판을 클릭했는지: 광선이 VIP 정면(z0)을 사람 키 높이로 통과?
+    const z0 = W.vip[0].z0, t = (z0 - r.origin.z) / r.direction.z, y = r.origin.y + r.direction.y * t, x = r.origin.x + r.direction.x * t;
+    if (t > 0 && y > -.1 && y < 5.2) { const vv = W.vip.find(q => x > q.x0 && x < q.x1); if (vv) to = { x: vv.cx, z: vv.z0 + 2.2 }; }
+  }
+  const room = inExtra ? -1 : W.vipAt(to.x, to.z);
+  if (room >= 0 && room !== P.room && W.locked(room)) { NC.ui.toast(`🔒 VIP ${room + 1} 룸은 지금 다른 손님이 사용 중이에요`); return; }
+  if (P.seat) NC.requestStand();
+  const path = !inExtra && NC.Path ? NC.Path.find(P, to) : null;
+  if (path) { sitAfter = path.snapped; const end = path[path.length - 1];
+    NC.walkPlayer(path, () => { if (!sitAfter) return; const a = computeAct(x => /앉기/.test(x.label)); if (a) a.run(); });
+    P.autoSpeed = P.speed; marker.position.set(end.x, NC.groundY(end.x, end.z) + .03, end.z); marker.material.opacity = .9; }
+  else { P.autoPath = null; P.target = to; marker.position.set(to.x, .03, to.z); marker.material.opacity = .9; }
+}
+NC.tickers.push(dt => { if (marker.material.opacity > 0) { marker.material.opacity = Math.max(0, marker.material.opacity - dt * (P.autoPath || P.target ? .25 : 2)); marker.scale.setScalar(1 + .15 * Math.sin(performance.now() / 120)); } });
 if (matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window) {
   const jb = $('#joy'), jk = jb.firstElementChild; let jid = null;
   NC.on('start', () => { jb.style.display = 'block'; });
@@ -69,7 +90,7 @@ $('#emotes').addEventListener('click', e => { const b = e.target.closest('button
 
 /* ───────── 상호작용 후보 ───────── */
 let curAct = null; const actBtn = $('#act');
-function computeAct() {
+function computeAct(filter) {
   if (!P.group || P.busy || P.autoPath) return null; const c = [];
   if (P.seat) c.push({ label: '🚪 자리에서 일어나기 (E)', dist: 0, run: NC.requestStand });
   else {
@@ -77,7 +98,7 @@ function computeAct() {
     if (P.room >= 0) { const v = W.vip[P.room]; v.seats.forEach((s, i) => { const d = Math.hypot(s.x - P.x, s.z - P.z); if (d < 2.2 && !v.occ[i]) c.push({ label: `🛋 VIP ${v.id + 1} 소파에 앉기 (E)`, dist: d + .4, run: () => NC.ui.fade(() => { v.occ[i] = 'me'; NC.sitPlayer({ kind: 'vip', room: v.id, s: i }, s); }) }); }); }
     NC.interactProviders.forEach(f => { try { (f() || []).forEach(x => c.push(x)); } catch (e) { console.error(e); } });
   }
-  c.sort((a, b) => a.dist - b.dist); return c[0] || null;
+  c.sort((a, b) => a.dist - b.dist); return (filter ? c.filter(filter) : c)[0] || null;
 }
 actBtn.onclick = () => curAct && curAct.run();
 
@@ -112,7 +133,7 @@ function frame() {
     if (!P.seat) {
       let mx = 0, mz = 0, sp = P.speed;
       if (kl > .1 && !P.busy) { const l = Math.min(1, kl), sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw); mx = ((kx / kl) * cy + (ky / kl) * -sy) * l; mz = ((kx / kl) * -sy + (ky / kl) * -cy) * l; moving = true; }
-      else if (P.autoPath) { const p = P.autoPath[0]; if (!p) { const f = P.onAuto; P.autoPath = null; P.onAuto = null; f && f(); } else { const dx = p.x - P.x, dz = p.z - P.z, d = Math.hypot(dx, dz); if (d < .35 || P.autoStuck > .8) { P.autoPath.shift(); P.autoStuck = 0; } else { mx = dx / d; mz = dz / d; moving = true; sp = 4.2; } } }
+      else if (P.autoPath) { const p = P.autoPath[0]; if (!p) { const f = P.onAuto; P.autoPath = null; P.onAuto = null; f && f(); } else { const dx = p.x - P.x, dz = p.z - P.z, d = Math.hypot(dx, dz); if (d < .35 || P.autoStuck > 1.2) { if (P.autoStuck > 1.2 && NC.Path && !P.replanned) { const last = P.autoPath[P.autoPath.length - 1], np = NC.Path.find(P, last); P.replanned = true; if (np) P.autoPath = np; else P.autoPath.shift(); } else P.autoPath.shift(); P.autoStuck = 0; if (!P.autoPath.length) P.replanned = false; } else { mx = dx / d; mz = dz / d; moving = true; sp = P.autoSpeed || 4.2; } } }
       else if (P.target && !P.busy) { const dx = P.target.x - P.x, dz = P.target.z - P.z, d = Math.hypot(dx, dz); if (d < .25) P.target = null; else { mx = dx / d; mz = dz / d; moving = true; } }
       if (moving) { const px = P.x, pz = P.z; P.x += mx * sp * dt; P.z += mz * sp * dt; NC.collide(P, .4); const moved = Math.hypot(P.x - px, P.z - pz); if (moved < sp * dt * .25) { P.autoStuck += dt; if (P.target) P.target = null; } P.ry = U.lerpAngle(P.ry, Math.atan2(mx, mz), Math.min(1, dt * 12)); P.group.rotation.y = P.ry; }
       P.y += (NC.groundY(P.x, P.z) - P.y) * Math.min(1, dt * 12);

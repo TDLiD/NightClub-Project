@@ -144,6 +144,7 @@ const A = NC.Audio = {
       hit: () => this.tone(1320, t, .09, 'triangle', .22, 8000, b),
       miss: () => this.tone(180, t, .12, 'sawtooth', .12, 800, b),
       pop: () => { this.tone(660, t, .06, 'sine', .2, 5000, b); this.tone(990, t + .05, .1, 'sine', .15, 5000, b); },
+      slap: () => { this.hit(t, 2600, .07, .4, b); this.tone(320, t, .06, 'triangle', .2, 2000, b); },
       heart: () => [784, 988].forEach((f, i) => this.tone(f, t + i * .1, .2, 'sine', .16, 5000, b)) };
     (P[name] || P.pop)();
   },

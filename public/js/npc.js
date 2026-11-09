@@ -34,6 +34,7 @@ function pickWaypoint() {
 }
 /* VIP 출입을 고려한 경로 계획 */
 function planPath(from, to) {
+  if (NC.Path) { const r = NC.Path.find(from, to, { exact: true }); if (r) return r; }   // v9: 격자 A* (벽·유리·가구 회피)
   const out = [], a = W.vipAt(from.x, from.z), b = W.vipAt(to.x, to.z);
   if (a >= 0 && a !== b) { const v = W.vip[a]; out.push(v.entry, { x: v.cx, z: v.z0 }, v.front); }
   if (b >= 0 && a !== b) { const v = W.vip[b]; if (from.z < W.zones.corridor.z0 && a < 0) out.push({ x: U.clamp(from.x, -9.5, 9.5), z: 4 }); out.push(v.front, { x: v.cx, z: v.z0 }, v.entry); }

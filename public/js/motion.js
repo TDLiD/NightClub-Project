@@ -46,6 +46,14 @@ const BASE = {
     else if (move === 2) { p.shL = [0, 0, -2.6 + .3 * sw]; p.shR = [0, 0, 2.6 + .3 * sw]; p.elL = [-.3, 0, 0]; p.elR = [-.3, 0, 0]; p.torso = [0, 0, .12 * sw]; p.bodyX = .05 * sw; }
     else { p.bodyX = .18 * sw; p.legL = [-.12 * dip, 0, -.15 * Math.max(0, sw)]; p.legR = [-.12 * dip, 0, .15 * Math.max(0, -sw)]; p.shL = [-.6 * sw - .3, 0, -.2]; p.shR = [.6 * sw - .3, 0, .2]; p.elL = [-.8, 0, 0]; p.elR = [-.8, 0, 0]; }
   },
+  // v9 부르스(블루스): 마주 보고 천천히 좌우로 흔들기. 리드는 손을 상대 허리에, 상대는 어깨에. u.kissK(0~1) 로 서로 기울임
+  blues(p, t, u) {
+    const s = Math.sin(t * 1.55), w = Math.sin(t * .77), k = u.kissK || 0;
+    p.bodyX = .035 * s; p.hipsY = u.hipH - .012 * Math.abs(s); p.legL = [.06 * s, 0, -.04]; p.legR = [-.06 * s, 0, .04]; p.knL = [Math.max(0, s) * .14, 0, 0]; p.knR = [Math.max(0, -s) * .14, 0, 0];
+    p.torso = [.07 + .12 * k, .05 * w, -.04 * s]; p.head = [.1 + .12 * k, .12 * w * (1 - k), (u.bluesLead ? .22 : -.22) * k + .05 * s * (1 - k)];
+    if (u.bluesLead) { p.shL = [-.95, 0, .12]; p.elL = [-.75, 0, 0]; p.shR = [-.95, 0, -.12]; p.elR = [-.75, 0, 0]; }
+    else { p.shL = [-2.05, 0, .18]; p.elL = [-1.05, 0, 0]; p.shR = [-2.05, 0, -.18]; p.elR = [-1.05, 0, 0]; }
+  },
   sit(p, t, u) {
     const s = Math.sin(t * 1.5 + u.seed * 7);
     p.hipsY = (u.seatH + .03) / u.figScale; p.legL = [-1.5, 0, -.06]; p.legR = [-1.5, 0, .06]; p.knL = [1.45, 0, 0]; p.knR = [1.45, 0, 0];
@@ -70,6 +78,9 @@ const GEST = {
   think: { dur: 2.5, f(p) { p.shR = [-1.0, 0, -.45]; p.elR = [-2.1, 0, 0]; p.shL = [-.5, 0, .45]; p.elL = [-1.6, 0, 0]; p.head = [.05, 0, .15]; } },
   point: { dur: 2.2, expr: 'smile', f(p) { p.shR = [-1.45, 0, .55]; p.elR = [-.05, 0, 0]; p.head = [0, .3, 0]; } },
   lookAround: { dur: 3.0, f(p, t) { p.head = [0, .7 * Math.sin(t * 1.6), 0]; } },
+  slap: { dur: 1.3, expr: 'annoyed', f(p, t) { const k = t < .3 ? t / .3 : Math.max(0, 1 - (t - .3) / .7), sw = t < .3 ? 0 : Math.min(1, (t - .3) / .12); p.shR = [-1.35 * k, 0, .9 - 1.5 * sw * k]; p.elR = [-.25, 0, 0]; p.torso = [-.05, -.45 * sw * k, 0]; p.head = [-.08, .2 * k, 0]; } },
+  push: { dur: 1.1, expr: 'annoyed', f(p, t) { const k = Math.sin(U.clamp(t / .9, 0, 1) * PI); p.shL = [-1.45 * k, 0, .3]; p.shR = [-1.45 * k, 0, -.3]; p.elL = [-.2, 0, 0]; p.elR = [-.2, 0, 0]; p.torso = [-.15 * k, 0, 0]; p.head = [-.15 * k, 0, 0]; } },
+  flinch: { dur: 1.0, expr: 'sad', f(p, t) { const k = Math.exp(-t * 3); p.head = [-.1, -.6 * k, .15 * k]; p.torso = [-.1 * k, -.25 * k, 0]; p.bodyX = -.06 * k; } },
   crossArms: { dur: 2.5, expr: 'annoyed', f(p) { p.shL = [-.55, 0, .5]; p.elL = [-1.95, 0, 0]; p.shR = [-.55, 0, -.5]; p.elR = [-1.95, 0, 0]; p.head = [-.05, 0, 0]; } },
 };
 
