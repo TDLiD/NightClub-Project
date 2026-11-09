@@ -80,6 +80,7 @@ const EXPR = {
   annoyed: { eyes: 'half', mouth: 'flat', brow: -.35, browIn: .9, blush: 0 },
   wink: { eyes: 'wink', mouth: 'smirk', brow: .3, browIn: 0, blush: .15 },
   joy: { eyes: 'happy', mouth: 'grin', brow: .55, browIn: -.25, blush: .4 },
+  kiss: { eyes: 'closed', mouth: 'small', brow: .12, browIn: -.45, blush: 1 },     // v11: 눈 감고 입 오므림
 };
 const MOUTHS = {
   neutral: { cuL: 0, cuR: 0, open: 0, ws: 1, line: .01 },

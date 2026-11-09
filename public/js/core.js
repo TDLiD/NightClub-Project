@@ -8,7 +8,7 @@ const T = window.THREE;
 if (!T) return;
 
 const NC = window.NC = {
-  THREE: T, $, version: '9.0.0', mode: 'demo', chatEnabled: false, server: false, config: {},
+  THREE: T, $, version: '11.0.0', mode: 'demo', chatEnabled: false, server: false, config: {},
   settings: { name: '', color: 0xff3d9a, look: null, playMode: 'solo' },
   hooks: { beforeStart: [] }, interactProviders: [], tickers: [],
   remotes: new Map(), ui: {}, net: null, session: null, listeners: {},

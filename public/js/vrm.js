@@ -65,7 +65,7 @@ V.attach = async (root, url, opt = {}) => {
   V.list.push(rec); return rec;
 };
 
-const EXPR_W = { smile: { joy: .55 }, laugh: { fun: .9, joy: .3 }, joy: { joy: 1 }, shy: { joy: .35 }, sad: { sorrow: .85 }, annoyed: { angry: .75 }, surprised: { o: .7 }, wink: { joy: .35, blink_r: 1 }, neutral: {} };
+const EXPR_W = { smile: { joy: .55 }, laugh: { fun: .9, joy: .3 }, joy: { joy: 1 }, shy: { joy: .35 }, sad: { sorrow: .85 }, annoyed: { angry: .75 }, surprised: { o: .7 }, wink: { joy: .35, blink_r: 1 }, kiss: { blink: 1, u: .55, joy: .15 }, neutral: {} };
 const NAMES = ['joy', 'fun', 'sorrow', 'angry', 'a', 'i', 'u', 'e', 'o', 'blink', 'blink_l', 'blink_r', 'lookleft', 'lookright', 'lookup', 'lookdown'];
 const qA = new T.Quaternion(), qB = new T.Quaternion(), qR = new T.Quaternion();
 function applyRec(r, dt) {

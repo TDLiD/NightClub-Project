@@ -216,7 +216,7 @@ function stop(silent) {
 }
 function finish() {
   const st = K.playing; if (!st || st.done) return; st.done = true; let score, how;
-  if (st.singer === 'blues') { stop(true); endBlues('song'); return; }
+  if (st.singer === 'blues') { if (BL.n) { const nx = st.song === SONGS[2] ? SONGS[4] : SONGS[2]; K.playing = null; play(nx, 'blues'); if (NC.Dialog.cur) NC.Dialog.npcSay(U.pick(['한 곡 더 출까요? ㅎㅎ', '이 노래도 좋다… 계속 춰요']), 'smile'); return; } stop(true); return; }
   if (st.singer !== 'me') { const n = K.companion; score = Math.round(U.clamp(74 + Math.random() * 22 + (n && n.trait === 'outgoing' ? 4 : 0), 60, 100)); how = 'npc'; }
   else if (K.mic && st.ticks > 20) { const acc = st.hit / st.ticks, pres = st.voiced / st.ticks; score = Math.round(U.clamp(52 + 48 * (.35 * Math.min(1, pres * 1.2) + .65 * Math.min(1, acc * 1.35)), 0, 100)); how = 'mic'; }
   else if (st.taps.length >= 6) { const exp = Math.max(8, st.beats * .5); score = Math.round(U.clamp(60 + 40 * Math.min(1, st.goodTaps / exp), 0, 100)); how = 'tap'; }
@@ -424,8 +424,8 @@ function leave() {
   NC.ui.fade(() => {
     if (P.seat) NC.requestStand();
     const d = W.spots.karaokeDoor; P.x = d.x + .6; P.z = d.z; P.ry = Math.PI / 2; P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry;
-    const n = K.companion; if (n) { occ.forEach((o, k) => { if (o === n) occ[k] = null; }); n.karaoke = false; n.x = d.x + 1.6; n.z = d.z + .8; NC.NPC.release(n); n.booked = false; n.g.position.set(n.x, 0, n.z); n.g.visible = true; }
-    K.guests.forEach((g, k) => { if (g === n || g.leftRoom) return; occ.forEach((o, i) => { if (o === g) occ[i] = null; }); g.karaoke = false; g.x = d.x + 1.6 + k * .7; g.z = d.z - .8; NC.NPC.release(g); g.booked = false; g.g.position.set(g.x, 0, g.z); g.g.visible = true; });
+    const n = K.companion; if (n) { occ.forEach((o, k) => { if (o === n) occ[k] = null; }); n.karaoke = false; n.x = d.x + 1.6; n.z = d.z + .8; NC.NPC.release(n); n.booked = false; n.g.position.set(n.x, 0, n.z); n.g.visible = n.state !== 'off'; }
+    K.guests.forEach((g, k) => { if (g === n || g.leftRoom) return; occ.forEach((o, i) => { if (o === g) occ[i] = null; }); g.karaoke = false; g.x = d.x + 1.6 + k * .7; g.z = d.z - .8; NC.NPC.release(g); g.booked = false; g.g.position.set(g.x, 0, g.z); g.g.visible = g.state !== 'off'; });
     K.guests.length = 0; if (BL.n) endBlues('leave'); if (kw) { const o = kw.o; o.x = kw.x; o.z = kw.z; o.g.position.set(o.x, 0, o.z); o.busy = false; o.state = 'idle'; o.done = null; o.path = []; kw = null; }
     K.companion = null; G.visible = false; setClubVisible(true); borrowLights(false); K.inRoom = false; bar.style.display = 'none'; panel.style.display = 'none'; lyricEl.style.display = 'none';
   });
@@ -507,8 +507,12 @@ function bookTip(o, traits) {
     { t: '← 스타일 다시 고를래요', run: () => bookStyle(o) }] }); void P;
 }
 function candidates(traits) {
-  return (NC.npcs || []).filter(n => n.gender === 'f' && (n.role === 'persona' || n.role === 'crowd') && n.enabled && !n.booked && !n.karaoke && !n.stay && !['seated', 'talk', 'off', 'karaoke'].includes(n.state) && (n.cool || 0) <= 0 && !isGuest(n))
-    .map(n => ({ n, s: (traits && traits.includes(n.trait) ? 40 : 0) + (n.role === 'persona' ? 10 : 0) + (n.mood || 0) * 5 + Math.random() * 20 })).sort((a, b) => b.s - a.s).map(x => x.n);
+  // v11 버그 수정: 온라인 모드(로컬 서버)에서는 AI 손님이 꺼져 있어(state 'off') 후보가 0명 → 부킹이 항상 실패했음.
+  //   꺼진 손님도 웨이터가 '불러오는' 것으로 처리하고, 퇴장 시 NPC.release 가 원래 상태(off)로 되돌린다.
+  const ok = (n, strict) => n.gender === 'f' && (n.role === 'persona' || n.role === 'crowd') && !n.booked && !n.karaoke && !n.stay && !isGuest(n) && n !== BL.n
+    && !['seated', 'talk', 'karaoke', 'blues', 'path'].includes(n.state) && (!strict || (n.cool || 0) <= 0);
+  let pool = (NC.npcs || []).filter(n => ok(n, true)); if (!pool.length) pool = (NC.npcs || []).filter(n => ok(n, false));
+  return pool.map(n => ({ n, s: (traits && traits.includes(n.trait) ? 40 : 0) + (n.role === 'persona' ? 10 : 0) + (n.mood || 0) * 5 + Math.random() * 20 })).sort((a, b) => b.s - a.s).map(x => x.n);
 }
 function book(o, traits, tip, p) {
   const P = NC.player, name = o.def.title; NC.ui.hideDlg(); P.busy = false;
@@ -518,7 +522,7 @@ function book(o, traits, tip, p) {
   const pool = candidates(traits);
   setTimeout(() => {
     if (!K.inRoom) { NC.Wallet.add(tip, '부킹 취소 환불'); return; }
-    const n = pool.find(x => !x.booked && !x.karaoke && x.state !== 'talk');
+    const n = pool.find(x => !x.booked && !x.karaoke && x.state !== 'talk') || candidates(traits)[0];
     if (!n || Math.random() > p + tipBonus) { NC.Wallet.add(Math.floor(tip / 2), '부킹 실패 반환'); NC.ui.toast('🤵 웨이터: "죄송해요, 지금은 다들 일행이 있으시네요… 팁 절반 돌려드릴게요 🙇"'); return; }
     guestEnter(n, tip);
   }, 7000);
@@ -530,7 +534,7 @@ function seatGuest(n) {
 }
 function guestEnter(n, tip) {
   NC.Audio.sfx('door'); NC.ui.toast('🚪 똑똑 — 부킹 손님이 들어와요!');
-  n.booked = true; n.karaoke = true; n.leftRoom = false; n.aff = U.clamp(Math.max(n.aff, 42) + (tip >= 30 ? 6 : 3), 0, 100); n.bl = { kissed: false, warned: 0 };
+  n.enabled = true; n.cool = 0; n.booked = true; n.karaoke = true; n.leftRoom = false; n.aff = U.clamp(Math.max(n.aff, 42) + (tip >= 30 ? 6 : 3), 0, 100); n.bl = { kissed: false, warned: 0 };
   K.guests.push(n); if (!K.companion) K.companion = n;
   NC.unseatAvatar(n.g, WDOOR.x, WDOOR.z + .4); n.x = WDOOR.x; n.z = WDOOR.z + .4; n.g.position.set(n.x, 0, n.z); n.g.visible = true; n.g.userData.dance = null;
   NC.NPC.goTo(n, { x: KX + 1.4, z: KZ + 1.9 }, () => {
@@ -546,86 +550,157 @@ function guestLeave(n, line) {
     occ.forEach((o, k) => { if (o === n) occ[k] = null; }); NC.unseatAvatar(n.g, n.x, n.z); n.state = 'karaoke';
     NC.NPC.goTo(n, { x: WDOOR.x, z: KZ + HZ - .3 }, () => {
       NC.Audio.sfx('door'); n.leftRoom = true; n.karaoke = false; const i = K.guests.indexOf(n); if (i >= 0) K.guests.splice(i, 1); if (K.companion === n) K.companion = K.guests[0] || null;
-      const d = W.spots.karaokeDoor; n.x = d.x + 1.8; n.z = d.z + 1; n.g.position.set(n.x, 0, n.z); NC.NPC.release(n); n.cool = 180; n.rejectedAt = Date.now(); n.g.visible = !K.inRoom; panelState();
+      const d = W.spots.karaokeDoor; n.x = d.x + 1.8; n.z = d.z + 1; n.g.position.set(n.x, 0, n.z); NC.NPC.release(n); n.cool = 180; n.rejectedAt = Date.now(); n.g.visible = !K.inRoom && n.state !== 'off'; panelState();
     }, 2.6);
   }, 1900);
 }
-/* 부르스 */
-const BL = { n: null, c: { x: KX + .9, z: KZ - .1 }, t: 0, kiss: 0, base: 0 };
+/* 부르스 — v11: 노래방 + 클럽 스테이지·댄스플로어 어디서든 */
+const BL = { n: null, c: { x: KX + .9, z: KZ - .1 }, where: 'karaoke', t: 0, kiss: 0, kissDur: 2.3 };
 const aff = (n, d) => { n.aff = U.clamp(n.aff + d, 0, 100); if (NC.Dialog.cur && NC.Dialog.cur.n === n) { NC.Dialog.floatDelta(d); NC.Dialog.renderHead(); } };
+const CLUB_ZONES = ['stage', 'dance'];
+function clubMood(on) {                                  // 클럽: DJ 블루스 타임 — 음악 줄이고 조명 어둡게, 끝나면 원래대로
+  const AU = NC.Audio;
+  if (on) { BL.prevTheme = W.themeId; if (W.setTheme && W.THEMES && W.THEMES.dim) W.setTheme('dim'); if (AU && AU.musicVol) { BL.prevVol = AU.musicVol.gain.value; AU.musicVol.gain.setTargetAtTime(.04, AU.ctx.currentTime, .4); } NC.ui.toast('🎧 DJ: "자~ 블루스 타임입니다. 조명 낮춥니다 💗"'); }
+  else { if (BL.prevTheme && W.setTheme) W.setTheme(BL.prevTheme); if (AU && AU.musicVol && BL.prevVol != null) AU.musicVol.gain.setTargetAtTime(BL.prevVol, AU.ctx.currentTime, .6); BL.prevVol = null; }
+}
 function startBlues(n) {
   const D = NC.Dialog, P = NC.player; if (BL.n) return;
-  if (n.aff < 45) { D.npcSay(U.pick(['부르스요? 음… 아직 좀 어색해요. 노래나 한 곡 해요 ㅎㅎ', '헉 벌써요? 조금만 더 친해지고요~', '…부르스는 좀. 짠부터 해요.']), 'shy'); NC.Motion.play(n.g, 'headshake'); aff(n, -1); return; }
+  n.bl = n.bl || { kissed: false, warned: 0 };
+  if (n.aff < 45) { D.npcSay(U.pick(['부르스요? 음… 아직 좀 어색해요. 조금 더 얘기해요 ㅎㅎ', '헉 벌써요? 조금만 더 친해지고요~', '…부르스는 좀. 짠부터 해요.']), 'shy'); NC.Motion.play(n.g, 'headshake'); aff(n, -1); return; }
+  BL.where = K.inRoom ? 'karaoke' : 'club';
+  if (BL.where === 'karaoke') BL.c = { x: KX + .9, z: KZ - .1 };
+  else { const Z = W.zones, st = P.zone === 'stage' ? Z.stage : Z.dance; BL.c = { x: U.clamp((P.x + n.x) / 2, st.x0 + 1.5, st.x1 - 1.5), z: U.clamp((P.z + n.z) / 2, st.z0 + 1.6, st.z1 - 1.2) }; }
   if (K.playing) stop(true);
-  if (P.seat) { const s = P.seat; occ[s.s] = null; NC.unseatAvatar(P.group, BL.c.x, BL.c.z); P.seat = null; }
+  if (P.seat) { const s = P.seat; if (s.kind === 'karaoke') occ[s.s] = null; NC.unseatAvatar(P.group, BL.c.x, BL.c.z); P.seat = null; }
   occ.forEach((o, k) => { if (o === n) occ[k] = null; }); NC.unseatAvatar(n.g, BL.c.x, BL.c.z);
   BL.n = n; BL.t = 0; BL.t0 = performance.now(); BL.kiss = 0; n.state = 'blues'; n.g.userData.lookAt = null; P.group.userData.lookAt = null;
+  BL.glass = [P.group.userData.holdGlass, n.g.userData.holdGlass]; P.group.userData.holdGlass = n.g.userData.holdGlass = false;
   P.group.userData.dance = 'blues'; P.group.userData.bluesLead = true; n.g.userData.dance = 'blues'; n.g.userData.bluesLead = false; P.group.userData.hideLabel = n.g.userData.hideLabel = true;
   D.npcSay(n.aff >= 75 ? U.pick(['좋아요… 천천히 리드해 줘요 💗', '이 노래 너무 좋다… 가까이 와요']) : U.pick(['음… 한 곡만이에요? ㅎㅎ', '부르스 진짜 오랜만이다 ㅋㅋ 발 밟지 마요!']), 'shy');
   if (!n.bl.danced) { n.bl.danced = true; aff(n, 3); }
+  if (BL.where === 'club') clubMood(true);
   play(n.trait === 'cool' ? SONGS[4] : SONGS[2], 'blues'); D.chips();
 }
 function endBlues(reason) {
   const n = BL.n; if (!n) return; BL.n = null; const P = NC.player;
   if (K.playing && K.playing.singer === 'blues') stop(true);
-  P.group.userData.dance = null; P.group.userData.kissK = 0; n.g.userData.dance = null; n.g.userData.kissK = 0; P.group.userData.hideLabel = n.g.userData.hideLabel = !!NC.Dialog.cur;
-  P.x = BL.c.x + 1; P.z = BL.c.z + .4;
-  if (reason !== 'leave') { seatGuest(n); n.state = 'seated'; if (NC.Dialog.cur && NC.Dialog.cur.n === n) { P.group.userData.lookAt = n.g.position; n.g.userData.lookAt = P.group.position; } }
+  if (BL.glass) { P.group.userData.holdGlass = BL.glass[0]; n.g.userData.holdGlass = BL.glass[1]; }
+  BL.busy = false; BL.act = null; P.group.userData.bAct = null; n.g.userData.bAct = null; P.group.userData.dance = null; P.group.userData.kissK = 0; n.g.userData.dance = null; n.g.userData.kissK = 0; P.group.userData.hideLabel = n.g.userData.hideLabel = !!NC.Dialog.cur;
+  const talking = NC.Dialog.cur && NC.Dialog.cur.n === n;
+  if (BL.where === 'karaoke') {
+    P.x = BL.c.x + 1; P.z = BL.c.z + .4;
+    if (reason !== 'leave') { seatGuest(n); n.state = 'seated'; }
+  } else {
+    clubMood(false); P.x = BL.c.x - .55; P.z = BL.c.z + .25; n.x = BL.c.x + .55; n.z = BL.c.z - .1;
+    if (reason !== 'leave') { n.state = talking ? 'talk' : 'wander'; n.pause = 2; n.wp = null; }
+  }
+  if (talking && reason !== 'leave') { P.group.userData.lookAt = n.g.position; n.g.userData.lookAt = P.group.position; }
   if (reason === 'song' && NC.Dialog.cur) NC.Dialog.npcSay(U.pick(['노래 끝났다… 생각보다 설렜어요 ㅎㅎ', '부르스 잘 추시네요? 다음엔 신나는 거 해요!']), 'smile');
   if (NC.Dialog.cur) NC.Dialog.chips();
 }
-const REACT = {
-  hug: n => n.aff >= 55 ? { d: 2, e: 'shy', g: null, line: U.pick(['…따뜻하다. 좀 더 이러고 있어요', '헤헤, 갑자기 왜요 ㅎㅎ 좋아요']) } : { d: -1, e: 'shy', g: 'headshake', line: '앗, 너무 가까워요 ㅎㅎ 천천히요~' },
+function clubLeave(n, line) {                           // 클럽: 기분 상한 손님은 자리를 떠남
+  if (BL.n === n) endBlues('leave');
+  if (NC.Dialog.cur && NC.Dialog.cur.n === n) { NC.Dialog.npcSay(line, 'annoyed'); setTimeout(() => NC.Dialog.cur && NC.Dialog.cur.n === n && NC.Dialog.close('left'), 1600); }
+  setTimeout(() => { n.cool = 180; n.rejectedAt = Date.now(); NC.NPC.goTo(n, { x: (Math.random() - .5) * 14, z: -6 + Math.random() * 3 }, () => { n.state = 'wander'; }); }, 1900);
+}
+const can = (n, need, kissed) => n.aff >= need && (!kissed || n.bl.kissed);
+const P_ = s => U.pick(s);
+const REACT = {      // out: accept(받아 줌) · stop(손을 잡아 제지) · refuse(뿌리침/외면) — 기준은 상대 호감도(=동의)
+  whisper: n => can(n, 40) ? { out: 'accept', d: 2, e: 'laugh', line: P_(['ㅋㅋㅋ 간지러워요~ 뭐라고요? 한 번 더 말해 줘요', '(귀가 빨개지며) …진짜요? 나도요 ㅎㅎ']) } : { out: 'refuse', d: -1, e: 'shy', line: '음악 때문에 잘 안 들려요 ㅎㅎ' },
+  waist: n => can(n, 50) ? { out: 'accept', d: 2, e: 'shy', line: P_(['어머… 가까워요 ㅎㅎ 그래도 좋아요', '(살짝 기대며) 이 정도면 딱 좋아요']) } : { out: 'refuse', d: -2, e: 'annoyed', g: 'push', line: '조금만 떨어져서 춰요.' },
+  spin: n => ({ out: 'accept', d: n.aff >= 50 ? 2 : 1, e: 'laugh', line: P_(['꺄~ 어지러워요 ㅋㅋㅋ', '오 리드 좀 하시는데요? ㅎㅎ']) }),
+  dip: n => can(n, 70) ? { out: 'accept', d: 3, e: 'laugh', line: P_(['꺅! 떨어뜨리면 안 돼요 ㅋㅋ 영화 같다…', '(목에 팔을 감으며) 이런 건 어디서 배웠어요? 💗']) } : { out: 'refuse', d: -1, e: 'surprised', line: '어어 무서워요 ㅋㅋ 그건 다음에요!' },
+  forehead: n => can(n, 60) ? { out: 'accept', d: 2, e: 'shy', line: P_(['…이러고 있으니까 심장 소리 들릴 것 같아요', '(눈을 감고 미소 짓는다)']) } : { out: 'refuse', d: -1, e: 'shy', line: '앗, 쑥스러워요 ㅎㅎ' },
+  cheek: n => can(n, 65) ? { out: 'accept', d: 3, e: 'shy', line: P_(['(볼을 만지며) …방금 뭐예요 ㅎㅎ 반칙이에요', '헤헤… 한 번 더 해도 돼요']) }
+    : n.aff >= 50 ? { out: 'refuse', d: -1, e: 'shy', line: '앗… (고개를 살짝 피한다) 아직이요 ㅎㅎ' } : { out: 'refuse', d: -4, e: 'annoyed', g: 'push', line: '잠깐만요, 그건 좀 아니에요.' },
+  hug: n => can(n, 55) ? { out: 'accept', d: 2, e: 'shy', line: P_(['…따뜻하다. 좀 더 이러고 있어요', '헤헤, 갑자기 왜요 ㅎㅎ 좋아요']) } : { out: 'refuse', d: -1, e: 'shy', g: 'headshake', line: '앗, 너무 가까워요 ㅎㅎ 천천히요~' },
+  backhug: n => can(n, 75) ? { out: 'accept', d: 3, e: 'shy', line: P_(['(손을 포개며) …이대로 노래 끝날 때까지 있어요', '뒤에서 안으니까 더 설레요… 💗']) } : { out: 'refuse', d: -2, e: 'shy', line: '(살짝 빠져나오며) 아직 거기까진 아니에요 ㅎㅎ' },
   kiss: n => {
-    if (n.aff >= 80 && performance.now() - BL.t0 > 4000) return { d: n.bl.kissed ? 2 : 5, e: 'shy', kiss: true, line: n.bl.kissed ? U.pick(['…또요? ㅎㅎ 좋아요', '오늘 밤 진짜 이상하다… 좋은 쪽으로요 💗']) : U.pick(['……. (살짝 웃으며 눈을 감는다) 💋', '이러면 반칙인데… 그래도 좋아요 💗']) };
-    if (n.aff >= 60) return { d: -1, e: 'shy', g: 'headshake', line: U.pick(['앗… 아직은 좀 이른 것 같아요 ㅎㅎ (고개를 살짝 돌린다)', '음~ 그건 조금 더 친해지고요!']) };
-    return { d: -6, e: 'annoyed', g: 'push', stop: true, line: U.pick(['어머, 왜 이래요! 천천히 해요.', '잠깐만요, 이건 아니죠.']) };
+    if (n.aff >= 80 && performance.now() - BL.t0 > 4000) return { out: 'accept', d: n.bl.kissed ? 2 : 5, e: 'kiss', kiss: 2.6, line: n.bl.kissed ? P_(['…또요? ㅎㅎ 좋아요', '오늘 밤 진짜 이상하다… 좋은 쪽으로요 💗']) : P_(['……. (살짝 웃으며 눈을 감는다) 💋', '이러면 반칙인데… 그래도 좋아요 💗']) };
+    if (n.aff >= 60) return { out: 'refuse', d: -1, e: 'shy', line: P_(['앗… 아직은 좀 이른 것 같아요 ㅎㅎ (고개를 살짝 돌린다)', '음~ 그건 조금 더 친해지고요!']) };
+    return { out: 'refuse', d: -6, e: 'annoyed', g: 'push', stop: true, line: P_(['어머, 왜 이래요! 천천히 해요.', '잠깐만요, 이건 아니죠.']) };
   },
-  butt: n => n.aff >= 90 && n.bl.kissed ? { d: -2, e: 'shy', g: 'headshake', line: '(손을 잡아 허리로 옮기며) 손은 여기요 ㅎㅎ 매너 있는 사람이 더 좋아요~' }
-    : { d: -10, e: 'annoyed', g: 'slap', slap: true, stop: true, line: U.pick(['지금 뭐 하는 거예요?! 손 치워요!', '와… 진짜 실망이에요.']) },
-  chest: n => n.aff >= 92 && n.bl.kissed ? { d: -4, e: 'annoyed', g: 'push', line: '(손목을 탁 잡으며) 거기까지예요. 분위기 깨지 마요.' }
-    : { d: -15, e: 'annoyed', g: 'slap', slap: true, stop: true, line: U.pick(['미쳤어요?! 동의 없이 만지는 건 진짜 아니에요!', '선 넘었어요. 저 기분 너무 나빠요.']) },
-  undress: n => n.aff >= 90 && n.bl.kissed ? { d: -3, e: 'laugh', g: 'headshake', line: '여기 노래방이에요 ㅋㅋㅋ 선 넘지 마요~ 대신 한 곡 더 춰 줄게요' }
-    : { d: -15, e: 'annoyed', g: 'slap', slap: true, stop: true, line: U.pick(['지금 제 옷에 손대신 거예요?! 진짜 어이없네요.', '하… 저 그런 사람 아니에요.']) },
+  deepkiss: n => can(n, 92, true) ? { out: 'accept', d: 4, e: 'kiss', kiss: 3.8, line: P_(['……하아. (한참 뒤에 떨어지며) 숨 막히는 줄 알았어요 💗', '(목에 팔을 감고 놓아주지 않는다) …조금만 더요']) }
+    : n.aff >= 80 ? { out: 'refuse', d: -1, e: 'shy', line: '(입술을 손가락으로 막으며) 천천히요~ 우리 아직 첫 키스도 안 했잖아요 ㅎㅎ' } : { out: 'refuse', d: -6, e: 'annoyed', g: 'push', stop: true, line: '갑자기 왜 이래요! 너무 나갔어요.' },
+  neck: n => can(n, 88, true) ? { out: 'accept', d: 3, e: 'kiss', line: P_(['……. (어깨를 움츠리며 숨을 고른다) 거기 약한데…', '(작게 웃으며) 간지러워… 하지 마요… 아니, 해요 💗']) }
+    : n.aff >= 70 ? { out: 'refuse', d: -2, e: 'shy', line: '꺅 간지러워요 ㅋㅋ 거긴 안 돼요!' } : { out: 'refuse', d: -6, e: 'annoyed', g: 'push', stop: true, line: '뭐 하는 거예요? 기분 이상해요.' },
+  butt: n => can(n, 90, true) ? { out: 'stop', d: -2, e: 'shy', line: '(손을 잡아 허리로 옮기며) 손은 여기요 ㅎㅎ 매너 있는 사람이 더 좋아요~' }
+    : { out: 'refuse', d: -10, e: 'annoyed', slap: true, stop: true, line: P_(['지금 뭐 하는 거예요?! 손 치워요!', '와… 진짜 실망이에요.']) },
+  chest: n => can(n, 92, true) ? { out: 'stop', d: -4, e: 'annoyed', line: '(손목을 탁 잡으며) 거기까지예요. 분위기 깨지 마요.' }
+    : { out: 'refuse', d: -15, e: 'annoyed', slap: true, stop: true, line: P_(['미쳤어요?! 동의 없이 만지는 건 진짜 아니에요!', '선 넘었어요. 저 기분 너무 나빠요.']) },
+  undress: n => can(n, 90, true) ? { out: 'stop', d: -3, e: 'laugh', line: '(두 손으로 손목을 붙잡으며) 여기서요? ㅋㅋㅋ 선 넘지 마요~ 대신 한 곡 더 춰 줄게요' }
+    : { out: 'refuse', d: -15, e: 'annoyed', slap: true, stop: true, line: P_(['지금 제 옷에 손대신 거예요?! 진짜 어이없네요.', '하… 저 그런 사람 아니에요.']) },
+};
+const ACT = {   // 동작 길이(초) · 반응 시점(초) · 서로 더 붙는 정도(m) · flip: 상대가 돌아섬(백허그) · spin: 상대 회전
+  whisper: { dur: 3.0, hit: 1.0, close: .07, desc: '👂 귀에 입술을 가까이 대고 속삭인다' },
+  waist: { dur: 3.2, hit: .8, close: .09, desc: '🤲 허리를 감싼 손으로 몸을 바짝 끌어당긴다' },
+  spin: { dur: 2.8, hit: 1.6, close: 0, spin: true, desc: '💫 손을 들어 올려 한 바퀴 돌린다' },
+  dip: { dur: 3.6, hit: 1.2, close: .08, desc: '💃 허리를 받치고 뒤로 천천히 눕힌다' },
+  forehead: { dur: 3.4, hit: .9, close: .11, desc: '💗 이마를 살며시 맞댄다' },
+  cheek: { dur: 2.8, hit: .9, close: .07, desc: '😚 볼에 가볍게 입을 맞춘다' },
+  hug: { dur: 3.6, hit: .7, close: .08, desc: '🤗 두 팔로 꼭 끌어안는다' },
+  backhug: { dur: 4.2, hit: 1.3, close: .11, flip: true, desc: '🫂 살짝 돌려 세우고 뒤에서 끌어안는다' },
+  kiss: { dur: 3.6, hit: .9, close: .07, desc: '💋 한 손으로 볼을 감싸며 입을 맞추려 한다' },
+  deepkiss: { dur: 5.0, hit: 1.0, close: .06, desc: '🔥 두 손으로 얼굴을 감싸고 깊게 입을 맞추려 한다' },
+  neck: { dur: 3.6, hit: 1.1, close: .08, desc: '💋 고개를 숙여 목덜미에 입술을 댄다' },
+  butt: { dur: 2.8, hit: 1.15, close: .09, desc: '🍑 허리에 있던 손을 등을 따라 엉덩이로 내린다' },
+  chest: { dur: 2.8, hit: 1.15, close: 0, desc: '🫳 손을 옆구리를 따라 가슴 쪽으로 올린다' },
+  undress: { dur: 2.9, hit: 1.1, close: 0, desc: '👚 옷자락을 잡고 위로 올리려 한다' },
 };
 function bluesAct(kind) {
-  const n = BL.n; if (!n) return; const D = NC.Dialog, P = NC.player, r = REACT[kind](n);
-  D.sys({ hug: '🤗 꼭 안아 준다', kiss: '💋 입을 맞추려 다가간다', butt: '🍑 손을 엉덩이로 내린다', chest: '🫳 가슴에 손을 댄다', undress: '👚 옷을 벗기려 한다' }[kind]);
-  if (r.kiss) { BL.kiss = 2.6; n.bl.kissed = true; NC.Audio.sfx('heart'); }
-  if (r.slap) { setTimeout(() => { NC.Audio.sfx('slap'); NC.Motion.play(P.group, 'flinch'); }, 330); }
-  if (r.g) NC.Motion.play(n.g, r.g);
-  aff(n, r.d); D.npcSay(r.line, r.e); if (r.slap) NC.ui.toast(`💔 ${n.name}: 호감도 ${r.d} — 상대가 원하지 않는 스킨십은 역효과예요`);
-  if (r.slap) n.bl.warned++;
-  if (r.stop) { endBlues('refuse'); if (n.aff < 25 || n.bl.warned >= 2) guestLeave(n, U.pick(['저 먼저 갈게요. 즐거우세요.', '웨이터님! 저 테이블로 돌아갈래요.'])); }
-  else D.chips();
+  const n = BL.n; if (!n || BL.busy) return; const D = NC.Dialog, P = NC.player, r = REACT[kind](n), a = ACT[kind], t0 = performance.now();
+  const dur = r.kiss ? Math.max(a.dur, r.kiss + a.hit + .6) : a.dur;
+  BL.busy = true; BL.act = { k: kind, t0, dur, close: r.out === 'refuse' && !r.kiss ? Math.min(a.close, .03) : a.close, flip: a.flip && r.out === 'accept', spin: a.spin, hit: a.hit };
+  P.group.userData.bAct = { k: kind, t0, dur, out: r.out, hit: a.hit }; n.g.userData.bAct = { k: kind, t0, dur, out: r.out, hit: a.hit };
+  D.sys(a.desc); D.chips();
+  setTimeout(() => {                                    // 상대 반응
+    if (BL.n !== n) return;
+    if (r.kiss) { BL.kiss = r.kiss; BL.kissDur = r.kiss; BL.deep = kind === 'deepkiss'; n.bl.kissed = true; NC.Audio.sfx('heart'); }
+    if (r.slap) { n.g.userData.bAct = null; NC.Motion.play(n.g, 'slap'); setTimeout(() => { NC.Audio.sfx('slap'); NC.Motion.play(P.group, 'flinch'); P.group.userData.setExpr && P.group.userData.setExpr('sad', 2); }, 330); }
+    else if (r.g) { n.g.userData.bAct = null; NC.Motion.play(n.g, r.g); }
+    if (r.out === 'accept') { n.g.userData.setExpr && n.g.userData.setExpr(r.e === 'kiss' ? 'kiss' : r.e, (dur - a.hit) + .5); P.group.userData.setExpr && P.group.userData.setExpr(r.e === 'kiss' ? 'kiss' : 'smile', (dur - a.hit) + .3); }
+    aff(n, r.d); D.npcSay(r.line, r.e === 'kiss' ? 'shy' : r.e); if (r.slap) { n.bl.warned++; NC.ui.toast(`💔 ${n.name}: 호감도 ${r.d} — 상대가 원하지 않는 스킨십은 역효과예요`); }
+  }, a.hit * 1000);
+  setTimeout(() => {                                    // 동작 종료
+    BL.busy = false; BL.act = null; P.group.userData.bAct = null; n.g.userData.bAct = null; if (BL.n !== n) return;
+    if (r.stop) { const w = BL.where; endBlues('refuse'); if (n.aff < 25 || n.bl.warned >= 2) (w === 'karaoke' ? guestLeave : clubLeave)(n, U.pick(['저 먼저 갈게요. 즐거우세요.', '저 친구들한테 갈게요.'])); }
+    else D.chips();
+  }, (r.slap ? a.hit + 1.0 : dur) * 1000);
 }
+const CHIPS = [['👂 귓속말', 'whisper'], ['🤲 허리 끌어당기기', 'waist'], ['💫 한 바퀴 돌리기', 'spin'], ['💃 뒤로 눕히기(딥)', 'dip'], ['💗 이마 맞대기', 'forehead'], ['😚 볼 뽀뽀', 'cheek'],
+  ['🤗 꼭 안아 주기', 'hug'], ['🫂 백허그', 'backhug'], ['💋 키스하기', 'kiss'], ['🔥 진한 키스', 'deepkiss'], ['💋 목덜미 키스', 'neck'], ['🍑 엉덩이 만지기', 'butt'], ['🫳 가슴 만지기', 'chest'], ['👚 옷 벗기기', 'undress']];
 NC.dialogChipsOverride = (n, CHIP) => {
-  if (!K.inRoom || BL.n !== n) return false;
-  CHIP('🤗 꼭 안아 주기', () => bluesAct('hug'));
-  CHIP('💋 키스하기', () => bluesAct('kiss'), 'pri');
-  CHIP('🍑 엉덩이 만지기', () => bluesAct('butt'));
-  CHIP('🫳 가슴 만지기', () => bluesAct('chest'));
-  CHIP('👚 옷 벗기기', () => bluesAct('undress'));
+  if (BL.n !== n) return false;
+  if (BL.busy) { CHIP('⏳ …', () => {}); return true; }
+  CHIPS.forEach(([l, k]) => CHIP(l, () => bluesAct(k), k === 'kiss' ? 'pri' : ''));
   CHIP('⏹ 부르스 그만', () => endBlues('stop'));
   return true;
 };
 (NC.dialogChips = NC.dialogChips || []).push((n, CHIP) => {
-  if (!K.inRoom || !isGuest(n) || BL.n) return;
-  CHIP('🕺 부르스 출래요?', () => startBlues(n), 'pri');
-  CHIP('🎤 한 곡 불러 줄래요?', () => { NC.Dialog.close('bye'); K.companion = n; npcSing(); });
-  CHIP('🙋 웨이터 부르기', () => callWaiter());
+  if (BL.n) return; const P = NC.player;
+  if (K.inRoom) { if (!isGuest(n)) return;
+    CHIP('🕺 부르스 출래요?', () => startBlues(n), 'pri');
+    CHIP('🎤 한 곡 불러 줄래요?', () => { NC.Dialog.close('bye'); K.companion = n; npcSing(); });
+    CHIP('🙋 웨이터 부르기', () => callWaiter()); return; }
+  if (CLUB_ZONES.includes(P.zone) && !P.seat && n.state !== 'seated' && (n.role === 'persona' || n.role === 'crowd')) CHIP('🕺 부르스 출래요?', () => startBlues(n), 'pri');
 });
 NC.on('dialog:close', n => { if (BL.n && BL.n === n) endBlues('stop'); });
+const sm = (a, b, x) => U.clamp((x - a) / (b - a), 0, 1);
 NC.tickers.push(dt => {
   if (!BL.n) return; const n = BL.n, P = NC.player; BL.t += dt; if (BL.kiss > 0) BL.kiss -= dt;
-  const k = BL.kiss > 0 ? Math.min(1, (2.6 - BL.kiss) / .5, BL.kiss / .5) : 0, a = .28 * Math.sin(BL.t * .35), d = .23 - .1 * k, c = BL.c;
-  P.group.userData.kissK = n.g.userData.kissK = k;
+  const kd = BL.kissDur, k = BL.kiss > 0 ? Math.min(1, (kd - BL.kiss) / .55, BL.kiss / .55) : 0, A = BL.act, ae = A ? (performance.now() - A.t0) / 1000 : 0,
+    cl = A ? A.close * Math.min(1, ae / .7, Math.max(0, (A.dur - ae) / .7)) : 0, a = .28 * Math.sin(BL.t * .35) * (A ? .3 : 1), d = .23 - .05 * k - cl, c = BL.c;
+  P.group.userData.kissK = n.g.userData.kissK = k; P.group.userData.kissDeep = n.g.userData.kissDeep = BL.deep && k > 0;
   P.x = c.x - Math.cos(a) * d; P.z = c.z - Math.sin(a) * d; n.x = c.x + Math.cos(a) * d; n.z = c.z + Math.sin(a) * d;
-  P.ry = Math.atan2(n.x - P.x, n.z - P.z); P.group.rotation.y = P.ry; n.g.rotation.y = P.ry + Math.PI; P.group.position.set(P.x, 0, P.z); n.g.position.set(n.x, 0, n.z);
-  if (k > .6) { P.group.userData.setExpr && P.group.userData.setExpr('shy', .3); n.g.userData.setExpr && n.g.userData.setExpr('shy', .3); }
+  P.ry = Math.atan2(n.x - P.x, n.z - P.z); P.group.rotation.y = P.ry;
+  let ny = P.ry + Math.PI;
+  if (A && A.flip) ny += Math.PI * sm(.3, 1.1, ae) * (1 - sm(A.dur - .9, A.dur - .1, ae));           // 백허그: 상대가 돌아섰다가 다시 마주 봄
+  if (A && A.spin) ny += Math.PI * 2 * sm(.5, A.hit + .2, ae) * (ae < A.hit + .2 ? 1 : 1);          // 턴: 한 바퀴
+  n.g.rotation.y = ny;
+  P.group.position.set(P.x, NC.groundY(P.x, P.z), P.z); n.g.position.set(n.x, NC.groundY(n.x, n.z), n.z);
 });
 $('#kCall').onclick = () => callWaiter();
-K.callWaiter = callWaiter; K.startBlues = startBlues; K.endBlues = endBlues;
+K.callWaiter = callWaiter; K.startBlues = startBlues; K.endBlues = endBlues; K.BL = BL; K.ACT = ACT;
 
 /* 상호작용 후보 */
 NC.interactProviders.push(() => {
@@ -641,8 +716,8 @@ NC.interactProviders.push(() => {
 
 /* 카메라: 노래 중엔 시네마틱 2컷 교차 */
 NC.camOverride = () => {
+  if (BL.n) { const c = BL.c, a = Math.sin(performance.now() / 7000) * .3, gy = NC.groundY(c.x, c.z), A = BL.act, far = A && (A.k === 'dip' || A.k === 'spin') ? 2.7 : 2.2; return { cx: c.x + Math.sin(a) * far - .5, cy: gy + 1.65, cz: c.z + Math.cos(a) * far, tx: c.x - .5, ty: gy + 1.25, tz: c.z }; }
   if (!K.inRoom) return null; const st = K.playing; const dlgOpen = NC.Dialog && NC.Dialog.cur;
-  if (BL.n) { const c = BL.c, a = Math.sin(performance.now() / 7000) * .3; return { cx: c.x + Math.sin(a) * 2.2 - .5, cy: 1.65, cz: c.z + Math.cos(a) * 2.2, tx: c.x - .5, ty: 1.3, tz: c.z }; }
   if (!st && !dlgOpen) return null;
   if (dlgOpen && !st) return { cx: KX + 1.8, cy: 1.7, cz: KZ + 1.4, tx: KX - 2.6, ty: 1.0, tz: KZ + .6 };
   const g = st.singer === 'me' ? NC.player.group : K.companion && K.companion.g; if (!g) return null;

@@ -14,6 +14,91 @@ const JOINTS = ['torso', 'neck', 'head', 'shL', 'elL', 'shR', 'elR', 'legL', 'kn
 const REST = { shL: [0, 0, -.12], shR: [0, 0, .12], elL: [-.12, 0, 0], elR: [-.12, 0, 0] };
 const beatInfo = () => (NC.Audio && NC.Audio.beat ? NC.Audio.beat() : (() => { const b = performance.now() / 1000 * 118 / 60; return { phase: b % 1, n: Math.floor(b), bpm: 118 }; })());
 
+/* v10 부르스 행동 오버레이: u.bAct = { k, t0, dur, out } — 시간 구간별 목표 자세를 기본 부르스 자세 위에 섞는다
+ *  k: hug · kiss · butt · chest · undress   out: 'accept' | 'stop'(손 제지) | 'refuse'(뿌리침)  */
+const ss = (a, b, x) => U.clamp((x - a) / (b - a), 0, 1);
+const sm2 = (a, b, x) => { const t = ss(a, b, x); return t * t * (3 - 2 * t); };
+const lerp3 = (a, b, t) => [U.lerp(a[0], b[0], t), U.lerp(a[1], b[1], t), U.lerp(a[2], b[2], t)];
+const env3 = (e, a, b, c, d) => Math.min(ss(a, b, e), 1 - ss(c, d, e));          // a→b 올라가고 c→d 내려감
+function mixJ(p, j, tg, w) { if (w <= 0) return; const a0 = p[j] || REST[j] || [0, 0, 0]; p[j] = [U.lerp(a0[0], tg[0], w), U.lerp(a0[1], tg[1], w), U.lerp(a0[2], tg[2], w)]; }
+function BLUES_ACT(p, u) {
+  const A = u.bAct; if (!A) return; const e = (performance.now() - A.t0) / 1000;
+  if (e > A.dur) { u.bAct = null; return; }
+  const lead = u.bluesLead, D = A.dur, acc = A.out === 'accept', H = A.hit || 1;
+  const J = (j, v, w) => mixJ(p, j, v, w), arms = (L, eL, R, eR, w) => { J('shL', L, w); J('elL', [eL, 0, 0], w); J('shR', R, w); J('elR', [eR, 0, 0], w); };
+  // IK 자세 모음 (브라우저 안 역운동학으로 구함)
+  const HUG_LEAD = () => [[-.3, 1.02, -.95], -1.01, [-.46, -1.4, .85], -.81], HUG_PART = () => [[-.58, 1.03, -1.25], -1.4, [-.52, -1.01, 1.31], -1.37];
+  const WAIST_LEAD = () => [[-.01, .87, -1.4], -1.49, [-.09, -1.21, 1.34], -1.34], CHEEK_LEAD = () => [[-1.13, 0, .05], -2.1, [-1.13, 0, -.05], -2.1];
+  const BACK_LEAD = () => [[-.19, -.28, .4], -1.31, [-.19, .28, -.4], -1.31];
+  const k = A.k;
+  if (k === 'hug') {                                     // 꼭 안기: 리드는 등 뒤로 팔을 감고 살짝 끌어안는 압박(호흡처럼), 상대는 목에 팔을 두르고 어깨에 기댐
+    const w = env3(e, 0, .7, D - .7, D), sq = .04 * Math.sin(e * 3.2) * w;
+    if (lead) { const [a, b, c, d] = HUG_LEAD(); arms(a, b, c, d, w); J('head', [.12, .55, .1], w); J('torso', [.1 + sq, 0, 0], w); }
+    else if (acc) { const [a, b, c, d] = HUG_PART(); arms(a, b, c, d, w); J('head', [.18, .55, -.15], w); J('torso', [.1 + sq, 0, 0], w); p.bodyY = (p.bodyY || 0) + .02 * w; }
+    else { const r = env3(e, .5, .8, D - .5, D); arms([-1.3, 0, .25], -.5, [-1.3, 0, -.25], -.5, r); J('torso', [-.12, 0, 0], r); }
+  } else if (k === 'waist') {                            // 허리 끌어당기기: 두 손으로 허리를 감아 당김 → 상대가 목에 팔을 걸며 기댐
+    const w = env3(e, 0, .6, D - .6, D);
+    if (lead) { const [a, b, c, d] = WAIST_LEAD(); arms(a, b, c, d, w); J('torso', [.06, 0, 0], w); }
+    else if (acc) { const r = env3(e, H, H + .5, D - .6, D), [a, b, c, d] = HUG_PART(); arms(a, b, c, d, r * .75); J('torso', [.12, 0, 0], r); J('head', [.1, 0, 0], r); }
+  } else if (k === 'whisper') {                          // 귓속말: 리드가 고개를 숙여 상대 귀 쪽으로 → 상대가 간지러워 어깨를 움츠리며 웃음
+    const w = env3(e, 0, .8, D - .6, D);
+    if (lead) { J('head', [.3, .72, .12], w); J('neck', [.1, .3, 0], w); J('torso', [.14, .18, 0], w); }
+    else if (acc) { const r = env3(e, H, H + .3, D - .5, D); J('head', [.12, -.3, .3], r); J('torso', [.05, .1, .08 * Math.sin(e * 14)], r); p.bodyY = (p.bodyY || 0) + .012 * r * Math.abs(Math.sin(e * 14)); }
+    else { const r = env3(e, H - .2, H + .2, D - .5, D); J('head', [-.05, -.6, 0], r); }
+  } else if (k === 'spin') {                             // 턴: 리드 왼손과 상대 오른손을 머리 위로 들어 올리고 상대가 그 아래에서 한 바퀴 (회전은 karaoke.js 틱커)
+    const w = env3(e, 0, .5, D - .5, D);
+    if (lead) { J('shL', [-2.75, 0, .2], w); J('elL', [-.25, 0, 0], w); J('torso', [-.03, .15, 0], w); }
+    else { J('shR', [-2.75, 0, -.15], w); J('elR', [-.25, 0, 0], w); J('shL', [-.6, 0, -.6], w); J('elL', [-.4, 0, 0], w); p.bodyY = (p.bodyY || 0) + .025 * w; }
+  } else if (k === 'dip') {                              // 딥: 리드가 오른팔로 등을 받치고 상체를 숙임 → 상대가 뒤로 젖혀 눕고 한쪽 팔을 우아하게 뻗음
+    const w = env3(e, .2, H, D - .9, D - .1);
+    if (lead) { const [, , c, d] = HUG_LEAD(); J('shR', c, w); J('elR', [d, 0, 0], w); J('torso', [.32, 0, 0], w); J('head', [.28, 0, 0], w); J('knL', [.3, 0, 0], w); J('knR', [.3, 0, 0], w); p.hipsY = U.lerp(p.hipsY, u.hipH - .06, w); }
+    else if (acc) { J('torso', [-.62, 0, 0], w); J('neck', [-.25, 0, 0], w); J('head', [-.4, .2, 0], w); J('shR', [-.4, 0, -1.35], w); J('elR', [-.15, 0, 0], w); J('legL', [.35, 0, -.05], w); J('knL', [.6, 0, 0], w); J('legR', [-.15, 0, .05], w); p.hipsY = U.lerp(p.hipsY, u.hipH - .05, w); }
+    else { const r = env3(e, .6, .9, D - .5, D); J('torso', [-.1, 0, 0], r); arms([-1.2, 0, .3], -.4, [-1.2, 0, -.3], -.4, r); }
+  } else if (k === 'forehead') {                         // 이마 맞대기: 서로 고개를 숙여 이마를 붙이고 눈을 감음
+    const w = env3(e, 0, .9, D - .7, D), r = acc ? 1 : env3(e, 0, .5, H, H + .3);
+    J('head', [.36, 0, 0], w * r); J('neck', [.12, 0, 0], w * r); J('torso', [.08, 0, 0], w * r);
+    if (!lead && !acc) { const t = env3(e, H, H + .3, D - .4, D); J('head', [.15, -.5, 0], t); }
+  } else if (k === 'cheek') {                            // 볼 뽀뽀: 리드가 고개를 돌려 볼로 → 받아 주면 상대가 볼을 내밀고 수줍게 웃음
+    const w = env3(e, .1, H, H + .4, D);
+    if (lead) { J('head', [.22, .5, .18], w); J('torso', [.16, .14, 0], w); }
+    else if (acc) { const r = env3(e, .5, H, D - .6, D); J('head', [.05, -.4, -.18], r); }
+    else { const r = env3(e, .6, H, D - .4, D); J('head', [-.08, -.95, .1], r); J('torso', [-.1, -.2, 0], r); }
+  } else if (k === 'backhug') {                          // 백허그: 상대가 돌아선 뒤(틱커) 리드가 뒤에서 허리를 감싸 안고 어깨에 턱을 기댐 · 상대는 손을 포개고 고개를 기울임
+    const w = env3(e, H - .3, H + .3, D - 1.0, D - .3);
+    if (lead) { const [a, b, c, d] = BACK_LEAD(); arms(a, b, c, d, w); J('head', [.3, .35, .1], w); J('torso', [.1, 0, 0], w); }
+    else if (acc) { arms([-.75, 0, .45], -1.25, [-.75, 0, -.45], -1.25, w); J('head', [-.12, -.45, .2], w); J('torso', [-.05, 0, 0], w); }
+  } else if (k === 'kiss' || k === 'deepkiss') {         // 키스: 다가가며(0~H) 한 손(진한 키스는 두 손)으로 볼을 감쌈 → 받아 주면 상대가 목에 팔을 두르고 발끝을 들며 고개를 기울임
+    const deep = k === 'deepkiss', w = env3(e, 0, H, D - .7, D), hand = env3(e, H * .5, H + .2, D - .8, D);
+    if (lead) { const [a, b, c, d] = WAIST_LEAD(), [ca, cb, cc, cd] = CHEEK_LEAD(); arms(a, b, c, d, w);
+      if (acc || deep) { J('shR', cc, hand); J('elR', [cd, 0, 0], hand); if (deep) { J('shL', ca, hand); J('elL', [cb, 0, 0], hand); } } }
+    else if (acc) { const r = env3(e, H, H + .5, D - .7, D), [a, b, c, d] = HUG_PART(); arms(a, b, c, d, r * (deep ? 1 : .8)); p.bodyY = (p.bodyY || 0) + .03 * r; J('legL', [-.05, 0, 0], r); }
+    else { const r = env3(e, .7, 1.0, D - .5, D); J('head', [-.05, -1.0, .1], r); J('neck', [0, -.45, 0], r); J('torso', [-.1, -.2, 0], r); }
+  } else if (k === 'neck') {                             // 목덜미 키스: 리드가 고개를 숙여 상대 목 옆으로 → 받아 주면 상대가 고개를 반대로 젖히고 어깨를 움츠림
+    const w = env3(e, .1, H, D - .6, D);
+    if (lead) { const [a, b, c, d] = WAIST_LEAD(); arms(a, b, c, d, w); J('head', [.5, .6, .15], w); J('neck', [.2, .25, 0], w); J('torso', [.2, .15, 0], w); }
+    else if (acc) { const r = env3(e, H - .2, H + .3, D - .6, D); J('head', [-.2, -.4, -.38], r); J('neck', [-.1, -.2, 0], r); J('torso', [-.04, -.08, 0], r); const [a, b, c, d] = HUG_PART(); arms(a, b, c, d, r * .6); }
+    else { const r = env3(e, H - .2, H + .1, D - .5, D); J('head', [-.05, -.4, .3], r); J('torso', [.1, .15, 0], r); }
+  } else if (k === 'butt' || k === 'chest') {            // 리드 오른손: 허리 → (등 아래 | 옆구리) → 엉덩이 옆 뒤 | 가슴 앞 — 경로를 따라 미끄러지듯 이동 → 상대가 굳었다가 반응
+    const ref = A.out === 'refuse', back = env3(e, 0, .1, ref ? H + .3 : D - .7, ref ? H + .55 : D - .2), m1 = sm2(.05, .55, e), m2 = sm2(.55, H, e);
+    if (lead) {
+      if (k === 'butt') { const mid = [[-.69, .01, -.2], -.85], end = [[-.75, 0, -.08], -.05], base = [p.shR || [0, 0, 0], (p.elR || [0])[0]];
+        const sh = lerp3(lerp3(base[0], mid[0][0] !== undefined ? mid[0] : base[0], m1), end[0], m2), el = U.lerp(U.lerp(base[1], mid[1], m1), end[1], m2); J('shR', sh, back); J('elR', [el, 0, 0], back); J('torso', [.06, -.08, 0], back * m2); }
+      else { const mid = [[-.95, -.45, .1], -1.25], end = [[-.58, -.78, .25], -1.43], base = [p.shR || [0, 0, 0], (p.elR || [0])[0]];
+        const sh = lerp3(lerp3(base[0], mid[0], m1), end[0], m2), el = U.lerp(U.lerp(base[1], mid[1], m1), end[1], m2); J('shR', sh, back); J('elR', [el, 0, 0], back); J('torso', [.05, -.06, 0], back * m2); }
+      if (ref) { const f = env3(e, H + .3, H + .45, D - .4, D); J('head', [-.1, -.7, .2], f); J('torso', [-.15, -.3, 0], f); }
+    } else {
+      const stiff = env3(e, H - .35, H - .15, D - .5, D); J('torso', [-.12, 0, 0], stiff * .7); J('head', [-.12, .35, 0], stiff * .7); p.bodyY = (p.bodyY || 0) + .012 * stiff;   // 순간 굳으며 리드를 돌아봄
+      if (A.out === 'stop') { const g = env3(e, H, H + .35, D - .8, D - .3);
+        if (k === 'butt') { J('shL', [.85, .01, .12], g); J('elL', [-1.17, 0, 0], g); } else { J('shR', [.26, -.4, -.15], g); J('elR', [-2.32, 0, 0], g); } }
+    }
+  } else if (k === 'undress') {                          // 리드: 두 손으로 상대 옷자락(허리 앞)을 잡고 → 위로 올리려 함 · 상대: 두 손으로 손목을 붙잡아 내림
+    if (lead) { const grab = env3(e, .1, .7, D - .6, D), lift = ss(.7, 1.3, e) * (1 - ss(1.3, 1.7, e) * (A.out === 'refuse' ? 1 : .85));
+      J('shL', [-.46 - .15 * lift, -.04, .1 + .07 * lift], grab); J('elL', [-.82 - .94 * lift, 0, 0], grab);
+      J('shR', [-.6, -.2 + .23 * lift, -.2 + .03 * lift], grab); J('elR', [-.64 - 1.12 * lift, 0, 0], grab); }
+    else { const hold = env3(e, 1.0, 1.25, D - .6, D); arms([-.7, 0, .3], -.8, [-.7, 0, -.3], -.8, hold); J('torso', [-.08, 0, 0], hold); }
+  }
+}
+
 /* ── 베이스 루프 ── */
 const BASE = {
   idle(p, t, u) { const s = Math.sin(t * 1.7 + u.seed * 9), w = Math.sin(t * .42 + u.seed * 7); p.bodyX = .022 * w; p.legL = [0, 0, -.03 + .03 * w]; p.legR = [0, 0, .03 + .03 * w]; p.knL = [Math.max(0, w) * .12, 0, 0]; p.knR = [Math.max(0, -w) * .12, 0, 0]; p.hipsY = u.hipH - .008 * Math.abs(w); p.torso = [.02 * s, 0, -.02 * w]; p.head = [.03 * Math.sin(t * .9 + u.seed * 5), .22 * Math.sin(t * .23 + u.seed * 13), 0]; p.shL = [.03 * s, 0, -.12]; p.shR = [-.03 * s, 0, .12]; },
@@ -50,9 +135,10 @@ const BASE = {
   blues(p, t, u) {
     const s = Math.sin(t * 1.55), w = Math.sin(t * .77), k = u.kissK || 0;
     p.bodyX = .035 * s; p.hipsY = u.hipH - .012 * Math.abs(s); p.legL = [.06 * s, 0, -.04]; p.legR = [-.06 * s, 0, .04]; p.knL = [Math.max(0, s) * .14, 0, 0]; p.knR = [Math.max(0, -s) * .14, 0, 0];
-    p.torso = [.07 + .12 * k, .05 * w, -.04 * s]; p.head = [.1 + .12 * k, .12 * w * (1 - k), (u.bluesLead ? .22 : -.22) * k + .05 * s * (1 - k)];
-    if (u.bluesLead) { p.shL = [-.95, 0, .12]; p.elL = [-.75, 0, 0]; p.shR = [-.95, 0, -.12]; p.elR = [-.75, 0, 0]; }
-    else { p.shL = [-2.05, 0, .18]; p.elL = [-1.05, 0, 0]; p.shR = [-2.05, 0, -.18]; p.elR = [-1.05, 0, 0]; }
+    const tl = u.kissDeep ? .34 + .06 * Math.sin(t * 1.3) : .22; p.torso = [.07 + .12 * k, .05 * w, -.04 * s]; p.head = [.1 + .12 * k, .12 * w * (1 - k) + (u.kissDeep ? .1 * Math.sin(t * .9) * k : 0), (u.bluesLead ? tl : -tl) * k + .05 * s * (1 - k)];
+    if (u.bluesLead) { p.shL = [-.59, .02, -.19]; p.elL = [-1.08, 0, 0]; p.shR = [-.59, -.02, .19]; p.elR = [-1.08, 0, 0]; }     // 손: 상대 허리 옆 (IK)
+    else { p.shL = [-1.24, -.04, -.05]; p.elL = [-1.08, 0, 0]; p.shR = [-1.29, -.01, .1]; p.elR = [-.94, 0, 0]; }                  // 손: 상대 어깨 위 (IK)
+    BLUES_ACT(p, u);
   },
   sit(p, t, u) {
     const s = Math.sin(t * 1.5 + u.seed * 7);
@@ -106,6 +192,7 @@ function play(a, name, opt = {}) {
   if (name === 'cheer' && NC.fx && opt.confetti !== false) NC.fx.confetti(a.position.x, a.position.y + 1.9, a.position.z, 40);
 }
 function trigger(a, ev, opt = {}) {
+  if (a && a.userData && a.userData.dance === 'blues' && (ev === 'music:drop' || String(ev).startsWith('zone:'))) return;   // v10: 부르스 중엔 음악 드롭·구역 모션 무시
   const tr = TRIGGERS[ev]; if (!tr || !a) return;
   if (tr.chance && Math.random() > tr.chance) return;
   const u = a.userData;
