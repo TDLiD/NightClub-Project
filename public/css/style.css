@@ -160,3 +160,24 @@ button{font-family:inherit}
 .ccSw { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 6px 0; font-size: 12px; color: #eadfff; } .ccSw span { width: 64px; }
 .ccSw i { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid rgba(255,255,255,.25); display: inline-block; } .ccSw i.on { border-color: #ffd23d; transform: scale(1.15); }
 @media (max-width: 640px) { .ccL { flex-basis: 100%; } #ccPrev { width: 210px; height: 280px; } }
+
+/* ── v13 계정 ── */
+#authTabs { display: flex; gap: 4px; margin: 6px 0 8px; } #authTabs button { flex: 1; padding: 8px 4px; font-size: 13px; }
+#authTabs button.on { background: linear-gradient(90deg, #ff3d9a, #9b5cff); color: #fff; }
+.authHint { font-size: 12px; opacity: .75; margin: 2px 0 6px; }
+.authBox { text-align: left; display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.authBox.join { max-height: 52vh; overflow-y: auto; padding-right: 4px; }
+.af { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #eadfff; } .af > span em { opacity: .6; font-style: normal; }
+.af .ar { display: flex; gap: 6px; align-items: center; } .af .ar input { flex: 1; min-width: 0; padding: 9px 10px; border-radius: 10px; }
+.af .ar .chk { flex: 0 0 auto; padding: 8px 10px; font-size: 12px; white-space: nowrap; } .af .ar .eye { flex: 0 0 auto; padding: 6px 8px; background: transparent; border: none; cursor: pointer; }
+.af small { min-height: 14px; font-size: 11px; } .af small.ok { color: #5dff8a; } .af small.bad { color: #ff7a8a; }
+.pwRule { display: flex; flex-wrap: wrap; gap: 4px; margin: -2px 0 2px; } .pwRule i { font-style: normal; font-size: 10px; padding: 2px 7px; border-radius: 10px; background: rgba(255,255,255,.08); color: #b8a8d0; }
+.pwRule i.ok { background: #1f6a3a; color: #c8ffd8; } .pwRule i.opt { border: 1px dashed rgba(255,255,255,.25); }
+.authBox .ck { font-size: 12px; color: #eadfff; display: flex; gap: 6px; align-items: center; } .authBox .ck a { color: #ff9ad6; }
+.authBox .wide { width: 100%; padding: 11px; margin-top: 4px; } .aerr { color: #ff7a8a; font-size: 12px; min-height: 16px; text-align: center; }
+.alinks { display: flex; justify-content: center; gap: 8px; font-size: 12px; } .alinks button { background: none; border: none; color: #c8b8ff; cursor: pointer; padding: 2px; text-decoration: underline; } .alinks span { opacity: .4; }
+.charPick { flex: 1; padding: 9px 10px; border-radius: 10px; background: rgba(255,255,255,.06); font-size: 12px; }
+.authBox.logged { text-align: center; padding: 10px; border-radius: 12px; background: rgba(93,255,138,.08); border: 1px solid rgba(93,255,138,.3); }
+.authBox.logged .who { font-size: 14px; } .authBox.logged .who2 { font-size: 12px; opacity: .8; margin-bottom: 4px; }
+.findRes { text-align: center; line-height: 2; font-size: 14px; padding: 8px 0; } .findRes b { font-size: 20px; color: #ffd23d; letter-spacing: 1px; } .findRes b.pw { font-family: monospace; }
+#qmenu .qsep { height: 1px; background: rgba(255,255,255,.15); margin: 4px 0; } #qmenu button:disabled { opacity: .5; cursor: default; }

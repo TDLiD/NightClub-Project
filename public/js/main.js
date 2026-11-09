@@ -205,6 +205,14 @@ NC.begin = function () {
   NC.Audio.init(); NC.emit('start');
   NC.ui.toast(NC.mode === 'online' ? '입장했어요! 🪩 근처 사람에게 E로 부킹 초대 · 🤵 웨이터에게 AI 부킹' : '입장했어요! 🪩 손님 근처에서 E로 말 걸기 · 🤵 웨이터에게 팁 부킹');
 };
+// v13: 게임 중 내 캐릭터 교체(설정 → 캐릭터 변경). 위치·방향 유지, VRM 이 있으면 다시 연결
+NC.rebuildPlayer = look => {
+  const old = P.group; if (!old) return; NC.settings.look = look;
+  const g = NC.Avatar.create({ name: NC.settings.name + ' (나)', look, seed: cfg.seed, expr: 'smile', hiRes: true });
+  if (NC.VRMKit && NC.VRMKit.playerUrl) NC.VRMKit.attach(g, NC.VRMKit.playerUrl);
+  g.position.copy(old.position); g.rotation.y = old.rotation.y; NC.scene.add(g); NC.scene.remove(old); P.group = g;
+  NC.emit('player:look', look);
+};
 $('#go').onclick = async () => {
   const nm = $('#nick').value.trim(); $('#err').textContent = '';
   if (!/^[가-힣a-zA-Z0-9_ ]{2,10}$/.test(nm)) { $('#err').textContent = '닉네임은 2~10자(한글·영문·숫자)로 입력해 주세요.'; return; }

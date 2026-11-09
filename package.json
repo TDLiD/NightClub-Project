@@ -1,6 +1,6 @@
 {
   "name": "nostalgia-night-metaverse",
-  "version": "12.0.0",
+  "version": "13.0.0",
   "description": "추억의 나이트 메타버스 (3D 웹) — 4구역 클럽 · AI 부킹 NPC · 웨이터 부킹 · 미니게임 · 공간음향 · WebRTC 근거리 음성",
   "main": "server.js",
   "scripts": {

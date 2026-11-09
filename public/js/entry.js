@@ -160,5 +160,11 @@ E.onlineCount = n => {
     try { const h = await (await fetch('/api/health', { cache: 'no-store' })).json(); E.onlineCount(h.online || 0); } catch (e) { }
   }, 5000);
 };
+// v13: 캐릭터 번호 = 성별별 스타일 순번(1~11). 회원 DB 의 characterNo 와 동기화
+E.STYLES = STYLES;
+E.stylesOf = g => STYLES.filter(s => s[0] === g);
+E.lookByNo = (g, no) => { const L = E.stylesOf(g), s = L[U.clamp((no | 0) - 1, 0, L.length - 1)]; return fullLook(g, s[2]); };
+E.styleName = (g, no) => { const L = E.stylesOf(g); return (L[U.clamp((no | 0) - 1, 0, L.length - 1)] || [])[1] || ''; };
+E.thumb = (look, w = 150, h = 200) => draw(look, w, h, .45);
 E.renderCustom();
 })();
