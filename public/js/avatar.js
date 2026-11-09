@@ -15,10 +15,13 @@ const EYEC = ['#3a2416', '#4a2e1a', '#2a1a10', '#5a3a20', '#30251c', '#3d3326'];
 const LIPS_F = ['#d0566a', '#c4475a', '#e07a7a', '#b8485e', '#d96f6f', '#a83e52', '#e0857c'];
 const LIPS_M = ['#c08a80', '#b87a72', '#c89488', '#ad7a70'];
 const SHADOWS = ['#b06aa0', '#c88a6a', '#8a6ad0', '#d07a8a', '#a07050'];
-const HAIR_F = ['long', 'bob', 'ponytail', 'bun', 'wavy', 'long', 'bob'];
-const HAIR_M = ['short', 'twoblock', 'slick', 'curly', 'buzz', 'side', 'twoblock'];
-const TOPS_F = ['dress', 'tee', 'shirt', 'jacket', 'dress'];
-const TOPS_M = ['shirt', 'jacket', 'tee', 'shirt', 'jacket'];
+const HAIR_F = ['long', 'bob', 'ponytail', 'bun', 'wavy', 'twin', 'braids', 'long', 'bob', 'twin'];
+const HAIR_M = ['short', 'twoblock', 'slick', 'curly', 'spiky', 'side', 'twoblock', 'spiky'];
+const TOPS_F = ['dress', 'tee', 'shirt', 'jacket', 'dress', 'crop', 'overshirt', 'crop'];
+const PATTERNS = ['solid', 'solid', 'plaid', 'stripe', 'leopard', 'graphic', 'solid'];
+const HATS = [null, null, null, null, 'cap', 'beanie', 'fedora', 'cap'];
+const VIVID_HAIR = ['#e8c35a', '#ff8fb8', '#9be15d', '#c9572f', '#7a8cff', '#f2f2f2'];
+const TOPS_M = ['shirt', 'jacket', 'tee', 'overshirt', 'jacket', 'overshirt'];
 const hsl = (h, s, l) => '#' + new T.Color().setHSL(h, s, l).getHexString();
 
 function randomLook(seed, gender) {
@@ -27,26 +30,44 @@ function randomLook(seed, gender) {
   const top = pick(f ? TOPS_F : TOPS_M);
   return {
     gender: g, height: f ? 1.6 + r() * .12 : 1.72 + r() * .12, build: .92 + r() * .2,
-    skin: pick(SKINS), hairStyle: pick(f ? HAIR_F : HAIR_M), hairColor: pick(HAIRC),
+    skin: pick(SKINS), hairStyle: pick(f ? HAIR_F : HAIR_M), hairColor: r() < .22 ? pick(VIVID_HAIR) : pick(HAIRC),
+    pattern: pick(PATTERNS), hat: pick(HATS), hatColor: hsl(r(), .5, .3 + r() * .3), shoeColor: r() < .6 ? '#f4f4f6' : hsl(r(), .6, .5),
     top, topColor: hsl(r(), .55 + r() * .35, .42 + r() * .2),
-    bottom: top === 'dress' ? 'skirt' : (f && r() < .45 ? 'skirt' : 'pants'), bottomColor: hsl(r(), .2 + r() * .3, .12 + r() * .14),
+    bottom: top === 'dress' ? 'skirt' : top === 'crop' ? (r() < .5 ? 'shorts' : 'skirt') : (f && r() < .4 ? 'skirt' : !f && r() < .15 ? 'shorts' : 'pants'), bottomColor: hsl(r(), .2 + r() * .3, .12 + r() * .14),
+    innerColor: r() < .5 ? '#f6f6f6' : r() < .5 ? '#1c1c20' : hsl(r(), .5, .6), setup: top === 'jacket' && r() < .35,
+    inner: r() < .35 ? 'turtle' : 'tee', fit: r() < .3 ? 'wide' : r() < .45 ? 'ripped' : 'skinny', set: r() < .18, oversize: r() < .3, necklace: r() < .3, shoes: f && r() < .3 ? 'boots' : 'sneakers',
     face: {
       eyeColor: pick(EYEC), eyeSize: .85 + r() * .35, eyeTilt: (r() - .5) * .28, eyeGap: (r() - .5) * .05, lid: r() < .6 ? 1 : 0,
       browThick: f ? .55 + r() * .45 : .95 + r() * .6, browTilt: (r() - .5) * .3, browArch: r(),
       lipColor: pick(f ? LIPS_F : LIPS_M), lipW: .85 + r() * .3, lipFull: .8 + r() * .5, nose: .82 + r() * .4,
       faceW: .9 + r() * .14, jaw: .92 + r() * .18, blush: f ? .2 + r() * .4 : r() * .12, liner: f ? .3 + r() * .7 : 0,
       shadow: f && r() < .8 ? pick(SHADOWS) : null, freckles: r() < .15, mole: r() < .25 ? [(r() - .5) * .9, .15 + r() * .5] : null,
-      beard: !f && r() < .35 ? (r() < .6 ? 'stubble' : 'goatee') : null, glasses: r() < .16, earring: f && r() < .5,
+      beard: !f && r() < .25 ? (r() < .6 ? 'stubble' : 'goatee') : null, glasses: r() < .2, sunglasses: r() < .14, earring: f && r() < .55,
     },
   };
+}
+/* 오리지널 유지 가드: 특정 원작 이미지의 캐릭터 조합(헤어색+헤어스타일+의상 패턴+소품)이 그대로 나오지 않도록 비틀기 */
+function originalize(o) {
+  const F = o.face || {};
+  if ((o.hairStyle === 'twin' || o.hairStyle === 'braids') && o.hairColor === '#9be15d') o.hairColor = '#7a8cff';
+  if (o.pattern === 'leopard') F.sunglasses = false;
+  if (o.hairStyle === 'braids' && o.hairColor === '#c9572f' && o.pattern === 'plaid') o.pattern = 'stripe';
+  if (o.hairColor === '#ff8fb8' && o.pattern === 'graphic') o.pattern = 'solid';
+  if (o.hairColor === '#e8c35a' && F.glasses && o.pattern === 'plaid') F.glasses = false;
+  if (o.top === 'jacket' && o.setup && /^#f[0-9a-f]f/i.test(o.topColor || '') && F.glasses) F.glasses = false;
+  if (o.setup) { o.bottom = 'pants'; o.bottomColor = o.topColor; o.pattern = 'solid'; }
+  return o;
 }
 function mergeLook(seed, gender, look) {
   const base = randomLook(seed, (look && look.gender) || gender);
   const o = Object.assign({}, base, look || {});
-  const plain = { freckles: false, mole: null, beard: null, glasses: false, earring: false, shadow: null };   // 지정 얼굴은 랜덤 소품을 섞지 않음
-  o.face = Object.assign({}, base.face, look && look.face ? plain : {}, (look && look.face) || {}); return o;
+  const plain = { freckles: false, mole: null, beard: null, glasses: false, sunglasses: false, earring: false, shadow: null };   // 지정 얼굴은 랜덤 소품을 섞지 않음
+  o.face = Object.assign({}, base.face, look && look.face ? plain : {}, (look && look.face) || {}); return originalize(o);
 }
 
+/* ───────── 스타일라이즈드(v4) 비율 ─────────
+ * 큰 두상·큰 눈·작은 코/입·가는 목·긴 다리의 3D 캐릭터 스타일. TOON=false 로 바꾸면 v3 실사 비율로 돌아감 */
+const TOON = true, HEAD_S = TOON ? 1.8 : 1, EYE_K = TOON ? 1.85 : 1.3;
 /* ───────── 얼굴 텍스처 ───────── */
 const FW = 1024, FH = 512, K = FW / (Math.PI * 2);
 const EXPR = {
@@ -58,6 +79,7 @@ const EXPR = {
   sad: { eyes: 'half', mouth: 'sad', brow: .2, browIn: -.9, blush: 0 },
   annoyed: { eyes: 'half', mouth: 'flat', brow: -.35, browIn: .9, blush: 0 },
   wink: { eyes: 'wink', mouth: 'smirk', brow: .3, browIn: 0, blush: .15 },
+  joy: { eyes: 'happy', mouth: 'grin', brow: .55, browIn: -.25, blush: .4 },
 };
 const MOUTHS = {
   neutral: { cuL: 0, cuR: 0, open: 0, ws: 1, line: .01 },
@@ -68,83 +90,123 @@ const MOUTHS = {
   sad: { cuL: -.028, cuR: -.028, open: 0, ws: .95, line: -.012 },
   flat: { cuL: -.008, cuR: -.008, open: 0, ws: .9, line: 0 },
   smirk: { cuL: 0, cuR: .04, open: 0, ws: 1, line: .018 },
+  grin: { cuL: .045, cuR: .045, open: 1.5, ws: 1.3, line: .05 },
 };
 const rgba = (hex, a) => { const c = new T.Color(hex); return `rgba(${c.r * 255 | 0},${c.g * 255 | 0},${c.b * 255 | 0},${a})`; };
 const shade = (hex, l) => { const c = new T.Color(hex); const h = {}; c.getHSL(h); return '#' + c.setHSL(h.h, h.s, U.clamp(h.l + l, 0, 1)).getHexString(); };
 
+/* 피부 베이스 레이어(표정과 무관한 부분)는 한 번만 그려 캐시 → 깜빡임·입모양 갱신이 가벼움 */
+const baseCache = new WeakMap();
+let noiseCv = null;
+function skinNoise() { if (noiseCv) return noiseCv; noiseCv = document.createElement('canvas'); noiseCv.width = noiseCv.height = 256; const g = noiseCv.getContext('2d'), im = g.createImageData(256, 256), d = im.data, r = U.rng(77);
+  for (let i = 0; i < 256 * 256; i++) { const v = r(); d[i * 4] = 120 + v * 60; d[i * 4 + 1] = 70 + v * 40; d[i * 4 + 2] = 60 + v * 30; d[i * 4 + 3] = v < .55 ? 0 : (v - .55) * 120; } g.putImageData(im, 0, 0); return noiseCv; }
+function skinBase(look, FW, FH) {
+  const key = baseCache.get(look); if (key && key.width === FW) return key;
+  const cv = document.createElement('canvas'); cv.width = FW; cv.height = FH; const g = cv.getContext('2d'), F = look.face, K = FW / (Math.PI * 2);
+  g.fillStyle = look.skin; g.fillRect(0, 0, FW, FH);
+  g.globalAlpha = TOON ? .1 : .5; g.drawImage(skinNoise(), 0, 0, FW, FH); g.globalAlpha = 1;
+  g.setTransform(K, 0, 0, K, FW * .25, FH * .5);
+  const rad = (x, y, r0, r1, c0, c1) => { const gr = g.createRadialGradient(x, y, r0, x, y, r1); gr.addColorStop(0, c0); gr.addColorStop(1, c1); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r1, 0, 7); g.fill(); };
+  let gr = g.createRadialGradient(0, .15, .35, 0, .2, 1.35); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(70,25,15,.26)'); g.fillStyle = gr; g.fillRect(-1.6, -1.6, 3.2, 3.2);
+  rad(0, -.42, 0, .42, 'rgba(255,240,225,.16)', 'rgba(255,240,225,0)');                 // 이마 하이라이트
+  rad(0, .18, 0, .1, 'rgba(255,240,230,.18)', 'rgba(255,240,230,0)');                    // 콧대 하이라이트
+  for (const s of [-1, 1]) {
+    rad(s * .31, .14, 0, .14, 'rgba(90,40,50,.12)', 'rgba(90,40,50,0)');                  // 눈 밑 그늘
+    rad(s * .31, -.07, 0, .16, 'rgba(100,45,40,.12)', 'rgba(100,45,40,0)');              // 눈두덩 쌍꺼풀 그늘
+    rad(s * .62, .42, 0, .3, 'rgba(80,30,25,.14)', 'rgba(80,30,25,0)');                  // 광대 아래 음영
+    rad(s * .5, .22, 0, .16, 'rgba(255,235,220,.12)', 'rgba(255,235,220,0)');            // 광대 하이라이트
+    rad(s * .1, .35, 0, .08, 'rgba(200,90,80,.12)', 'rgba(200,90,80,0)');                // 콧망울 혈색
+  }
+  rad(0, .78, 0, .16, 'rgba(255,235,220,.12)', 'rgba(255,235,220,0)');                   // 턱끝 하이라이트
+  rad(0, 1.02, 0, .35, 'rgba(60,20,15,.18)', 'rgba(60,20,15,0)');                        // 턱 아래 그늘
+  const bl = U.clamp((F.blush || 0) + (TOON ? .25 : 0), 0, 1);
+  if (bl > .02) for (const s of [-1, 1]) rad(s * .46, TOON ? .36 : .3, 0, TOON ? .2 : .22, `rgba(255,105,130,${.5 * bl})`, 'rgba(255,105,130,0)');
+  if (F.freckles) { const r = U.rng(U.hash(look.skin + look.hairColor)); g.fillStyle = 'rgba(140,80,50,.35)'; for (let i = 0; i < 34; i++) { const s = r() < .5 ? -1 : 1; g.beginPath(); g.arc(s * (.1 + r() * .34), .14 + r() * .22, .006 + r() * .006, 0, 7); g.fill(); } }
+  if (F.mole) { g.fillStyle = 'rgba(60,30,20,.75)'; g.beginPath(); g.arc(F.mole[0], F.mole[1], .011, 0, 7); g.fill(); }
+  if (F.beard) {   // 수염: 개별 점(모근)으로 그려 실사 느낌
+    const r = U.rng(U.hash(look.hairColor + 'b')), dens = F.beard === 'stubble' ? 900 : 1300;
+    g.fillStyle = rgba(look.hairColor, F.beard === 'stubble' ? .35 : .6);
+    for (let i = 0; i < dens; i++) { const x = (r() - .5) * 1.15, y = .3 + r() * .85;
+      const inBeard = F.beard === 'stubble' ? (y > .4 + Math.abs(x) * .15 && Math.abs(x) < .58 - (y - .3) * .1 && !(Math.abs(x) < .2 && y > .45 && y < .62 && y > .5)) : (Math.hypot(x, (y - .76) * 1.1) < .19 || (y > .4 && y < .47 && Math.abs(x) < .2));
+      if (inBeard) { g.beginPath(); g.arc(x, y, .0045 + r() * .003, 0, 7); g.fill(); } }
+  }
+  baseCache.set(look, cv); return cv;
+}
+
 function drawFace(cv, look, exName, st = {}) {
+  const FW = cv.width, FH = cv.height, K = FW / (Math.PI * 2);
   const g = cv.getContext('2d'), F = look.face, fem = look.gender === 'f', e = EXPR[exName] || EXPR.neutral;
-  g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = look.skin; g.fillRect(0, 0, FW, FH);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(skinBase(look, FW, FH), 0, 0);
   g.setTransform(K, 0, 0, K, FW * .25, FH * .5);          // 이후 단위: 라디안 (정면 중앙 = 0,0 / +y = 아래)
   let gr;
-  // 윤곽 음영
-  gr = g.createRadialGradient(0, .15, .35, 0, .2, 1.35); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(70,25,15,.22)'); g.fillStyle = gr; g.fillRect(-1.6, -1.6, 3.2, 3.2);
-  // 볼터치
-  const bl = U.clamp((F.blush || 0) + (e.blush || 0), 0, 1);
-  if (bl > .02) for (const s of [-1, 1]) { gr = g.createRadialGradient(s * .44, .32, 0, s * .44, .32, .22); gr.addColorStop(0, `rgba(255,100,125,${.55 * bl})`); gr.addColorStop(1, 'rgba(255,100,125,0)'); g.fillStyle = gr; g.beginPath(); g.arc(s * .44, .32, .22, 0, 7); g.fill(); }
-  // 주근깨 · 점
-  if (F.freckles) { const r = U.rng(U.hash(look.skin + look.hairColor)); g.fillStyle = 'rgba(140,80,50,.35)'; for (let i = 0; i < 26; i++) { const s = r() < .5 ? -1 : 1; g.beginPath(); g.arc(s * (.15 + r() * .3), .16 + r() * .2, .008 + r() * .006, 0, 7); g.fill(); } }
-  if (F.mole) { g.fillStyle = 'rgba(60,30,20,.75)'; g.beginPath(); g.arc(F.mole[0], F.mole[1], .012, 0, 7); g.fill(); }
-  // 수염
-  if (F.beard) {
-    g.fillStyle = rgba(look.hairColor, F.beard === 'stubble' ? .2 : .55); g.beginPath();
-    if (F.beard === 'stubble') { g.moveTo(-.55, .32); g.quadraticCurveTo(-.58, 1.05, 0, 1.15); g.quadraticCurveTo(.58, 1.05, .55, .32); g.quadraticCurveTo(.3, .44, 0, .4); g.quadraticCurveTo(-.3, .44, -.55, .32); }
-    else { g.ellipse(0, .74, .17, .17, 0, 0, 7); g.moveTo(-.2, .43); g.quadraticCurveTo(0, .37, .2, .43); g.quadraticCurveTo(0, .46, -.2, .43); }
-    g.fill();
-  }
+  // 표정 볼터치(부끄러움 등)
+  const bl = U.clamp(e.blush || 0, 0, 1);
+  if (bl > .02) for (const s of [-1, 1]) { gr = g.createRadialGradient(s * .44, .3, 0, s * .44, .3, .24); gr.addColorStop(0, `rgba(255,90,115,${.5 * bl})`); gr.addColorStop(1, 'rgba(255,90,115,0)'); g.fillStyle = gr; g.beginPath(); g.arc(s * .44, .3, .24, 0, 7); g.fill(); }
+  const gz = st.gaze || [0, 0];
   // 눈
-  const ex = .31 + (F.eyeGap || 0), es = (F.eyeSize || 1) * 1.3, EY = .05;
+  const ex = (TOON ? .33 : .31) + (F.eyeGap || 0), es = (F.eyeSize || 1) * EYE_K, EY = TOON ? .1 : .05;
   for (const s of [-1, 1]) {
     let mode = e.eyes; if (mode === 'wink') mode = s > 0 ? 'happy' : 'open'; if (st.blink && mode !== 'happy') mode = 'closed';
     g.save(); g.translate(s * ex, EY); g.rotate(-s * (F.eyeTilt || 0)); if (s < 0) g.scale(-1, 1);   // 항상 +x = 바깥 눈꼬리
-    const w = .11 * es, open = { open: 1, wide: 1.3, half: .55, down: .62 }[mode] || 0, h = .05 * es * Math.max(open, .01);
+    const w = (TOON ? .1 : .11) * es, open = { open: 1, wide: 1.3, half: .55, down: .62 }[mode] || 0, h = (TOON ? .066 : .05) * es * Math.max(open, .01);
     if (F.shadow) { gr = g.createRadialGradient(.01, -.05, 0, .01, -.05, .17); gr.addColorStop(0, rgba(F.shadow, .5)); gr.addColorStop(1, rgba(F.shadow, 0)); g.fillStyle = gr; g.beginPath(); g.arc(.01, -.05, .17, 0, 7); g.fill(); }
     g.strokeStyle = '#1b1210'; g.lineCap = 'round'; g.lineJoin = 'round';
     if (open > 0) {
       const upper = () => { g.moveTo(-w, .006); g.bezierCurveTo(-w * .5, -h * 1.3, w * .45, -h * 1.35, w, -.008 - (fem ? .006 : 0)); };
       g.beginPath(); upper(); g.bezierCurveTo(w * .5, h * .95, -w * .45, h * .95, -w, .006); g.closePath(); g.fillStyle = '#fbf6f1'; g.fill();
       g.save(); g.clip();
-      const iy = mode === 'down' ? h * .45 : -h * .1, ir = .052 * es;
-      gr = g.createRadialGradient(-.006, iy, ir * .2, -.006, iy, ir); gr.addColorStop(0, shade(F.eyeColor, .14)); gr.addColorStop(.75, F.eyeColor); gr.addColorStop(1, '#120a06');
-      g.fillStyle = gr; g.beginPath(); g.arc(-.006, iy, ir, 0, 7); g.fill();
-      g.fillStyle = '#0a0605'; g.beginPath(); g.arc(-.006, iy, ir * .45, 0, 7); g.fill();
-      g.fillStyle = 'rgba(255,255,255,.95)'; g.beginPath(); g.arc(-.022, iy - .018, ir * .22, 0, 7); g.fill();
-      g.fillStyle = 'rgba(80,40,30,.2)'; g.fillRect(-w, -h * 1.5, w * 2, h * .75);
+      g.fillStyle = 'rgba(200,120,120,.12)'; g.fillRect(-w, -h, w * .35, h * 2); g.fillRect(w * .65, -h, w * .35, h * 2);   // 흰자 가장자리 혈색
+      const ir = (TOON ? .068 : .052) * es, ix = -.006 + gz[0] * s * w * .3, iy = (mode === 'down' ? h * .45 : TOON ? h * .05 : -h * .1) + gz[1] * h * .4;
+      if (TOON) { gr = g.createLinearGradient(0, iy - ir, 0, iy + ir); gr.addColorStop(0, shade(F.eyeColor, -.12)); gr.addColorStop(.55, F.eyeColor); gr.addColorStop(1, shade(F.eyeColor, .32)); }
+      else { gr = g.createRadialGradient(ix, iy, ir * .2, ix, iy, ir); gr.addColorStop(0, shade(F.eyeColor, .2)); gr.addColorStop(.62, F.eyeColor); gr.addColorStop(.9, shade(F.eyeColor, -.08)); gr.addColorStop(1, '#0d0704'); }
+      g.fillStyle = gr; g.beginPath(); g.arc(ix, iy, ir, 0, 7); g.fill(); if (TOON) { g.lineWidth = .006; g.strokeStyle = shade(F.eyeColor, -.25); g.stroke(); }
+      g.strokeStyle = rgba(shade(F.eyeColor, .3), .35); g.lineWidth = .0022; for (let k = 0; k < 22; k++) { const a = k / 22 * Math.PI * 2; g.beginPath(); g.moveTo(ix + Math.cos(a) * ir * .5, iy + Math.sin(a) * ir * .5); g.lineTo(ix + Math.cos(a + .1) * ir * .92, iy + Math.sin(a + .1) * ir * .92); g.stroke(); }
+      g.fillStyle = '#050302'; g.beginPath(); g.arc(ix, iy, ir * .42, 0, 7); g.fill();
+      if (TOON) { g.fillStyle = '#ffffff'; g.beginPath(); g.ellipse(ix - ir * .38, iy - ir * .38, ir * .3, ir * .24, -.5, 0, 7); g.fill(); g.beginPath(); g.arc(ix + ir * .42, iy + ir * .4, ir * .12, 0, 7); g.fill();
+        g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = .005; g.beginPath(); g.arc(ix, iy, ir * .72, .4, 1.3); g.stroke(); }
+      else { g.fillStyle = 'rgba(255,255,255,.95)'; g.beginPath(); g.arc(ix - .016, iy - .017, ir * .2, 0, 7); g.fill();
+        g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.arc(ix + .014, iy + .012, ir * .09, 0, 7); g.fill(); }
+      gr = g.createLinearGradient(0, -h * 1.4, 0, -h * .2); gr.addColorStop(0, 'rgba(60,30,25,.45)'); gr.addColorStop(1, 'rgba(60,30,25,0)'); g.fillStyle = gr; g.fillRect(-w, -h * 1.5, w * 2, h * 1.3);
       g.restore();
-      g.beginPath(); upper(); g.lineWidth = .013 + (F.liner || 0) * .012; g.stroke();
-      if ((F.liner || 0) > .3) { g.beginPath(); g.moveTo(w * .9, -.012); g.lineTo(w + .035 * F.liner, -.03 * F.liner - .006); g.lineWidth = .01; g.stroke(); }
-      if (fem) { g.lineWidth = .006; [[.5, -h * 1.2], [.7, -h * 1.05], [.88, -h * .7]].forEach(([k, y]) => { g.beginPath(); g.moveTo(w * k, y); g.lineTo(w * k + .016, y - .022); g.stroke(); }); }
+      g.beginPath(); upper(); g.lineWidth = (TOON ? .02 : .013) + (F.liner || 0) * .012; g.stroke();
+      if (TOON) { g.beginPath(); g.moveTo(-w * .7, h * .7); g.bezierCurveTo(-w * .2, h * 1.05, w * .4, h * 1.0, w * .85, h * .45); g.lineWidth = .006; g.strokeStyle = 'rgba(60,30,25,.5)'; g.stroke(); g.strokeStyle = '#1b1210'; }
+      if ((F.liner || 0) > .3 || (TOON && fem)) { const lnr = Math.max(F.liner || 0, .6); g.beginPath(); g.moveTo(w * .85, -.012); g.lineTo(w + .04 * lnr, -.036 * lnr - .006); g.lineWidth = .014; g.stroke(); }
+      { const n = TOON ? (fem ? 5 : 0) : (fem ? 11 : 6); g.strokeStyle = '#120c0a'; g.lineWidth = TOON ? .009 : fem ? .0042 : .003; for (let k = 0; k < n; k++) { const q = .12 + k / (n - 1) * .86, x = -w + q * 2 * w, y = -h * 1.3 * Math.sin(q * Math.PI) * .95 - .002, L = (TOON ? .03 * (q > .55 ? 1.3 : .7) : fem ? .02 : .01) * (.6 + q * .7);
+          g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + L * .3, y - L * .8, x + L * (.4 + q * .6), y - L); g.stroke(); } g.strokeStyle = '#1b1210'; }
       g.beginPath(); g.moveTo(-w * .8, .014); g.bezierCurveTo(-w * .3, h * 1.0, w * .4, h * .95, w * .95, -.002); g.lineWidth = .005; g.strokeStyle = 'rgba(60,30,25,.35)'; g.stroke();
       if (F.lid) { g.beginPath(); g.moveTo(-w * .55, -h * 1.25); g.bezierCurveTo(-w * .2, -h * 2.0, w * .4, -h * 2.0, w * .95, -h * .9); g.lineWidth = .006; g.strokeStyle = 'rgba(90,45,35,.45)'; g.stroke(); }
     } else if (mode === 'happy') {
-      g.beginPath(); g.moveTo(-w, .02); g.quadraticCurveTo(0, -.075 * es, w, .012); g.lineWidth = .018; g.stroke();
+      g.beginPath(); g.moveTo(-w, .02); g.quadraticCurveTo(0, -.075 * es, w, .012); g.lineWidth = TOON ? .026 : .018; g.stroke();
     } else {
       g.beginPath(); g.moveTo(-w, -.002); g.quadraticCurveTo(0, .04 * es, w, -.006); g.lineWidth = .015; g.stroke();
     }
     g.restore();
   }
   // 눈썹
-  const bt = F.browThick || 1, by = -.16 - (e.brow || 0) * .045;
+  const bt = (F.browThick || 1) * (TOON ? .75 : 1), by = (TOON ? -.15 - (es - 1.3) * .06 : -.16) - (e.brow || 0) * .045;
   g.strokeStyle = shade(look.hairColor, -.05); g.lineCap = 'round';
   for (const s of [-1, 1]) {
     g.save(); g.translate(s * ex, 0); if (s < 0) g.scale(-1, 1);
     const iy = by + (e.browIn || 0) * .035 + .008, oy = by - (F.browTilt || 0) * .12 + .02;
-    g.beginPath(); g.moveTo(-.14, iy); g.quadraticCurveTo(.0, by - .035 - (F.browArch || .5) * .03, .16, oy); g.lineWidth = .028 * bt; g.stroke();
-    g.beginPath(); g.moveTo(-.14, iy); g.quadraticCurveTo(-.06, iy - .01, .0, by - .02); g.lineWidth = .036 * bt; g.stroke();
+    const cy = by - .035 - (F.browArch || .5) * .03, P = q => { const a = 1 - q; return [a * a * -.14 + 2 * a * q * 0 + q * q * .16, a * a * iy + 2 * a * q * cy + q * q * oy]; };
+    g.globalAlpha = .35; g.beginPath(); g.moveTo(-.14, iy); g.quadraticCurveTo(.0, cy, .16, oy); g.lineWidth = .024 * bt; g.stroke(); g.globalAlpha = 1;
+    const rr = U.rng(U.hash(look.hairColor + s)), n = Math.round((TOON ? 18 : 46) * bt); g.lineWidth = .0035; if (TOON) { g.globalAlpha = .9; g.beginPath(); g.moveTo(-.14, iy); g.quadraticCurveTo(.0, cy, .16, oy); g.lineWidth = .02 * bt; g.stroke(); g.globalAlpha = 1; g.lineWidth = .0035; }
+    for (let k = 0; k < n; k++) { const q = rr(), [x, y] = P(q), th = (1 - q * .55) * .03 * bt, off = (rr() - .5) * th, ang = q < .25 ? -1.2 : -.35 - q * .2, L = .022 + rr() * .012;
+      g.beginPath(); g.moveTo(x, y + off + th * .3); g.lineTo(x + Math.cos(ang) * L * (q < .25 ? .4 : 1), y + off + th * .3 + Math.sin(ang) * L * .5); g.stroke(); }
     g.restore();
   }
   // 코 (입체는 메시, 텍스처는 콧망울 음영)
-  const nz = F.nose || 1;
+  const nz = (F.nose || 1) * (TOON ? .65 : 1);
   gr = g.createRadialGradient(0, .36, 0, 0, .36, .1 * nz); gr.addColorStop(0, 'rgba(110,50,35,.2)'); gr.addColorStop(1, 'rgba(110,50,35,0)'); g.fillStyle = gr; g.fillRect(-.2, .2, .4, .3);
-  g.fillStyle = 'rgba(100,45,35,.42)'; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * .04 * nz, .335, .02, .011, s * .3, 0, 7); g.fill(); }
+  g.fillStyle = `rgba(100,45,35,${TOON ? .3 : .42})`; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * .04 * nz, TOON ? .36 : .335, .02 * (TOON ? .7 : 1), .011, s * .3, 0, 7); g.fill(); }
   // 입
-  const M = MOUTHS[e.mouth] || MOUTHS.neutral, my = .53, mw = .21 * (F.lipW || 1) * M.ws, lf = (F.lipFull || 1) * (fem ? 1.15 : .8);
+  const M = MOUTHS[e.mouth] || MOUTHS.neutral, my = TOON ? .52 : .53, mw = (TOON ? .155 : .21) * (F.lipW || 1) * M.ws, lf = (F.lipFull || 1) * (fem ? 1.15 : .8) * (TOON ? .9 : 1);
   const lip = fem ? F.lipColor : F.lipColor || '#c08a80';
   const L = [-mw, my - M.cuL], R = [mw, my - M.cuR], midTop = my + M.line;
-  const opn = M.open * .07 + (st.talk ? .035 : 0);
+  const opn = M.open * (TOON ? .085 : .07) + (+st.talk || 0) * .042;
   if (opn > 0) {
     g.beginPath(); g.moveTo(...L); g.quadraticCurveTo(0, midTop - .006, ...R); g.quadraticCurveTo(0, midTop + opn * 2, ...L); g.fillStyle = '#4a1820'; g.fill();
-    g.save(); g.clip(); g.fillStyle = '#f7f3ee'; g.fillRect(-mw, midTop - .02, mw * 2, .04); g.restore();
+    g.save(); g.clip(); g.fillStyle = '#f7f3ee'; g.fillRect(-mw, midTop - .02, mw * 2, .04); if (TOON && opn > .04) { g.fillStyle = '#e8707e'; g.beginPath(); g.ellipse(0, midTop + opn * 1.7, mw * .55, opn * .7, 0, 0, 7); g.fill(); } g.restore();
   }
   g.fillStyle = lip; g.beginPath(); g.moveTo(...L);
   g.bezierCurveTo(-mw * .6, my - .035 * lf - M.cuL * .5, -mw * .2, my - .045 * lf, 0, my - .028 * lf);
@@ -152,7 +214,8 @@ function drawFace(cv, look, exName, st = {}) {
   g.quadraticCurveTo(0, midTop + .006, ...L); g.fill();
   const lt = midTop + opn * 1.8;
   g.fillStyle = shade(lip, .04); g.beginPath(); g.moveTo(...L); g.quadraticCurveTo(0, lt, ...R); g.quadraticCurveTo(0, lt + .07 * lf + Math.max(0, (M.cuL + M.cuR) / 2) * .4, ...L); g.fill();
-  g.fillStyle = 'rgba(255,255,255,.22)'; g.beginPath(); g.ellipse(-mw * .15, lt + .028 * lf, mw * .22, .01, 0, 0, 7); g.fill();
+  g.fillStyle = `rgba(255,255,255,${fem ? .32 : .16})`; g.beginPath(); g.ellipse(-mw * .12, lt + .026 * lf, mw * .26, .009, 0, 0, 7); g.fill();
+  g.strokeStyle = 'rgba(90,30,40,.18)'; g.lineWidth = .0025; for (let k = -4; k <= 4; k++) { g.beginPath(); g.moveTo(k * mw * .17, lt + .006); g.lineTo(k * mw * .19, lt + .05 * lf); g.stroke(); }
   if (opn <= 0) { g.beginPath(); g.moveTo(...L); g.quadraticCurveTo(0, midTop + .008, ...R); g.lineWidth = .008; g.strokeStyle = 'rgba(70,20,25,.6)'; g.stroke(); }
   // 인중 · 턱 음영
   g.fillStyle = 'rgba(120,60,45,.08)'; g.beginPath(); g.ellipse(0, .4, .03, .05, 0, 0, 7); g.fill();
@@ -164,6 +227,65 @@ const sph = () => G('sph', () => new T.SphereGeometry(1, 14, 10));
 const cyl = (a, b, h, s = 10) => G(`c${a}_${b}_${h}_${s}`, () => new T.CylinderGeometry(a, b, h, s));
 const M_PROF = [[0, -.12], [.12, -.11], [.148, -.04], [.16, .06], [.15, .16], [.16, .27], [.185, .38], [.2, .45], [.17, .5], [.1, .53], [.05, .56]];
 const F_PROF = [[0, -.12], [.13, -.11], [.16, -.04], [.162, .04], [.128, .15], [.138, .25], [.152, .33], [.148, .4], [.155, .45], [.13, .5], [.08, .53], [.045, .56]];
+/* 조각된 두상: 구의 정점을 얼굴 해부학대로 변위 (UV 유지 → 얼굴 텍스처 정렬 그대로) */
+function sculptHead(r, fem) {
+  const g = new T.SphereGeometry(r, 72, 54), p = g.attributes.position, v = new T.Vector3();
+  const B = (a, b, a0, b0, sa, sb) => Math.exp(-((a - a0) * (a - a0) / (sa * sa) + (b - b0) * (b - b0) / (sb * sb)));
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i); const n = v.clone().normalize(), a = Math.atan2(n.x, n.z), b = Math.asin(U.clamp(-n.y, -1, 1)), front = Math.max(0, Math.cos(a));
+    let d = .03 * B(a, b, 0, -.2, .6, .1) * front * (fem ? .6 : 1);                 // 눈썹뼈
+    d += .045 * B(a, b, 0, .14, .07, .2);                                             // 콧대
+    d += .028 * B(a, b, 0, .55, .2, .09);                                             // 입술 돌출
+    d += .04 * B(a, b, 0, .84, .2, .11);                                              // 턱끝
+    for (const s of [-1, 1]) { d -= .032 * B(a, b, s * .31, .04, .14, .09); d += .028 * B(a, b, s * .55, .23, .2, .13); d -= .03 * B(a, b, s * .72, .55, .2, .22); d -= .02 * B(a, b, s * .2, .42, .08, .08); }
+    d -= .05 * B(a, b, Math.PI, .2, .6, .5) * (1 - front);                            // 뒤통수 정리
+    if (TOON) { d *= .4; for (const s of [-1, 1]) d += .03 * B(a, b, s * .55, .4, .28, .22); }
+    let k = 1 + d; v.multiplyScalar(k);
+    if (b > .2) v.x *= 1 - (TOON ? (fem ? .14 : .1) : (fem ? .2 : .14)) * Math.min(1, (b - .2) / .8) * (.4 + .6 * front);   // 턱선 V
+    if (b > .35) v.z += r * .03 * front * Math.min(1, (b - .35) / .5);                // 아래턱 앞으로
+    p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals(); return g;
+}
+const TL = NC.TexLib;
+const rimInject = (rgb, k) => sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <tonemapping_fragment>', `{ vec3 vd = normalize(vViewPosition); float rim = pow(1.0 - clamp(dot(normal, vd), 0.0, 1.0), 2.6); gl_FragColor.rgb += vec3(${rgb}) * rim * ${k} * diffuseColor.rgb; }\n#include <tonemapping_fragment>`); };
+function skinMat(skin, map) {
+  const m = new T.MeshStandardMaterial({ roughness: .5, metalness: 0 });
+  if (map) m.map = map; else { m.color = NC.col(skin); if (TL) { m.normalMap = TL.texture('skin', 'normal', {}, [5, 5]); m.normalScale.set(.3, .3); } }
+  m.emissive = NC.col(skin).multiplyScalar(.018);        // 피하 산란(따뜻한 자체광 약간)
+  m.onBeforeCompile = rimInject('1.0,0.45,0.35', '0.22'); return m;
+}
+/* 찢어진 데님: 무릎(허벅지 아래쪽) 부분에 흰 실밥 줄 */
+function ripTex(color) {
+  const key = 'rip' + color; if (patCache[key]) return patCache[key];
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.fillStyle = color; g.fillRect(0, 0, 128, 128);
+  const r = U.rng(31); for (let i = 0; i < 300; i++) { g.fillStyle = `rgba(255,255,255,${r() * .08})`; g.fillRect(r() * 128, r() * 128, 1, 6); }
+  g.fillStyle = 'rgba(240,236,228,.95)'; for (let k = 0; k < 7; k++) { const y = 102 + k * 3.2, x0 = 30 + r() * 14, w = 30 + r() * 30; g.fillRect(x0, y, w, 1.6); } g.fillStyle = 'rgba(200,170,150,.9)'; g.fillRect(44, 104, 26, 14);
+  const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; return patCache[key] = t;
+}
+/* 의상 패턴(체크·스트라이프·호피·그래픽 티) — 색상별 캐시 */
+const patCache = {};
+function patternTex(kind, color) {
+  const key = kind + color; if (patCache[key]) return patCache[key];
+  const S = 256, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d'), base = new T.Color(color), dark = '#' + base.clone().multiplyScalar(.45).getHexString(), lite = '#' + base.clone().lerp(new T.Color('#ffffff'), .55).getHexString();
+  g.fillStyle = color; g.fillRect(0, 0, S, S);
+  if (kind === 'plaid') { g.globalAlpha = .55; g.fillStyle = dark; for (let i = 0; i < 4; i++) { g.fillRect(i * 64 + 8, 0, 26, S); g.fillRect(0, i * 64 + 8, S, 26); } g.globalAlpha = .8; g.fillStyle = '#111'; for (let i = 0; i < 4; i++) { g.fillRect(i * 64 + 18, 0, 6, S); g.fillRect(0, i * 64 + 18, S, 6); }
+    g.globalAlpha = .6; g.fillStyle = lite; for (let i = 0; i < 4; i++) { g.fillRect(i * 64 + 48, 0, 2, S); g.fillRect(0, i * 64 + 48, S, 2); } g.globalAlpha = 1; }
+  else if (kind === 'stripe') { g.fillStyle = '#f6f4f0'; for (let i = 0; i < 8; i++) g.fillRect(0, i * 32, S, 16); }
+  else if (kind === 'leopard') { g.fillStyle = '#d9a35a'; g.fillRect(0, 0, S, S); const r = U.rng(9); for (let i = 0; i < 40; i++) { const x = r() * S, y = r() * S, rr = 8 + r() * 8; g.fillStyle = '#7a4a1e'; g.beginPath(); g.ellipse(x, y, rr, rr * .8, r() * 3, 0, 7); g.fill(); g.strokeStyle = '#1a120c'; g.lineWidth = 3.5; for (let k = 0; k < 4; k++) { const a0 = k * 1.6 + r(); g.beginPath(); g.arc(x, y, rr + 1.5, a0, a0 + 1.0); g.stroke(); } } }
+  else if (kind === 'graphic') { const words = ['1998', 'NIGHT', 'DJ', '★', 'LOVE', 'DISCO'], w = words[U.hash(color) % words.length], shapeK = U.hash(color + 's') % 3;
+    const draw = cx => { g.save(); g.translate(cx, S * .42); g.fillStyle = lite; g.beginPath(); if (shapeK === 0) g.arc(0, 0, 50, 0, 7); else if (shapeK === 1) { for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2 - Math.PI / 2, rr = k % 2 ? 26 : 56; g[k ? 'lineTo' : 'moveTo'](Math.cos(a) * rr, Math.sin(a) * rr); } g.closePath(); } else g.rect(-52, -34, 104, 68); g.fill();
+      g.fillStyle = dark; g.font = `900 ${w.length > 4 ? 24 : 34}px Arial`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(w, 0, 2); g.restore(); }; draw(0); draw(S); }
+  const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.encoding = T.sRGBEncoding; t.anisotropy = 4;
+  if (kind === 'plaid' || kind === 'leopard') t.repeat.set(4, 2); else if (kind === 'stripe') t.repeat.set(1, 3); return patCache[key] = t;
+}
+function clothMat(color, kind, o = {}) {
+  const { pattern: _pt, ...so } = o; const m = NC.mat.std(color, so); if (!TL) return m;
+  if (o.pattern && o.pattern !== 'solid') { m.map = patternTex(o.pattern, color); m.color.setRGB(1, 1, 1); m.normalMap = TL.texture('fabric', 'normal', {}, [9, 9]); m.normalScale.set(.5, .5); m.onBeforeCompile = rimInject('1.0,1.0,1.0', '0.25'); return m; }
+  if (kind === 'sequin') { m.normalMap = TL.texture('sequin', 'normal', {}, [10, 10]); m.normalScale.set(.9, .9); m.metalness = .55; m.roughness = .3; m.envMapIntensity = 1.6; }
+  else { m.map = TL.texture('fabric', 'map', {}, [kind === 'denim' ? 6 : 9, kind === 'denim' ? 6 : 9]); m.normalMap = TL.texture('fabric', 'normal', {}, [9, 9]); m.normalScale.set(.6, .6); }
+  m.onBeforeCompile = rimInject('1.0,1.0,1.0', '0.25'); return m;
+}
 function mesh(g, m, x = 0, y = 0, z = 0, sx, sy, sz) { const o = new T.Mesh(g, m); o.position.set(x, y, z); if (sx != null) o.scale.set(sx, sy, sz); return o; }
 
 function makeLabel(text, color) {
@@ -191,10 +313,20 @@ function buildHair(skull, look, mHair, r) {
     case 'bun': cap(r * 1.06, .5, .5); blob(0, .78, -.72, .46); bangs(front - .6, 1.2, Math.PI / 2 - .55, .18); break;
     case 'curly': cap(r * 1.08, .5, .42); { const rr = U.rng(U.hash(look.hairColor + 'c')); for (let i = 0; i < 22; i++) { const a = rr() * Math.PI * 2, el = .25 + rr() * 1.2; if (Math.cos(a - front) > .55 && el < .55) continue; blob(Math.cos(a) * Math.cos(el) * 1.05, Math.sin(el) * 1.05, Math.sin(a) * Math.cos(el) * -1.05, .3); } } break;
     case 'buzz': cap(r * 1.03, .5, .5); break;
+    case 'twin': cap(r * 1.07, .5, .45); bangs(front - .9, 1.8, Math.PI / 2 - .5, .26);
+      for (const s of [-1, 1]) { blob(s * .95, .35, -.25, .3); const t = mesh(cyl(r * .3, r * .1, r * 2.6), mHair, s * r * 1.25, -r * .8, -r * .3); t.rotation.z = s * .32; skull.add(t); const tie = mesh(G('tie', () => new T.TorusGeometry(r * .2, r * .06, 6, 14)), G('tieM', () => std('#ff4f9a', { roughness: .4 })), s * r * 1.02, r * .22, -r * .25); tie.rotation.y = Math.PI / 2; tie.rotation.x = s * .3; skull.add(tie); } break;
+    case 'braids': cap(r * 1.07, .5, .45); bangs(front - .9, 1.8, Math.PI / 2 - .5, .24);
+      for (const s of [-1, 1]) for (let k = 0; k < 7; k++) { const sc = .26 - k * .022; blob(s * (.88 + k * .02), -.35 - k * .34, .05 + Math.min(k, 3) * .05, sc, sc * 1.25, sc); } break;
+    case 'spiky': cap(r * 1.06, .5, .5); { const rr = U.rng(U.hash(look.hairColor + 'sp')); for (let i = 0; i < 11; i++) { const a = (i / 11) * Math.PI * 2, el = .55 + rr() * .5; const cn = mesh(G('spk', () => new T.ConeGeometry(1, 1, 7)), mHair, Math.cos(a) * Math.cos(el) * r * .8, Math.sin(el) * r * .95, Math.sin(a) * Math.cos(el) * -r * .8 + r * .1, r * .22, r * .55, r * .22); cn.lookAt(cn.position.clone().multiplyScalar(3).add(new T.Vector3(0, r * .5, -r * .3))); cn.rotateX(Math.PI / 2); skull.add(cn); } } bangs(front - .7, 1.4, Math.PI / 2 - .6, .22); break;
     case 'slick': cap(r * 1.09, .5, .55); blob(0, .72, .42, .62, .32, .6); break;
     case 'side': cap(r * 1.08, .5, .45); { const b = bangs(front - .2, 1.3, Math.PI / 2 - .62, .28); b.rotation.z = -.12; } break;
     case 'twoblock': cap(r * 1.04, .5, .5); blob(0, .62, .05, 1.0, .52, 1.0); bangs(front - .75, 1.5, Math.PI / 2 - .6, .24); break;
     default: cap(r * 1.07, .5, .45);
+  }
+  if (TOON && !['buzz', 'slick', 'spiky'].includes(hs)) {   // 앞머리·옆머리 덩어리감 (스타일라이즈드 볼륨)
+    const rr = U.rng(U.hash(look.hairColor + hs)), long = ['long', 'wavy', 'bob', 'twin', 'braids'].includes(hs);
+    const hatted = !!look.hat; for (let k = -2; k <= 2; k++) { const a = k * .26 + (rr() - .5) * .06, m = mesh(sph(), mHair, Math.sin(a) * r * 1.02, r * ((hatted ? .1 : .5) - Math.abs(k) * .04), Math.cos(a) * r * (hatted ? .95 : .98), r * .17, r * (hatted ? .22 : .36 + rr() * .08), r * .12); m.rotation.set(-.35, a, k * -.18); skull.add(m); }
+    if (long) for (const s of [-1, 1]) { const m = mesh(sph(), mHair, s * r * .9, -r * .25, r * .45, r * .16, r * .62, r * .12); m.rotation.set(-.1, s * .5, s * .08); skull.add(m); }
   }
 }
 
@@ -220,60 +352,91 @@ function mergeStatic(root) {
 /* ───────── 아바타 생성 ───────── */
 function create(o = {}) {
   const look = mergeLook(o.seed != null ? o.seed : U.hash(o.name || String(Math.random())), o.gender, o.look);
-  const f = look.gender === 'f', B = look.build || 1;
+  const f = look.gender === 'f', B = (look.build || 1) * (TOON ? .86 : 1), LIMB = TOON ? .82 : 1;
   const root = new T.Group(), fig = new T.Group(); root.add(fig);
-  const figScale = look.height / 1.75; fig.scale.setScalar(figScale);
+  const figScale = look.height / (TOON ? 1.98 : 1.75); fig.scale.setScalar(figScale);
   const body = new T.Group(); fig.add(body);
-  const hipH = .965, hips = new T.Group(); hips.position.y = hipH; body.add(hips);
+  const hipH = TOON ? 1.0 : .965, hips = new T.Group(); hips.position.y = hipH; body.add(hips);
   const torso = new T.Group(); hips.add(torso);
   const shiny = look.top === 'dress' ? { roughness: .32, metalness: .28 } : look.top === 'jacket' ? { roughness: .45, metalness: .1 } : { roughness: .6 };
-  const mSkin = std(look.skin, { roughness: .58 }), mTop = std(look.topColor, shiny), mBot = std(look.bottomColor, { roughness: .75 }),
-    mShoe = std('#141018', { roughness: .35, metalness: .25 }), mHair = std(look.hairColor, { roughness: .48, metalness: .06, side: T.DoubleSide }),
+  const pat = look.top === 'dress' ? (look.pattern === 'leopard' ? 'leopard' : 'solid') : look.pattern;
+  const mSkin = skinMat(look.skin), mTop = clothMat(look.topColor, look.top === 'dress' ? 'sequin' : 'fabric', Object.assign({ pattern: pat }, shiny)), mBot = clothMat(look.bottomColor, 'denim', { roughness: .8 }),
+    mShoe = std(TOON ? (look.shoeColor || '#f4f4f6') : '#141018', { roughness: TOON ? .5 : .22, metalness: TOON ? 0 : .3 }), mHair = std(look.hairColor, { roughness: TOON ? .34 : .42, metalness: .05, side: T.DoubleSide }),
     mSleeve = look.top === 'vest' ? std('#f4f2ee') : mTop;
+  if (look.set && look.pattern && look.pattern !== 'solid' && look.bottom !== 'skirt') { mBot.map = patternTex(look.pattern, look.topColor); mBot.color.setRGB(1, 1, 1); }   // 상하 같은 패턴 셋업
+  const mRip = look.fit === 'ripped' ? (() => { const m = clothMat(look.bottomColor, 'denim', { roughness: .85 }); m.map = ripTex(look.bottomColor); m.color.setRGB(1, 1, 1); return m; })() : null;
   // 몸통
   const prof = (f ? F_PROF : M_PROF).map(([rr, y]) => new T.Vector2(rr * B, y));
-  const tor = mesh(G('tor' + look.gender + B.toFixed(2), () => new T.LatheGeometry(prof, 22)), mTop); tor.scale.z = .68; torso.add(tor);
+  const crop = look.top === 'crop', over = look.top === 'overshirt';
+  const tor = mesh(G('tor' + look.gender + B.toFixed(2), () => new T.LatheGeometry(prof, 22)), crop ? mSkin : over ? clothMat(look.innerColor || '#f6f6f6', 'fabric') : mTop); tor.scale.z = .68; torso.add(tor);
+  if (crop) { const up = mesh(G('crop' + look.gender + B.toFixed(2), () => new T.LatheGeometry(prof.filter(v => v.y >= .14).map(v => new T.Vector2(v.x * 1.04, v.y)), 22)), mTop); up.scale.z = .7; torso.add(up);
+    const hem = mesh(G('hem' + B.toFixed(2), () => new T.TorusGeometry(1, .06, 5, 22)), mTop, 0, .15, 0, (f ? .132 : .155) * B, (f ? .132 : .155) * B, (f ? .132 : .155) * B); hem.rotation.x = Math.PI / 2; hem.scale.y = .7 * (f ? .132 : .155) * B; torso.add(hem); }
+  if ((look.top === 'jacket' || over) && look.inner === 'turtle') { const tn = mesh(cyl(.05, .056, .1), clothMat(look.innerColor || '#2a2a2e', 'fabric'), 0, .56, .004); torso.add(tn); }
+  if (look.necklace) { const nk = mesh(G('neck', () => new T.TorusGeometry(.068, .004, 6, 28)), G('neckM', () => std('#e8c56a', { metalness: .95, roughness: .2 })), 0, .5, .028); nk.rotation.x = Math.PI / 2 - .5; nk.scale.set(1, 1.15, 1); torso.add(nk); }
+  if (over) { const shell = mesh(G('over' + look.gender + B.toFixed(2), () => new T.LatheGeometry(prof.filter(v => v.y >= -.12).map(v => new T.Vector2(v.x * 1.06, v.y)), 22, Math.PI * .14, Math.PI * 1.72)), mTop); shell.scale.z = .7; shell.material.side = T.DoubleSide; torso.add(shell);
+    const col2 = mesh(G('collar', () => new T.TorusGeometry(.06, .014, 6, 14)), mTop, 0, .54, -.005, 1.15, .8, 1); col2.rotation.x = Math.PI / 2; torso.add(col2); }
   if (look.top === 'jacket' || look.top === 'vest') {   // V넥 안쪽 셔츠
     const vg = G('vneck', () => { const sh = new T.Shape(); sh.moveTo(-.07, .17); sh.lineTo(.07, .17); sh.lineTo(0, -.06); sh.closePath(); return new T.ShapeGeometry(sh); });
     const inner = mesh(vg, std(look.top === 'vest' ? '#f4f2ee' : (f ? '#f2e6ee' : '#f4f2ee')), 0, .36, .112); inner.rotation.x = -.22; torso.add(inner); }
   if (look.top === 'vest') { const bt = std('#0d0b10'); for (const s of [-1, 1]) { const w = mesh(G('cone', () => new T.ConeGeometry(1, 1, 4)), bt, s * .028, .5, .12, .022, .04, .012); w.rotation.z = s * Math.PI / 2; w.position.y = .505; w.position.z = .118; torso.add(w); } }
   if (look.top === 'shirt') { const col = mesh(G('collar', () => new T.TorusGeometry(.06, .014, 6, 14)), mTop, 0, .54, .01, 1, .75, 1); col.rotation.x = Math.PI / 2; torso.add(col); }
-  const hip = mesh(cyl(.172 * B, .158 * B, .18, 18), look.bottom === 'pants' ? mBot : mTop, 0, -.05, 0); hip.scale.z = .7; hips.add(hip);
+  const hip = mesh(cyl(.172 * B, .158 * B, .18, 18), look.bottom === 'pants' || look.bottom === 'shorts' ? mBot : (look.top === 'dress' ? mTop : std(look.bottomColor, { roughness: .6 })), 0, -.05, 0); hip.scale.z = .7; hips.add(hip);
   if (look.bottom === 'pants') { const belt = mesh(G('belt', () => new T.TorusGeometry(1, .08, 5, 22)), std('#18141c', { metalness: .4, roughness: .35 }), 0, .03, 0, .163 * B, .163 * B, .163 * B); belt.rotation.x = Math.PI / 2; belt.scale.y = .7 * .163 * B; hips.add(belt); }
   let skirt = null;
   if (look.bottom === 'skirt') { const len = look.top === 'dress' ? .44 : .34; skirt = mesh(G('sk' + len + B.toFixed(2), () => new T.LatheGeometry([[.172 * B, .05], [.2 * B, -.1], [.25 * B, -len + .04], [.262 * B, -len]].map(([a, b]) => new T.Vector2(a, b)), 22)), look.top === 'dress' ? mTop : std(look.bottomColor, { roughness: .5, side: T.DoubleSide })); skirt.material.side = T.DoubleSide; skirt.scale.z = .8; skirt.userData.noMerge = true; hips.add(skirt); }
   // 목 · 머리
   const neck = new T.Group(); neck.position.y = .55; torso.add(neck);
-  neck.add(mesh(cyl(.046, .054, .12), mSkin, 0, .04, .005));
-  const head = new T.Group(); head.position.y = .075; neck.add(head);
+  neck.add(TOON ? mesh(cyl(.036, .046, .15), mSkin, 0, .05, .005) : mesh(cyl(.046, .054, .12), mSkin, 0, .04, .005));
+  const head = new T.Group(); head.position.y = TOON ? .1 : .075; head.scale.setScalar(HEAD_S); neck.add(head);
   const F = look.face, r = .115, sx = .86 * (F.faceW || 1), sy = 1.03 * (F.jaw || 1), sz = .98;
   const skull = new T.Group(); skull.position.set(0, .095, .012); skull.scale.set(sx, sy, sz); head.add(skull);
-  const fcv = document.createElement('canvas'); fcv.width = FW; fcv.height = FH;
-  const ftex = NC.tex(fcv);
-  const headMesh = new T.Mesh(G('head', () => new T.SphereGeometry(r, 40, 28)), new T.MeshStandardMaterial({ map: ftex, roughness: .55 })); headMesh.userData.noMerge = true; skull.add(headMesh);
+  const hi = o.hiRes && !(NC.quality && NC.quality.level === 'low');
+  const fcv = document.createElement('canvas'); fcv.width = hi ? FW * 2 : FW; fcv.height = hi ? FH * 2 : FH;
+  const ftex = NC.tex(fcv); ftex.anisotropy = 8;
+  const headMat = skinMat(look.skin, ftex); headMat.color.setRGB(1, 1, 1);
+  const headMesh = new T.Mesh(G('head' + look.gender, () => sculptHead(r, f)), headMat); headMesh.userData.noMerge = true; skull.add(headMesh);
   const onHead = (a, b, k = 1) => new T.Vector3(r * k * Math.sin(a) * Math.cos(b), -r * k * Math.sin(b), r * k * Math.cos(a) * Math.cos(b));
-  const nose = mesh(sph(), mSkin); nose.position.copy(onHead(0, .24, .975)); nose.scale.set(.0125 * F.nose / sx, .022 * F.nose / sy, .02 * F.nose); nose.rotation.x = -.35; skull.add(nose);
-  for (const s of [-1, 1]) { const ear = mesh(sph(), mSkin); ear.position.copy(onHead(s * 1.48, .06)); ear.scale.set(.012 / sx, .03 / sy, .022); skull.add(ear);
+  const nose = mesh(sph(), mSkin); nose.position.copy(onHead(0, .24, .975)); nose.position.copy(onHead(0, .27, .955)); const nk = TOON ? .6 : 1; nose.scale.set(.0105 * F.nose * nk / sx, .016 * F.nose * nk / sy, .0135 * F.nose * nk); nose.rotation.x = -.5; skull.add(nose);
+  for (const s of [-1, 1]) { const ear = mesh(sph(), mSkin); ear.position.copy(onHead(s * 1.48, .06)); ear.scale.set(.009 / sx, .026 / sy, .018); skull.add(ear);
     if (F.earring) { const er = mesh(sph(), std('#f2d27a', { metalness: .9, roughness: .2 })); er.position.copy(onHead(s * 1.48, .3, 1.02)); er.scale.set(.008 / sx, .008 / sy, .008); skull.add(er); } }
+  const EXL = (TOON ? .33 : .31) + (F.eyeGap || 0), EYL = TOON ? .1 : .05;
+  const corneaMat = G('cornea', () => new T.MeshStandardMaterial({ color: 0x000000, roughness: .04, metalness: 0, envMapIntensity: 1.4, transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
+  const corneaGeo = mergeGeos([-1, 1].map(s => { const c = mesh(sph(), corneaMat); c.position.copy(onHead(s * EXL, EYL - .005, .955)); const es = (F.eyeSize || 1) * EYE_K / 1.3; c.scale.set(.017 * es / sx, .012 * es * (TOON ? 1.3 : 1) / sy, .009); c.updateMatrix(); const g = sph().clone(); g.applyMatrix4(c.matrix); return g; }));
+  const corneaMesh = new T.Mesh(corneaGeo, corneaMat); corneaMesh.userData.noMerge = true; skull.add(corneaMesh); const corneas = [corneaMesh];
   buildHair(skull, look, mHair, r);
   if (F.glasses) {
     const gm = std('#141418', { metalness: .6, roughness: .3 }), gl = new T.Group(); head.add(gl); gl.position.set(0, .095, .012);
-    const ex = .31 + (F.eyeGap || 0);
-    for (const s of [-1, 1]) { const p = onHead(s * ex, .05, 1); const ring = mesh(G('lens', () => new T.TorusGeometry(.024, .0028, 6, 22)), gm, p.x * sx, p.y * sy, p.z * sz + .012); ring.scale.set(1.15, .85, 1); gl.add(ring);
+    const ex = EXL, ls = TOON ? 1.45 : 1;
+    for (const s of [-1, 1]) { const p = onHead(s * ex, EYL, 1); const ring = mesh(G('lens', () => new T.TorusGeometry(.024, .0028, 6, 22)), gm, p.x * sx, p.y * sy, p.z * sz + .012); ring.scale.set(1.15 * ls, .85 * ls, 1); gl.add(ring);
       const arm = mesh(G('box', () => new T.BoxGeometry(1, 1, 1)), gm, s * .052, .004, -.03, .003, .004, .1); gl.add(arm); }
     gl.add(mesh(G('box', () => new T.BoxGeometry(1, 1, 1)), gm, 0, .006, r * sz + .01, .022, .003, .003));
   }
+  if (F.sunglasses && !F.glasses) {   // 선글라스: 광택 렌즈 + 브릿지
+    const gl = new T.Group(); head.add(gl); gl.position.set(0, .095, .012); const lm = std('#0c0c12', { roughness: .05, metalness: .7 }), fm = std('#1a1a1a', { roughness: .4 });
+    for (const s of [-1, 1]) { const p = onHead(s * EXL, EYL, 1.0); const lens = mesh(sph(), lm, p.x * sx, p.y * sy, p.z * sz + .012, .027, .017, .005); gl.add(lens); gl.add(mesh(G('box', () => new T.BoxGeometry(1, 1, 1)), fm, s * .08, p.y * sy + .01, -.01, .004, .005, .1)); }
+    gl.add(mesh(G('box', () => new T.BoxGeometry(1, 1, 1)), fm, 0, onHead(0, EYL).y * sy + .012, r * sz + .014, .03, .005, .004));
+  }
+  if (look.hat && TOON) {   // 모자 (두개골 그룹 안 → 머리 비율 그대로)
+    const hm = std(look.hatColor || '#222', { roughness: .75 }), hg = new T.Group(); skull.add(hg);
+    if (look.hat === 'cap') { hg.add(mesh(G('capd', () => new T.SphereGeometry(r * 1.14, 28, 14, 0, Math.PI * 2, 0, Math.PI * .5)), hm)); const brim = mesh(G('capb', () => new T.CylinderGeometry(r * .78, r * .78, r * .06, 24, 1, false, -Math.PI / 2, Math.PI)), hm, 0, r * .1, r * .72); brim.scale.set(1, 1, 1.15); brim.rotation.x = .32; hg.add(brim); hg.rotation.x = -.18; hg.position.y = r * .08; hg.add(mesh(sph(), hm, 0, r * 1.12, 0, r * .07, r * .05, r * .07)); }
+    else if (look.hat === 'beanie') { const d = mesh(G('bean', () => new T.SphereGeometry(r * 1.15, 26, 14, 0, Math.PI * 2, 0, Math.PI * .55)), hm); d.scale.y = 1.15; hg.add(d); const band = mesh(G('beanb', () => new T.TorusGeometry(r * 1.1, r * .1, 8, 30)), hm, 0, r * .08, 0); band.rotation.x = Math.PI / 2; hg.add(band); hg.add(mesh(sph(), hm, 0, r * 1.38, 0, r * .16, r * .16, r * .16)); hg.position.y = r * .05; }
+    else if (look.hat === 'fedora') { hg.add(mesh(G('fedc', () => new T.CylinderGeometry(r * .82, r * 1.0, r * .75, 24)), hm, 0, r * .88, 0)); hg.add(mesh(G('fedb', () => new T.CylinderGeometry(r * 1.75, r * 1.75, r * .04, 32)), hm, 0, r * .52, 0)); hg.add(mesh(G('fedr', () => new T.CylinderGeometry(r * 1.005, r * 1.005, r * .14, 24, 1, true)), std('#141014', { roughness: .5 }), 0, r * .6, 0)); hg.rotation.x = -.1; hg.position.y = r * .02; }
+  }
   // 팔
-  const bare = look.top === 'tee' || look.top === 'dress';
+  const bare = look.top === 'tee' || look.top === 'dress' || look.top === 'crop';
   const arm = s => {
-    const sh = new T.Group(); sh.position.set(s * (f ? .172 : .198) * B, .45, 0); torso.add(sh);
+    const sh = new T.Group(); sh.position.set(s * (f ? .172 : .198) * B * (TOON ? 1.02 : 1), .45, 0); torso.add(sh);
     sh.add(mesh(sph(), look.top === 'dress' ? mSkin : mSleeve, 0, -.01, 0, .052 * B, .052, .052));
-    sh.add(mesh(cyl(.05 * B, .042, .28), bare ? mSkin : mSleeve, 0, -.14, 0));
-    if (look.top === 'tee') sh.add(mesh(cyl(.06 * B, .054, .13), mTop, 0, -.055, 0));
+    sh.add(mesh(cyl(.05 * B * LIMB, .042 * LIMB, .28), bare ? mSkin : mSleeve, 0, -.14, 0));
+    if (look.oversize && !bare) sh.add(mesh(cyl(.07 * B, .072, .2), mSleeve, 0, -.1, 0));
+    if (look.top === 'tee' || look.top === 'crop') sh.add(mesh(cyl(.06 * B, .054, .13), mTop, 0, -.055, 0));
     const el = new T.Group(); el.position.y = -.28; sh.add(el);
-    el.add(mesh(cyl(.042, .033, .25), bare ? mSkin : mSleeve, 0, -.125, 0));
-    el.add(mesh(sph(), mSkin, 0, -.29, .005, .034, .062, .022));
-    const hand = new T.Group(); hand.position.y = -.31; el.add(hand);
+    el.add(mesh(cyl(.042 * LIMB, .033 * LIMB, .25), bare || look.top === 'overshirt' ? mSkin : mSleeve, 0, -.125, 0));
+    if (look.top === 'overshirt') el.add(mesh(cyl(.05, .048, .05), mSleeve, 0, -.01, 0));
+    const hand = new T.Group(); hand.position.y = -.27; el.add(hand);
+    const hk = TOON ? 1.32 : 1; hand.scale.setScalar(hk); hand.add(mesh(G('palm', () => new T.SphereGeometry(1, 12, 8)), mSkin, 0, -.035, .004, .03, .045, .016));
+    for (let k = 0; k < 4; k++) { const fl = [.052, .058, .055, .045][k], fx = (k - 1.5) * .0135 * -s; const fg = mesh(G('fing', () => new T.CylinderGeometry(.0065, .006, 1, 6)), mSkin, fx, -.075 - fl / 2 * .9, .012, 1, fl, 1); fg.rotation.x = .35; hand.add(fg); }
+    { const th = mesh(G('fing', () => new T.CylinderGeometry(.0065, .006, 1, 6)), mSkin, s * -.024, -.045, .016, 1.15, .045, 1.15); th.rotation.set(.5, 0, s * -.6); hand.add(th); }
     return { sh, el, hand };
   };
   const AL = arm(-1), AR = arm(1);
@@ -281,10 +444,18 @@ function create(o = {}) {
   const leg = s => {
     const lg = new T.Group(); lg.position.set(s * .09 * B, -.04, 0); hips.add(lg);
     const legMat = look.bottom === 'pants' ? mBot : mSkin;
-    lg.add(mesh(cyl(.078 * B, .06, .44), legMat, 0, -.22, 0));
-    const kn = new T.Group(); kn.position.y = -.44; lg.add(kn);
-    kn.add(mesh(cyl(.058, .044, .43), legMat, 0, -.215, 0));
-    kn.add(mesh(G('foot' + look.gender, () => new T.BoxGeometry(f ? .075 : .095, .07, f ? .21 : .25)), mShoe, 0, -.45, .045));
+    if (look.bottom === 'shorts') lg.add(mesh(cyl(.088 * B, .078 * B, .2), mBot, 0, -.09, 0));
+    const TL1 = TOON ? .47 : .44, TL2 = TOON ? .46 : .43;
+    const wide = look.bottom === 'pants' && look.fit === 'wide', thighMat = look.bottom === 'pants' && look.fit === 'ripped' ? mRip : legMat;
+    lg.add(mesh(cyl((wide ? .086 : .078 * LIMB) * B, wide ? .08 : .06 * LIMB, TL1), thighMat, 0, -TL1 / 2, 0));
+    const kn = new T.Group(); kn.position.y = -TL1; lg.add(kn);
+    kn.add(mesh(cyl(wide ? .08 : .058 * LIMB, wide ? .1 : .044 * LIMB, TL2), legMat, 0, -TL2 / 2, 0));
+    if (look.shoes === 'boots' && look.bottom !== 'pants') kn.add(mesh(cyl(.05, .048, .26), G('bootM', () => std('#121014', { roughness: .3, metalness: .15 })), 0, -TL2 + .1, .005));
+    if (TOON) {   // 청키 스니커즈: 컬러 어퍼 + 흰 밑창 + 끈
+      kn.add(mesh(sph(), mShoe, 0, -TL2 - .005, .05, f ? .05 : .058, .045, f ? .12 : .135));
+      kn.add(mesh(G('sole' + look.gender, () => new T.BoxGeometry(f ? .1 : .115, .035, f ? .25 : .28)), G('soleM', () => std('#f8f8f8', { roughness: .6 })), 0, -TL2 - .04, .05));
+      kn.add(mesh(G('box', () => new T.BoxGeometry(1, 1, 1)), G('laceM', () => std('#2a2a2a', { roughness: .8 })), 0, -TL2 + .02, .1, .05, .008, .05));
+    } else kn.add(mesh(G('foot' + look.gender, () => new T.BoxGeometry(f ? .075 : .095, .07, f ? .21 : .25)), mShoe, 0, -.45, .045));
     return { lg, kn };
   };
   const LL = leg(-1), LR = leg(1);
@@ -292,9 +463,12 @@ function create(o = {}) {
   const glass = new T.Group(); glass.visible = false; AR.hand.add(glass); glass.position.set(0, -.02, .035);
   glass.add(mesh(G('glass', () => new T.CylinderGeometry(.032, .024, .11, 12, 1, true)), new T.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: .35, roughness: .05, metalness: .2, side: T.DoubleSide })));
   glass.add(mesh(G('liq', () => new T.CylinderGeometry(.028, .022, .06, 12)), NC.mat.std('#ffb340', { roughness: .2, emissive: '#5a2a00' }), 0, -.02, 0));
+  if (TL) { mHair.map = TL.texture('hair', 'map', {}, [3, 1]); mHair.normalMap = TL.texture('hair', 'normal', {}, [3, 1]); mHair.normalScale.set(.7, .7); mHair.onBeforeCompile = rimInject('1.0,0.95,0.9', '0.6'); }
   mergeStatic(fig);
+  if (NC.contactShadow) root.add(NC.contactShadow(.85, .65));
+  if (NC.shadow) NC.shadow(fig, true, false);
   // 이름표
-  const label = makeLabel(o.name || '', o.labelColor || look.topColor); label.position.y = look.height + .32; root.add(label);
+  const label = makeLabel(o.name || '', o.labelColor || look.topColor); if (NC.LABEL_LAYER) label.layers.set(NC.LABEL_LAYER); label.position.y = look.height + (TOON ? .36 : .32); root.add(label);
 
   const u = root.userData = {
     name: o.name, look, label, fig, figScale, hipH, skirt, glass, face: { cv: fcv, tex: ftex },
@@ -303,10 +477,12 @@ function create(o = {}) {
     expr: o.expr || 'neutral', baseExpr: o.expr || 'neutral', exprUntil: 0, blink: false, blinkT: 1 + Math.random() * 3, blinkEnd: 0, talkUntil: 0, mouthT: 0, mouthOpen: false,
     motion: { t: 0, g: null, gT: 0, gDur: 0 }, faceDirty: true, seatH: .5,
   };
-  u.redraw = () => { drawFace(fcv, look, u.expr, { blink: u.blink, talk: u.mouthOpen }); ftex.needsUpdate = true; u.faceDirty = false; };
+  u.gaze = [0, 0]; u.gazeT = 1;
+  u.redraw = () => { drawFace(fcv, look, u.expr, { blink: u.blink, talk: u.mouthOpen, gaze: u.gaze }); ftex.needsUpdate = true; u.faceDirty = false;
+    const em = (EXPR[u.expr] || EXPR.neutral).eyes; corneaMesh.visible = !u.blink && em !== 'happy' && em !== 'wink'; void corneas; };
   u.setExpr = (name, dur = 0) => { if (!EXPR[name]) name = 'neutral'; u.expr = name; u.exprUntil = dur ? performance.now() + dur * 1000 : 0; if (!dur) u.baseExpr = name; u.faceDirty = true; };
   u.say = sec => { u.talkUntil = performance.now() + sec * 1000; };
-  u.setName = n => { root.remove(u.label); u.label = makeLabel(n, look.topColor); u.label.position.y = look.height + .32; root.add(u.label); };
+  u.setName = n => { root.remove(u.label); u.label = makeLabel(n, look.topColor); if (NC.LABEL_LAYER) u.label.layers.set(NC.LABEL_LAYER); u.label.position.y = look.height + (TOON ? .36 : .32); root.add(u.label); };
   u.redraw();
   return root;
 }

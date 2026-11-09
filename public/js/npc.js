@@ -12,7 +12,8 @@ let crowdOn = true;
 
 function spawn(def, role) {
   const look = def.look || { gender: def.gender, topColor: def.color, hairColor: def.hair };
-  const g = NC.Avatar.create({ name: def.name, look, seed: U.hash(def.id || def.name), expr: role === 'persona' ? 'smile' : 'neutral' });
+  const g = NC.Avatar.create({ name: def.name, look, seed: U.hash(def.id || def.name), expr: role === 'persona' ? 'smile' : 'neutral', hiRes: role === 'persona' });
+  if (def.model && NC.VRMKit && NC.VRMKit.ok) NC.VRMKit.attach(g, def.model, { tint: def.tint });
   const n = {
     id: def.id, name: def.name, def, role, persona: role === 'persona' ? def : (role === 'crowd' ? { likes: [], lines: null, pullPush: .4 } : null),
     trait: def.trait || 'outgoing', gender: (def.look && def.look.gender) || def.gender || 'f', tag: def.tag || '', job: def.job ? (role === 'persona' ? `${def.age} · ${def.job} · ${def.mbti}` : def.job) : '',
@@ -36,6 +37,7 @@ function planPath(from, to) {
   const out = [], a = W.vipAt(from.x, from.z), b = W.vipAt(to.x, to.z);
   if (a >= 0 && a !== b) { const v = W.vip[a]; out.push(v.entry, { x: v.cx, z: v.z0 }, v.front); }
   if (b >= 0 && a !== b) { const v = W.vip[b]; if (from.z < W.zones.corridor.z0 && a < 0) out.push({ x: U.clamp(from.x, -9.5, 9.5), z: 4 }); out.push(v.front, { x: v.cx, z: v.z0 }, v.entry); }
+  if (W.terraceVia) out.push(...W.terraceVia(out.length ? out[out.length - 1] : from, to));
   out.push(to); return out;
 }
 function goTo(n, to, onArrive, speed = 2.6) { n.state = 'path'; n.path = planPath(n, to); n.onArrive = onArrive; n.speed = speed; n.stuck = 0; const u = n.g.userData; u.dance = null; u.seated = false; }
@@ -95,6 +97,11 @@ NC.NPC = {
   init(data) {
     (data.personas || []).forEach(d => spawn(d, 'persona'));
     (data.npcs || []).forEach(d => { if (d.enabled !== false) spawn(d, 'crowd'); });
+    // 손님에게도 VRM 모델 배정 (npcs.json "crowdModels": [{ "model": "...", "gender": "f", "tint": {...} }], 최대 crowdModelMax 명)
+    if (NC.VRMKit && NC.VRMKit.ok && Array.isArray(data.crowdModels) && data.crowdModels.length && !(NC.quality && NC.quality.level === 'low')) {
+      const max = data.crowdModelMax || 6; let k = 0;
+      npcs.filter(n => n.role === 'crowd').forEach(n => { if (k >= max) return; const pool = data.crowdModels.filter(m => !m.gender || m.gender === n.gender); if (!pool.length) return; const m = pool[k % pool.length]; NC.VRMKit.attach(n.g, m.model, { tint: m.tint }); k++; });
+    }
     NC.DJ = addStaff('DJ 노스탤지어', { gender: 'm', hairStyle: 'curly', hairColor: '#e8e2da', top: 'jacket', topColor: '#3de6ff', bottom: 'pants', face: { glasses: true, beard: 'goatee' } }, W.spots.dj, 'groove');
     addStaff('바텐더 J', { gender: 'f', hairStyle: 'ponytail', hairColor: '#17110f', top: 'vest', topColor: '#121018', bottom: 'pants', bottomColor: '#121018' }, W.spots.bartender, null).userData.holdGlass = true;
     console.info(`[npc] 페르소나 ${data.personas ? data.personas.length : 0}명 · 손님 ${(data.npcs || []).length}명`);

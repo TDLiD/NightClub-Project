@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>추억의 나이트 · 메타버스 v2</title>
+<title>추억의 나이트 · 메타버스 v7</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -12,7 +12,7 @@
 
 <div id="topbar">
   <div id="title" class="neon">🪩 추억의 나이트 <span id="badge">DEMO</span></div>
-  <div id="topbtns"><button class="ibtn" id="btnMusic" title="음악">🔊</button><button class="ibtn" id="btnHelp" title="도움말">❓</button></div>
+  <div id="topbtns"><button class="ibtn" id="btnQuality" title="화질">⚙</button><button class="ibtn" id="btnMusic" title="음악">🔊</button><button class="ibtn" id="btnHelp" title="도움말">❓</button></div>
 </div>
 <div id="hud" style="display:none"><span id="coins">🪙 0</span><span id="zone">📍 부킹 통로</span></div>
 <div id="help">이동 <b>WASD</b> · 클릭 이동 · 드래그 시점 · <b>E</b> 상호작용 · 이모트 <b>Z X C V B N M</b></div>
@@ -54,6 +54,7 @@
   </div>
   <div class="swatches" id="sws"></div>
   <div id="modeSel" class="seg" style="display:none"><button data-m="online">🌐 온라인 (실제 접속자)</button><button data-m="solo">🤖 솔로 (AI 손님)</button></div>
+  <button id="vrmPick" type="button" class="ghost" title="VRoid Studio 등에서 만든 .vrm 파일">🧍 내 3D 캐릭터(VRM) 불러오기</button>
   <button id="go">입장하기</button>
   <div id="err"></div>
   <p style="font-size:11px;margin-top:10px">가상공간 오락 콘텐츠 · 만 19세 이상 이용 · 🪙코인은 현금 가치가 없는 게임 재화입니다</p>
@@ -61,10 +62,14 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>window.THREE || document.write('<script src="vendor/three.min.js"><\/script>');</script>
+<script src="vendor/GLTFLoader.js"></script>
+<script src="vendor/three-vrm.min.js"></script>
 <script>if (!window.THREE) { document.getElementById('err').textContent = '3D 라이브러리(three.js)를 불러오지 못했습니다. 인터넷 연결을 확인하거나 npm install 후 서버로 여세요.'; document.getElementById('go').disabled = true; }</script>
 <script src="js/core.js"></script>
+<script src="js/gfx.js"></script>
 <script src="js/avatar.js"></script>
 <script src="js/motion.js"></script>
+<script src="js/vrm.js"></script>
 <script src="js/world.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/affinity.js"></script>
@@ -72,6 +77,7 @@
 <script src="js/dialog.js"></script>
 <script src="js/waiter.js"></script>
 <script src="js/minigames.js"></script>
+<script src="js/karaoke.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@ NC.sitPlayer = (info, pos) => { P.seat = info; P.target = null; P.autoPath = nul
 function standLocal() {
   if (!P.seat) return; const s = P.seat; let sp;
   if (s.kind === 'table') { NC.tableOcc[s.t][s.s] = null; sp = NC.standPos(s.t, s.s); }
+  else if (s.kind === 'karaoke' && NC.Karaoke) sp = NC.Karaoke.stand(s);
   else { const v = W.vip[s.room]; v.occ[s.s] = null; const seat = v.seats[s.s]; sp = { x: seat.x + Math.sin(seat.ry) * 1.3, z: seat.z + Math.cos(seat.ry) * 1.3 }; }
   NC.unseatAvatar(P.group, sp.x, sp.z); P.x = sp.x; P.z = sp.z; P.seat = null; if (!NC.Dialog.cur) P.busy = false; NC.emit('stand');
 }
@@ -120,18 +121,18 @@ function frame() {
     Mo.update(P.group, dt, { near: true, speed: moving && P.autoPath ? .85 : 1.1 }); NC.Avatar.fitLabel(P.group, camera);
     updateZone(dt, moving);
     // 카메라: 대화 중이면 두 사람을 프레이밍
-    const f = NC.Dialog.focus(camera);
+    const f = (NC.camOverride && NC.camOverride()) || NC.Dialog.focus(camera);
     if (f) { camTarget.set(f.tx, f.ty, f.tz); camPos.set(f.cx, f.cy, f.cz);
       if (innerWidth > 800) { let dx = f.tx - f.cx, dz = f.tz - f.cz; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; camTarget.x += -dz * .95; camTarget.z += dx * .95; camPos.x += -dz * .95; camPos.z += dx * .95; } }   // 오른쪽 대화 패널을 피해 인물을 왼쪽에 배치
-    else { const tx = P.group.position.x, tz = P.group.position.z, ty = 1.4 + P.y, dist = P.room >= 0 ? Math.min(cam.dist, 8) : cam.dist;
-      camTarget.set(tx, ty, tz); camPos.set(tx + Math.sin(cam.yaw) * Math.cos(cam.pitch) * dist, ty + Math.sin(cam.pitch) * dist, tz + Math.cos(cam.yaw) * Math.cos(cam.pitch) * dist); camPos.y = Math.min(camPos.y, W.ROOM.h - .5); }
+    else { const tx = P.group.position.x, tz = P.group.position.z, ty = 1.4 + P.y, inner = P.room >= 0 || P.zone === 'karaoke', dist = P.zone === 'karaoke' ? Math.min(cam.dist, 4.2) : P.room >= 0 ? Math.min(cam.dist, 8) : cam.dist;
+      camTarget.set(tx, ty, tz); camPos.set(tx + Math.sin(cam.yaw) * Math.cos(cam.pitch) * dist, ty + Math.sin(cam.pitch) * dist, tz + Math.cos(cam.yaw) * Math.cos(cam.pitch) * dist); camPos.y = Math.min(camPos.y, P.zone === 'karaoke' ? 2.85 : W.ROOM.h - .5); void inner; }
     camera.position.lerp(camPos, Math.min(1, dt * (f ? 3 : 6))); NC._look = NC._look || camTarget.clone(); NC._look.lerp(camTarget, Math.min(1, dt * 6)); camera.lookAt(NC._look);
     const doorOpen = P.room >= 0 ? W.vip[P.room].door.open : 0;
     NC.Audio.update(P, Math.atan2(camera.position.x - P.x, camera.position.z - P.z), P.zone, doorOpen);
     curAct = computeAct(); if (curAct) { actBtn.style.display = 'block'; if (actBtn.textContent !== curAct.label) actBtn.textContent = curAct.label; } else actBtn.style.display = 'none';
   } else { const a = t * .12; camera.position.set(Math.sin(a) * 18, 7.5, -4 + Math.cos(a) * 12); camera.lookAt(0, 2, -9); }
   NC.tickers.forEach(fn => { try { fn(dt, t); } catch (e) { console.error(e); } });
-  NC.renderer.render(NC.scene, camera);
+  (NC.render || ((s, c) => NC.renderer.render(s, c)))(NC.scene, camera);
 }
 
 /* ───────── 데이터 로딩 ───────── */
@@ -174,7 +175,8 @@ $('#modeSel').addEventListener('click', e => { const b = e.target.closest('butto
 
 NC.begin = function () {
   const look = NC.settings.look;
-  P.group = NC.Avatar.create({ name: NC.settings.name + ' (나)', look, seed: cfg.seed, expr: 'smile' }); P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry; NC.scene.add(P.group);
+  P.group = NC.Avatar.create({ name: NC.settings.name + ' (나)', look, seed: cfg.seed, expr: 'smile', hiRes: true });
+  if (NC.VRMKit && NC.VRMKit.playerUrl) NC.VRMKit.attach(P.group, NC.VRMKit.playerUrl); P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry; NC.scene.add(P.group);
   cam.yaw = 0; $('#start').style.display = 'none'; $('#hud').style.display = ''; $('#emotes').style.display = '';
   NC.Audio.init(); NC.emit('start');
   NC.ui.toast(NC.mode === 'online' ? '입장했어요! 🪩 근처 사람에게 E로 부킹 초대 · 🤵 웨이터에게 AI 부킹' : '입장했어요! 🪩 손님 근처에서 E로 말 걸기 · 🤵 웨이터에게 팁 부킹');
@@ -190,6 +192,10 @@ $('#go').onclick = async () => {
   NC.begin(); $('#go').disabled = false;
 };
 $('#nick').addEventListener('keydown', e => { if (e.key === 'Enter') $('#go').click(); });
+{ const qm = document.createElement('div'); qm.id = 'qmenu'; const Lv = [['high', '🎬 고화질 (그림자·블룸·필름)'], ['mid', '✨ 중간 (블룸)'], ['low', '⚡ 저사양 (모바일)']];
+  Lv.forEach(([k, t]) => { const b = document.createElement('button'); b.textContent = t; if (NC.quality && NC.quality.level === k) b.className = 'on'; b.onclick = () => NC.setQuality(k); qm.appendChild(b); }); document.body.appendChild(qm);
+  $('#btnQuality').onclick = () => { qm.style.display = qm.style.display === 'flex' ? 'none' : 'flex'; }; }
+{ const vb = document.getElementById('vrmPick'); if (vb) vb.onclick = async () => { if (!NC.VRMKit || !NC.VRMKit.ok) return NC.ui.toast('이 브라우저에서는 VRM을 쓸 수 없어요'); const f = await NC.VRMKit.pickFile(); if (f) { vb.textContent = '✅ ' + f.name; NC.ui.toast('입장하면 내 캐릭터가 ' + f.name + ' 모델로 바뀌어요'); } }; }
 $('#btnMusic').onclick = () => { const on = NC.Audio.toggle(); $('#btnMusic').textContent = on ? '🔊' : '🔇'; };
 $('#btnHelp').onclick = () => NC.ui.modal(`<h3>❓ 조작법</h3><div style="font-size:13px;line-height:1.8;color:#eadfff">
   이동 <b>WASD/방향키</b> · 바닥 클릭 이동 · 드래그 시점 · 휠 줌<br><b>E</b> 상호작용(말 걸기·앉기·웨이터) · <b>Esc</b> 대화 종료<br>

@@ -16,7 +16,7 @@ const beatInfo = () => (NC.Audio && NC.Audio.beat ? NC.Audio.beat() : (() => { c
 
 /* ── 베이스 루프 ── */
 const BASE = {
-  idle(p, t, u) { const s = Math.sin(t * 1.7 + u.seed * 9); p.torso = [.02 * s, 0, 0]; p.head = [.03 * Math.sin(t * .9 + u.seed * 5), .22 * Math.sin(t * .23 + u.seed * 13), 0]; p.shL = [.03 * s, 0, -.12]; p.shR = [-.03 * s, 0, .12]; },
+  idle(p, t, u) { const s = Math.sin(t * 1.7 + u.seed * 9), w = Math.sin(t * .42 + u.seed * 7); p.bodyX = .022 * w; p.legL = [0, 0, -.03 + .03 * w]; p.legR = [0, 0, .03 + .03 * w]; p.knL = [Math.max(0, w) * .12, 0, 0]; p.knR = [Math.max(0, -w) * .12, 0, 0]; p.hipsY = u.hipH - .008 * Math.abs(w); p.torso = [.02 * s, 0, -.02 * w]; p.head = [.03 * Math.sin(t * .9 + u.seed * 5), .22 * Math.sin(t * .23 + u.seed * 13), 0]; p.shL = [.03 * s, 0, -.12]; p.shR = [-.03 * s, 0, .12]; },
   walk(p, t, u) {
     const ph = u.walkPh, s = Math.sin(ph), c = Math.cos(ph);
     p.legL = [s * .5, 0, -.02]; p.legR = [-s * .5, 0, .02]; p.knL = [Math.max(0, -c) * .9 + .05, 0, 0]; p.knR = [Math.max(0, c) * .9 + .05, 0, 0];
@@ -28,6 +28,14 @@ const BASE = {
     p.hipsY = u.hipH - .045 * dip; p.legL = [-.12 * dip, 0, -.04]; p.legR = [-.12 * dip, 0, .04]; p.knL = [.28 * dip, 0, 0]; p.knR = [.28 * dip, 0, 0];
     p.torso = [.06 * dip, .15 * sw, .05 * sw]; p.head = [.12 * dip, -.1 * sw, 0];
     p.shL = [-.45 - .15 * dip, .1 * sw, -.25]; p.elL = [-1.5 + .2 * dip, 0, 0]; p.shR = [-.45 - .15 * dip, .1 * sw, .25]; p.elR = [-1.5 + .2 * dip, 0, 0];
+  },
+  // 노래방: 마이크를 입가에, 박자에 맞춰 몸을 흔들며 왼손은 감정 표현
+  sing(p, t, u, b) {
+    const dip = (1 + Math.cos(b.phase * 2 * PI)) / 2, sw = Math.sin((b.n % 2 + b.phase) * PI) * (b.n % 4 < 2 ? 1 : -1), big = Math.floor(b.n / 8 + u.seed * 3) % 3;
+    p.hipsY = u.hipH - .02 * dip; p.knL = [.12 * dip, 0, 0]; p.knR = [.12 * dip, 0, 0]; p.legL = [-.05 * dip, 0, -.05]; p.legR = [-.05 * dip, 0, .05];
+    p.torso = [.03 + .03 * dip, .12 * sw, .03 * sw]; p.head = [-.08 + .06 * dip, -.08 * sw, .05 * sw]; p.bodyX = .03 * sw;
+    p.shR = [-.72, 0, -.32]; p.elR = [-2.2, 0, 0];
+    if (big === 0) { p.shL = [-.4 - .25 * Math.max(0, sw), 0, -.35]; p.elL = [-.8, 0, 0]; } else if (big === 1) { p.shL = [-1.6, 0, -.5 + .2 * sw]; p.elL = [-.25, 0, 0]; } else { p.shL = [-.2, 0, -1.2 - .3 * dip]; p.elL = [-.4, 0, 0]; }
   },
   stageDance(p, t, u, b) {
     BASE.groove(p, t, u, b);
@@ -82,7 +90,8 @@ const EMOTION_TRIGGER = { smile: 'affinity:up', laugh: 'talk:joke', shy: 'talk:c
 function play(a, name, opt = {}) {
   const u = a && a.userData, g = GEST[name]; if (!u || !u.motion || !g) return;
   const m = u.motion; m.g = name; m.gT = 0; m.gDur = opt.dur || g.dur;
-  const ex = opt.expr || g.expr; if (ex) u.setExpr(ex, m.gDur + .6);
+  const ex = opt.expr || g.expr; if (ex) u.setExpr(name === 'cheer' ? 'joy' : ex, m.gDur + .6);
+  if (name === 'cheer' && NC.fx && opt.confetti !== false) NC.fx.confetti(a.position.x, a.position.y + 1.9, a.position.z, 40);
 }
 function trigger(a, ev, opt = {}) {
   const tr = TRIGGERS[ev]; if (!tr || !a) return;
@@ -120,6 +129,8 @@ function update(a, dt, opt = {}) {
   for (const j of JOINTS) { const tg = p[j] || REST[j] || ZERO, r = R[j].rotation; r.x += (tg[0] - r.x) * k; r.y += (tg[1] - r.y) * k; r.z += (tg[2] - r.z) * k; }
   R.hips.position.y += ((p.hipsY != null ? p.hipsY : u.hipH) - R.hips.position.y) * k;
   R.body.position.y += ((p.bodyY || 0) - R.body.position.y) * k; R.body.position.x += ((p.bodyX || 0) - R.body.position.x) * k;
+  // 호흡: 어깨가 아주 미세하게 오르내림
+  { const br = Math.sin(m.t * 1.45 + u.seed * 6); if (u.shY == null) { u.shY = R.shL.position.y; } R.shL.position.y = R.shR.position.y = u.shY + .0045 * br; R.torso.rotation.x += .008 * br * k; }
   if (u.skirt) u.skirt.scale.y += ((u.seated ? .45 : 1) - u.skirt.scale.y) * k;
   if (u.glass) u.glass.visible = glass;
   // 얼굴: 표정 만료 · 깜빡임 · 말할 때 입 움직임
@@ -128,7 +139,11 @@ function update(a, dt, opt = {}) {
   u.blinkT -= dt; if (u.blinkT < 0) { u.blink = true; u.blinkEnd = .13; u.blinkT = 2.4 + Math.random() * 3.6; u.faceDirty = true; }
   if (u.blink) { u.blinkEnd -= dt; if (u.blinkEnd < 0) { u.blink = false; u.faceDirty = true; } }
   const talking = now < u.talkUntil;
-  if (talking) { u.mouthT -= dt; if (u.mouthT < 0) { u.mouthT = .09 + Math.random() * .08; u.mouthOpen = !u.mouthOpen; u.faceDirty = true; } } else if (u.mouthOpen) { u.mouthOpen = false; u.faceDirty = true; }
+  if (talking) { u.mouthT -= dt; if (u.mouthT < 0) { u.mouthT = .07 + Math.random() * .08; u.mouthOpen = Math.random() < .2 ? 0 : .25 + Math.random() * .75; u.faceDirty = true; } } else if (u.mouthOpen) { u.mouthOpen = 0; u.faceDirty = true; }
+  // 시선 도약(사카드): 1~4초마다 눈동자가 살짝 이동, 바라보는 대상이 있으면 그쪽으로
+  if (u.gaze && opt.near !== false) { u.gazeT -= dt; if (u.gazeT < 0) { u.gazeT = 1 + Math.random() * 3;
+      if (u.lookAt && !u.moving) { const yw = Math.atan2(u.lookAt.x - a.position.x, u.lookAt.z - a.position.z), rel = ((yw - a.rotation.y + PI) % (PI * 2) + PI * 2) % (PI * 2) - PI; u.gaze = [U.clamp(rel * .5, -.8, .8) + (Math.random() - .5) * .2, (Math.random() - .5) * .3]; }
+      else u.gaze = [(Math.random() - .5) * 1.1, (Math.random() - .5) * .5]; u.faceDirty = true; } }
   if (u.faceDirty && (opt.near !== false || talking)) u.redraw();
 }
 

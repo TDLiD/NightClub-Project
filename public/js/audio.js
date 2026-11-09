@@ -22,6 +22,7 @@ const ZONE_FX = {      // lp(Hz) · gain · wet(리버브) · bass(dB) · bleed
   corridor: { lp: 4200, gain: .62, wet: .1, bass: 0, bleed: .4 },
   vip: { lp: 520, gain: .3, wet: .04, bass: -2, bleed: .55 },
   vipOpen: { lp: 1800, gain: .5, wet: .06, bass: 0, bleed: .5 },
+  karaoke: { lp: 260, gain: .1, wet: .02, bass: -6, bleed: .6 },   // 2차 노래방: 클럽 음악은 먼 벽 너머로만
 };
 const STAGE_SPK = { x: 0, y: 2.6, z: -17.6 };
 
