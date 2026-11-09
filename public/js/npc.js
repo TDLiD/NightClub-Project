@@ -46,9 +46,14 @@ function goTo(n, to, onArrive, speed = 2.6) { n.state = 'path'; n.path = planPat
 function stepToward(n, tx, tz, dt) {
   const dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz), u = n.g.userData;
   if (d < .3) return true;
-  const sp = Math.min(d, n.speed * dt), px = n.x, pz = n.z; n.x += dx / d * sp; n.z += dz / d * sp; NC.collide(n, .38);
+  let mx = dx / d, mz = dz / d, spd = n.speed;
+  if (n.drunk) {   // v12 취한 걸음: 진행 방향이 좌우로 출렁이고 속도가 들쑥날쑥
+    const tt = performance.now() / 1000, wv = Math.sin(tt * 1.7 + n.x) * .75 + Math.sin(tt * 3.3) * .25, cs = Math.cos(wv), sn = Math.sin(wv);
+    [mx, mz] = [mx * cs - mz * sn, mx * sn + mz * cs]; spd *= .45 + .25 * (1 + Math.sin(tt * 2.3));
+  }
+  const sp = Math.min(d, spd * dt), px = n.x, pz = n.z; n.x += mx * sp; n.z += mz * sp; NC.collide(n, .38);
   if (Math.hypot(n.x - px, n.z - pz) < sp * .3) n.stuck += dt; else n.stuck = Math.max(0, n.stuck - dt);
-  u.moving = true; n.g.rotation.y = U.lerpAngle(n.g.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 8));
+  u.moving = true; n.g.rotation.y = U.lerpAngle(n.g.rotation.y, Math.atan2(mx, mz), Math.min(1, dt * (n.drunk ? 4 : 8)));
   return false;
 }
 

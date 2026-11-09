@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>추억의 나이트 · 메타버스 v11</title>
+<title>추억의 나이트 · 메타버스 v12</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -47,14 +47,15 @@
     <canvas id="facePrev" width="120" height="138"></canvas>
     <div class="copts">
       <input type="text" id="nick" maxlength="10" placeholder="닉네임 (2~10자)" value="">
+      <div id="nickSamples"></div>
       <div id="cGender" class="seg"><button data-g="f">👩 여성</button><button data-g="m">👨 남성</button></div>
       <div class="row2"><select id="cHair"></select><select id="cTop"></select></div>
-      <button id="cFace" class="ghost">🎲 얼굴 바꾸기</button>
+      <button id="cFace" class="ghost">👗 스타일 바꾸기</button>
     </div>
   </div>
   <div class="swatches" id="sws"></div>
   <div id="modeSel" class="seg" style="display:none"><button data-m="online">🌐 온라인 (실제 접속자)</button><button data-m="solo">🤖 솔로 (AI 손님)</button></div>
-  <button id="vrmPick" type="button" class="ghost" title="VRoid Studio 등에서 만든 .vrm 파일">🧍 내 3D 캐릭터(VRM) 불러오기</button>
+  <div class="row2 charRow"><button id="vrmPick" type="button" class="ghost" title="VRoid Studio 등에서 만든 .vrm 파일">🧍 내 3D 캐릭터(VRM) 불러오기</button><button id="charMake" type="button" class="ghost">🎨 내 3D 캐릭터 만들기</button></div>
   <button id="go">입장하기</button>
   <div id="err"></div>
   <p style="font-size:11px;margin-top:10px">가상공간 오락 콘텐츠 · 만 19세 이상 이용 · 🪙코인은 현금 가치가 없는 게임 재화입니다</p>
@@ -80,6 +81,9 @@
 <script src="js/karaoke.js"></script>
 <script src="js/lifestyle.js"></script>
 <script src="js/rooms.js"></script>
+<script src="js/nightlife.js"></script>
+<script src="js/decor.js"></script>
 <script src="js/main.js"></script>
+<script src="js/entry.js"></script>
 </body>
 </html>

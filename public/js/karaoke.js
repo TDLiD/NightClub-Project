@@ -476,7 +476,7 @@ function waiterOut() {
 }
 function waiterMenu(o) {
   const P = NC.player; P.busy = true; const name = o.def.title, done = () => { NC.ui.hideDlg(); P.busy = false; };
-  const order = it => { if (!NC.Wallet.spend(it.price)) return NC.ui.toast(`🪙 코인이 부족해요 (${it.price} 필요)`); NC.Audio.sfx('coin'); done(); serveK(it, name); waiterOut(); };
+  const order = it => { if (NC.goldenFree && NC.goldenFree()) NC.ui.toast('🔔 골든벨 ALL PAY — 무료!'); else if (!NC.Wallet.spend(it.price)) return NC.ui.toast(`🪙 코인이 부족해요 (${it.price} 필요)`); NC.Audio.sfx('coin'); done(); serveK(it, name); waiterOut(); };
   NC.ui.showDlg({ name, tag: '🤵 노래방 서비스', job: `🪙 ${NC.Wallet.get()}`, say: K.guests.length ? '네 손님~ 더 필요하신 거 있으세요? 😊' : '부르셨어요? 주문이든 부킹이든 말씀만 하세요! 😄',
     opts: KMENU.map(it => ({ t: `${it.icon} ${it.name}  🪙${it.price}`, run: () => order(it) })).concat([
       { t: '💃 부킹 부탁해요', run: () => bookStyle(o) },
@@ -586,6 +586,7 @@ function endBlues(reason) {
   if (K.playing && K.playing.singer === 'blues') stop(true);
   if (BL.glass) { P.group.userData.holdGlass = BL.glass[0]; n.g.userData.holdGlass = BL.glass[1]; }
   BL.busy = false; BL.act = null; P.group.userData.bAct = null; n.g.userData.bAct = null; P.group.userData.dance = null; P.group.userData.kissK = 0; n.g.userData.dance = null; n.g.userData.kissK = 0; P.group.userData.hideLabel = n.g.userData.hideLabel = !!NC.Dialog.cur;
+  if (n.g.userData.undressed) setTimeout(() => NC.Avatar.undress(n.g, false), 400);   // 부르스가 끝나면 다시 입음
   const talking = NC.Dialog.cur && NC.Dialog.cur.n === n;
   if (BL.where === 'karaoke') {
     P.x = BL.c.x + 1; P.z = BL.c.z + .4;
@@ -613,6 +614,7 @@ const REACT = {      // out: accept(받아 줌) · stop(손을 잡아 제지) ·
   forehead: n => can(n, 60) ? { out: 'accept', d: 2, e: 'shy', line: P_(['…이러고 있으니까 심장 소리 들릴 것 같아요', '(눈을 감고 미소 짓는다)']) } : { out: 'refuse', d: -1, e: 'shy', line: '앗, 쑥스러워요 ㅎㅎ' },
   cheek: n => can(n, 65) ? { out: 'accept', d: 3, e: 'shy', line: P_(['(볼을 만지며) …방금 뭐예요 ㅎㅎ 반칙이에요', '헤헤… 한 번 더 해도 돼요']) }
     : n.aff >= 50 ? { out: 'refuse', d: -1, e: 'shy', line: '앗… (고개를 살짝 피한다) 아직이요 ㅎㅎ' } : { out: 'refuse', d: -4, e: 'annoyed', g: 'push', line: '잠깐만요, 그건 좀 아니에요.' },
+  dress: n => ({ out: 'accept', d: 2, e: 'smile', redress: true, line: U.pick(['헤헤… 매너 있네요. 그래서 더 좋아요 💗', '고마워요. 오늘 밤은 여기까지만 ㅎㅎ']) }),
   hug: n => can(n, 55) ? { out: 'accept', d: 2, e: 'shy', line: P_(['…따뜻하다. 좀 더 이러고 있어요', '헤헤, 갑자기 왜요 ㅎㅎ 좋아요']) } : { out: 'refuse', d: -1, e: 'shy', g: 'headshake', line: '앗, 너무 가까워요 ㅎㅎ 천천히요~' },
   backhug: n => can(n, 75) ? { out: 'accept', d: 3, e: 'shy', line: P_(['(손을 포개며) …이대로 노래 끝날 때까지 있어요', '뒤에서 안으니까 더 설레요… 💗']) } : { out: 'refuse', d: -2, e: 'shy', line: '(살짝 빠져나오며) 아직 거기까진 아니에요 ㅎㅎ' },
   kiss: n => {
@@ -628,7 +630,9 @@ const REACT = {      // out: accept(받아 줌) · stop(손을 잡아 제지) ·
     : { out: 'refuse', d: -10, e: 'annoyed', slap: true, stop: true, line: P_(['지금 뭐 하는 거예요?! 손 치워요!', '와… 진짜 실망이에요.']) },
   chest: n => can(n, 92, true) ? { out: 'stop', d: -4, e: 'annoyed', line: '(손목을 탁 잡으며) 거기까지예요. 분위기 깨지 마요.' }
     : { out: 'refuse', d: -15, e: 'annoyed', slap: true, stop: true, line: P_(['미쳤어요?! 동의 없이 만지는 건 진짜 아니에요!', '선 넘었어요. 저 기분 너무 나빠요.']) },
-  undress: n => can(n, 90, true) ? { out: 'stop', d: -3, e: 'laugh', line: '(두 손으로 손목을 붙잡으며) 여기서요? ㅋㅋㅋ 선 넘지 마요~ 대신 한 곡 더 춰 줄게요' }
+  undress: n => n.g.userData.undressed ? { out: 'stop', d: -2, e: 'laugh', line: '(손목을 잡으며) 여기까지만이에요 ㅋㅋ 더는 안 돼요~' }
+    : can(n, 95, true) && !n.g.userData.vrm ? { out: 'accept', d: 2, e: 'shy', strip: true, line: U.pick(['…진짜 못 말려. (두 팔을 들어 준다) 겉옷만이에요? 💗', '(작게 웃으며 팔을 든다) 다른 사람들 보면 어떡해요… ㅎㅎ']) }
+    : can(n, 90, true) ? { out: 'stop', d: -3, e: 'laugh', line: '(두 손으로 손목을 붙잡으며) 여기서요? ㅋㅋㅋ 선 넘지 마요~ 대신 한 곡 더 춰 줄게요' }
     : { out: 'refuse', d: -15, e: 'annoyed', slap: true, stop: true, line: P_(['지금 제 옷에 손대신 거예요?! 진짜 어이없네요.', '하… 저 그런 사람 아니에요.']) },
 };
 const ACT = {   // 동작 길이(초) · 반응 시점(초) · 서로 더 붙는 정도(m) · flip: 상대가 돌아섬(백허그) · spin: 상대 회전
@@ -645,7 +649,8 @@ const ACT = {   // 동작 길이(초) · 반응 시점(초) · 서로 더 붙는
   neck: { dur: 3.6, hit: 1.1, close: .08, desc: '💋 고개를 숙여 목덜미에 입술을 댄다' },
   butt: { dur: 2.8, hit: 1.15, close: .09, desc: '🍑 허리에 있던 손을 등을 따라 엉덩이로 내린다' },
   chest: { dur: 2.8, hit: 1.15, close: 0, desc: '🫳 손을 옆구리를 따라 가슴 쪽으로 올린다' },
-  undress: { dur: 2.9, hit: 1.1, close: 0, desc: '👚 옷자락을 잡고 위로 올리려 한다' },
+  undress: { dur: 3.4, hit: 1.25, close: 0, desc: '👚 옷자락을 잡고 위로 천천히 올린다' },
+  dress: { dur: 2.4, hit: .9, close: 0, desc: '👕 벗겨진 겉옷을 다시 입혀 준다' },
 };
 function bluesAct(kind) {
   const n = BL.n; if (!n || BL.busy) return; const D = NC.Dialog, P = NC.player, r = REACT[kind](n), a = ACT[kind], t0 = performance.now();
@@ -656,6 +661,8 @@ function bluesAct(kind) {
   setTimeout(() => {                                    // 상대 반응
     if (BL.n !== n) return;
     if (r.kiss) { BL.kiss = r.kiss; BL.kissDur = r.kiss; BL.deep = kind === 'deepkiss'; n.bl.kissed = true; NC.Audio.sfx('heart'); }
+    if (r.strip && NC.Avatar.undress(n.g, true)) { NC.Audio.sfx('heart'); NC.ui.toast(`👚 ${n.name}의 겉옷이 벗겨졌어요 — 부르스가 끝나면 다시 입어요`); }
+    if (r.redress) NC.Avatar.undress(n.g, false);
     if (r.slap) { n.g.userData.bAct = null; NC.Motion.play(n.g, 'slap'); setTimeout(() => { NC.Audio.sfx('slap'); NC.Motion.play(P.group, 'flinch'); P.group.userData.setExpr && P.group.userData.setExpr('sad', 2); }, 330); }
     else if (r.g) { n.g.userData.bAct = null; NC.Motion.play(n.g, r.g); }
     if (r.out === 'accept') { n.g.userData.setExpr && n.g.userData.setExpr(r.e === 'kiss' ? 'kiss' : r.e, (dur - a.hit) + .5); P.group.userData.setExpr && P.group.userData.setExpr(r.e === 'kiss' ? 'kiss' : 'smile', (dur - a.hit) + .3); }
@@ -673,6 +680,7 @@ NC.dialogChipsOverride = (n, CHIP) => {
   if (BL.n !== n) return false;
   if (BL.busy) { CHIP('⏳ …', () => {}); return true; }
   CHIPS.forEach(([l, k]) => CHIP(l, () => bluesAct(k), k === 'kiss' ? 'pri' : ''));
+  if (n.g.userData.undressed) CHIP('👕 옷 다시 입혀 주기', () => bluesAct('dress'));
   CHIP('⏹ 부르스 그만', () => endBlues('stop'));
   return true;
 };
@@ -700,7 +708,7 @@ NC.tickers.push(dt => {
   P.group.position.set(P.x, NC.groundY(P.x, P.z), P.z); n.g.position.set(n.x, NC.groundY(n.x, n.z), n.z);
 });
 $('#kCall').onclick = () => callWaiter();
-K.callWaiter = callWaiter; K.startBlues = startBlues; K.endBlues = endBlues; K.BL = BL; K.ACT = ACT;
+K.G = G; K.dims = { KX, KZ, HX, HZ, H }; K.callWaiter = callWaiter; K.startBlues = startBlues; K.endBlues = endBlues; K.BL = BL; K.ACT = ACT;
 
 /* 상호작용 후보 */
 NC.interactProviders.push(() => {

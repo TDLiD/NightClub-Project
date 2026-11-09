@@ -19,7 +19,7 @@ const beatInfo = () => (NC.Audio && NC.Audio.beat ? NC.Audio.beat() : (() => { c
 const ss = (a, b, x) => U.clamp((x - a) / (b - a), 0, 1);
 const sm2 = (a, b, x) => { const t = ss(a, b, x); return t * t * (3 - 2 * t); };
 const lerp3 = (a, b, t) => [U.lerp(a[0], b[0], t), U.lerp(a[1], b[1], t), U.lerp(a[2], b[2], t)];
-const env3 = (e, a, b, c, d) => Math.min(ss(a, b, e), 1 - ss(c, d, e));          // a→b 올라가고 c→d 내려감
+const env3 = (e, a, b, c, d) => Math.min(sm2(a, b, e), 1 - sm2(c, d, e));   // v12: smoothstep 이징 → 동작 시작·끝이 부드럽게          // a→b 올라가고 c→d 내려감
 function mixJ(p, j, tg, w) { if (w <= 0) return; const a0 = p[j] || REST[j] || [0, 0, 0]; p[j] = [U.lerp(a0[0], tg[0], w), U.lerp(a0[1], tg[1], w), U.lerp(a0[2], tg[2], w)]; }
 function BLUES_ACT(p, u) {
   const A = u.bAct; if (!A) return; const e = (performance.now() - A.t0) / 1000;
@@ -92,11 +92,56 @@ function BLUES_ACT(p, u) {
         if (k === 'butt') { J('shL', [.85, .01, .12], g); J('elL', [-1.17, 0, 0], g); } else { J('shR', [.26, -.4, -.15], g); J('elR', [-2.32, 0, 0], g); } }
     }
   } else if (k === 'undress') {                          // 리드: 두 손으로 상대 옷자락(허리 앞)을 잡고 → 위로 올리려 함 · 상대: 두 손으로 손목을 붙잡아 내림
-    if (lead) { const grab = env3(e, .1, .7, D - .6, D), lift = ss(.7, 1.3, e) * (1 - ss(1.3, 1.7, e) * (A.out === 'refuse' ? 1 : .85));
+    if (lead) { const grab = env3(e, .1, .7, D - .6, D), lift = acc ? sm2(.6, H, e) * (1 - sm2(H + .1, H + .6, e)) : ss(.7, 1.3, e) * (1 - ss(1.3, 1.7, e) * (A.out === 'refuse' ? 1 : .85));
       J('shL', [-.46 - .15 * lift, -.04, .1 + .07 * lift], grab); J('elL', [-.82 - .94 * lift, 0, 0], grab);
       J('shR', [-.6, -.2 + .23 * lift, -.2 + .03 * lift], grab); J('elR', [-.64 - 1.12 * lift, 0, 0], grab); }
+    else if (acc) {   // v12: 허락 → 두 팔을 들어 벗겨지는 걸 도와줌 → 벗겨진 뒤 수줍게 팔로 몸을 가림
+      const up = env3(e, .55, H - .15, H + .05, H + .45), cover = env3(e, H + .35, H + .8, D - .5, D);
+      arms([-2.85, 0, .12], -.25, [-2.85, 0, -.12], -.25, up); J('head', [-.1, 0, 0], up);
+      arms([-.9, 0, .75], -2.0, [-.9, 0, -.75], -2.0, cover); J('head', [.18, .25, 0], cover); J('torso', [.08, .1, 0], cover); }
     else { const hold = env3(e, 1.0, 1.25, D - .6, D); arms([-.7, 0, .3], -.8, [-.7, 0, -.3], -.8, hold); J('torso', [-.08, 0, 0], hold); }
   }
+}
+
+/* v12 안무 엔진: 박자(b.n + b.phase)에 맞춘 '연속' 함수만 사용 → 뚝뚝 끊기는 로봇 느낌 제거.
+ *  8박마다 루틴 교체(시드·성별별 선호), 관절 보간(update 의 lerp)이 루틴 사이를 부드럽게 이어 줌. A = 진폭(스테이지 1, 플로어 .7) */
+const ROUT_F = ['hipSway', 'bodyRoll', 'hairFlip', 'armWave', 'disco', 'stepTouch', 'hipCircle', 'shimmy', 'vogue'];
+const ROUT_M = ['pump', 'runMan', 'disco', 'stepTouch', 'armWave', 'shimmy', 'bounceRock', 'bodyRoll', 'pump'];
+function CHOREO(p, u, b, A) {
+  const c = b.n + b.phase, f = u.gender === 'f', L = f ? ROUT_F : ROUT_M, pick = L[(Math.floor(c / 8) * 7 + Math.floor((u.seed || .3) * 97)) % L.length];
+  const S = x => Math.sin(x * PI), C = x => Math.cos(x * PI), bounce = (1 - C(c * 2)) / 2;          // 1박마다 무릎 바운스(0~1)
+  // 공통 바탕: 무릎 바운스 + 몸통 미세 흔들림 + 고개 끄덕임
+  p.hipsY = u.hipH - (.04 + .03 * A) * bounce; p.knL = [.3 * bounce * A + .05, 0, 0]; p.knR = [.3 * bounce * A + .05, 0, 0]; p.legL = [-.14 * bounce * A, 0, -.06]; p.legR = [-.14 * bounce * A, 0, .06];
+  p.head = [.1 * bounce * A, 0, 0]; p.torso = [.05 * bounce, 0, 0];
+  const R = {
+    hipSway() { const s = S(c); p.bodyX = .11 * s * A; p.torso = [.04, .12 * s * A, -.16 * s * A]; p.head = [.05, -.1 * s, .12 * s * A];       // 골반 좌우 + 두 손 머리 위에서 흔들기
+      p.knL = [.06 + .32 * Math.max(0, s) * A, 0, 0]; p.knR = [.06 + .32 * Math.max(0, -s) * A, 0, 0];
+      p.shL = [-2.5 * A, 0, .15 + .25 * s]; p.elL = [-1.0, 0, 0]; p.shR = [-2.5 * A, 0, -.15 + .25 * s]; p.elR = [-1.0, 0, 0]; },
+    bodyRoll() { const w = S(c / 2 * 2), w2 = S(c / 2 * 2 - .35); p.torso = [.28 * w * A, 0, 0]; p.head = [-.25 * w2 * A, 0, 0]; p.hipsY -= .03 * (1 + w) * A; p.bodyX = .04 * S(c / 2);  // 가슴→골반 웨이브
+      p.shL = [-.5 - .4 * w2 * A, 0, -.55]; p.elL = [-.9, 0, 0]; p.shR = [-.5 - .4 * w2 * A, 0, .55]; p.elR = [-.9, 0, 0]; },
+    hairFlip() { const s = S(c / 2), h = Math.pow(Math.max(0, S(c / 2)), 3); p.head = [-.15 + .55 * h * A, .4 * s * A, .25 * s]; p.torso = [.1 + .2 * h * A, .2 * s, 0]; p.bodyX = .07 * s * A;  // 머리 넘기기
+      p.shR = [-2.2 * A - .3 * h, 0, -.2]; p.elR = [-1.6, 0, 0]; p.shL = [-.3, 0, -.6]; p.elL = [-.7, 0, 0]; },
+    armWave() { const w = c * 1.0; p.shL = [-.15, 0, -1.45 * A - .25 * S(w)]; p.elL = [-.55 * (1 + S(w - .3)), 0, 0]; p.shR = [-.15, 0, 1.45 * A + .25 * S(w - .5)]; p.elR = [-.55 * (1 + S(w - .8)), 0, 0];   // 양팔 웨이브
+      p.torso = [.03, 0, .12 * S(w - .4) * A]; p.bodyX = .05 * S(w - .4); p.head = [.05, 0, -.1 * S(w - .6)]; },
+    disco() { const s = S(c / 2), up = (1 + s) / 2; p.shR = [-.4 - 2.3 * up * A, 0, .9 * up]; p.elR = [-.1, 0, 0]; p.shL = [-.3, 0, -.5]; p.elL = [-1.5 + .3 * up, 0, 0];   // 토요일 밤의 열기: 대각선 위로 찌르고 내리기
+      p.torso = [0, -.25 * s * A, .1 * s]; p.bodyX = .08 * s * A; p.head = [-.15 * up, -.3 * s, 0]; p.legR = [-.1, 0, .18 * up * A]; p.knR = [.05 + .25 * (1 - up), 0, 0]; },
+    stepTouch() { const s = S(c), side = Math.max(0, s), side2 = Math.max(0, -s); p.legL = [-.08, 0, -.06 - .32 * side2 * A]; p.legR = [-.08, 0, .06 + .32 * side * A]; p.bodyX = .1 * s * A;   // 옆으로 스텝 + 머리 위 박수
+      const cl = Math.pow(Math.max(0, C(c * 2)), 4); p.shL = [-2.6 * A, 0, .55 * cl + .15]; p.elL = [-.3, 0, 0]; p.shR = [-2.6 * A, 0, -.55 * cl - .15]; p.elR = [-.3, 0, 0]; p.torso = [.02, .1 * s, -.08 * s]; },
+    hipCircle() { const a = c * PI / 2; p.bodyX = .1 * Math.sin(a) * A; p.torso = [.12 * Math.cos(a) * A, .08 * Math.sin(a), -.14 * Math.sin(a) * A]; p.hipsY -= .03 * (1 + Math.cos(a)) * A;   // 골반 원 그리기
+      p.shL = [-.9, 0, -.9 + .2 * Math.sin(a)]; p.elL = [-1.6, 0, 0]; p.shR = [-.9, 0, .9 + .2 * Math.cos(a)]; p.elR = [-1.6, 0, 0]; p.head = [.1 * Math.cos(a), .15 * Math.sin(a), 0]; },
+    shimmy() { const q = S(c * 4); p.torso = [-.12 * A, .26 * q * A, 0]; p.head = [-.05, -.15 * q, 0]; p.shL = [-.5, 0, -.5]; p.elL = [-1.5, 0, 0]; p.shR = [-.5, 0, .5]; p.elR = [-1.5, 0, 0];   // 어깨 털기(뒤로 젖혀)
+      p.knL = [.4 * A, 0, 0]; p.knR = [.4 * A, 0, 0]; p.hipsY = u.hipH - .08 * A; p.bodyX = .04 * S(c / 2); },
+    vogue() { const k = Math.floor(c / 2) % 2, s = S(c / 2), sm = (1 - C(c)) / 2; if (k) { p.shL = [-1.57 * A, 0, .3 * sm]; p.elL = [-2.0 * sm, 0, 0]; p.shR = [-.3, 0, .4]; p.elR = [-1.2, 0, 0]; } else { p.shR = [-1.57 * A, 0, -.3 * sm]; p.elR = [-2.0 * sm, 0, 0]; p.shL = [-.3, 0, -.4]; p.elL = [-1.2, 0, 0]; }  // 보깅: 손으로 얼굴 프레임
+      p.head = [.05, .35 * s, .1 * s]; p.bodyX = .08 * s * A; p.torso = [.05, -.15 * s, -.1 * s * A]; },
+    pump() { const pu = (1 - C(c * 2)) / 2; p.shR = [-2.4 * A - .4 * pu, 0, -.15]; p.elR = [-.9 * (1 - pu) - .1, 0, 0]; p.shL = [-.4, 0, -.25]; p.elL = [-1.7, 0, 0];   // 주먹 펌프
+      p.head = [.22 * bounce * A, 0, 0]; p.torso = [.1 * bounce, .1 * S(c / 2), 0]; },
+    runMan() { const s = S(c), l = Math.max(0, s), r = Math.max(0, -s); p.legL = [-.75 * l * A, 0, -.05]; p.knL = [1.3 * l * A + .05, 0, 0]; p.legR = [-.75 * r * A, 0, .05]; p.knR = [1.3 * r * A + .05, 0, 0];   // 러닝맨
+      p.hipsY = u.hipH - .06 * A; p.shL = [-1.0 * (1 - l), 0, -.2]; p.elL = [-1.6, 0, 0]; p.shR = [-1.0 * (1 - r), 0, .2]; p.elR = [-1.6, 0, 0]; p.torso = [.15, .1 * s, 0]; },
+    bounceRock() { const s = S(c / 2); p.torso = [.1 + .12 * bounce * A, .3 * s * A, 0]; p.head = [.25 * bounce * A, -.2 * s, 0]; p.bodyX = .06 * s;   // 상체 크게 흔들며 바운스
+      p.shL = [-1.2, .3 * s, -.6]; p.elL = [-1.3 + .4 * bounce, 0, 0]; p.shR = [-1.2, .3 * s, .6]; p.elR = [-1.3 + .4 * bounce, 0, 0]; p.legL = [-.15 * bounce, 0, -.18]; p.legR = [-.15 * bounce, 0, .18]; },
+  };
+  (R[pick] || R.hipSway)();
+  p.bodyY = (p.bodyY || 0) + .025 * A * Math.sin(c * PI) ** 2;
 }
 
 /* ── 베이스 루프 ── */
@@ -108,12 +153,19 @@ const BASE = {
     p.shL = [-s * .42, 0, -.1]; p.shR = [s * .42, 0, .1]; p.elL = [-.35 - Math.max(0, -s) * .3, 0, 0]; p.elR = [-.35 - Math.max(0, s) * .3, 0, 0];
     p.torso = [.04, s * .07, 0]; p.head = [-.03, -s * .05, 0]; p.bodyY = (Math.abs(c) - .5) * .04;
   },
-  groove(p, t, u, b) {
-    const dip = (1 + Math.cos(b.phase * 2 * PI)) / 2, sw = Math.sin((b.n % 2 + b.phase) * PI) * (b.n % 4 < 2 ? 1 : -1);
-    p.hipsY = u.hipH - .045 * dip; p.legL = [-.12 * dip, 0, -.04]; p.legR = [-.12 * dip, 0, .04]; p.knL = [.28 * dip, 0, 0]; p.knR = [.28 * dip, 0, 0];
-    p.torso = [.06 * dip, .15 * sw, .05 * sw]; p.head = [.12 * dip, -.1 * sw, 0];
-    p.shL = [-.45 - .15 * dip, .1 * sw, -.25]; p.elL = [-1.5 + .2 * dip, 0, 0]; p.shR = [-.45 - .15 * dip, .1 * sw, .25]; p.elR = [-1.5 + .2 * dip, 0, 0];
+  groove(p, t, u, b) { CHOREO(p, u, b, .7); },
+  // v12 취한 걸음: 보폭 불규칙 · 상체 좌우로 크게 기울고 팔을 벌려 균형 · 고개가 흔들림
+  drunkWalk(p, t, u) {
+    const ph = u.walkPh * .85, s = Math.sin(ph), c = Math.cos(ph), wob = Math.sin(t * 1.9 + u.seed * 5), wob2 = Math.sin(t * 3.1 + 1);
+    p.legL = [s * .38, 0, -.06 - .08 * Math.max(0, wob)]; p.legR = [-s * .38, 0, .06 + .08 * Math.max(0, -wob)]; p.knL = [Math.max(0, -c) * .75 + .12, 0, 0]; p.knR = [Math.max(0, c) * .75 + .12, 0, 0];
+    p.torso = [.1 + .05 * wob2, s * .1, .22 * wob]; p.head = [.12 + .1 * wob2, -.15 * wob, -.3 * wob]; p.bodyX = .07 * wob; p.hipsY = u.hipH - .03;
+    p.shL = [-.25 - .2 * s, 0, -.55 - .25 * Math.max(0, wob)]; p.elL = [-.5, 0, 0]; p.shR = [-.25 + .2 * s, 0, .55 + .25 * Math.max(0, -wob)]; p.elR = [-.5, 0, 0]; p.bodyY = (Math.abs(c) - .5) * .03;
   },
+  drunkIdle(p, t, u) {
+    const w = Math.sin(t * 1.3 + u.seed * 3), w2 = Math.sin(t * .7);
+    p.bodyX = .06 * w; p.torso = [.12, .1 * w2, .18 * w]; p.head = [.18, .2 * w2, -.25 * w]; p.knL = [.18, 0, 0]; p.knR = [.18, 0, 0]; p.hipsY = u.hipH - .03;
+    p.legL = [0, 0, -.08]; p.legR = [0, 0, .08]; p.shL = [-.2, 0, -.35 - .2 * Math.max(0, w)]; p.elL = [-.4, 0, 0]; p.shR = [-.3, 0, .3]; p.elR = [-.9, 0, 0];
+  },      // v12: 댄스플로어 — 안무 엔진(진폭 70%)
   // 노래방: 마이크를 입가에, 박자에 맞춰 몸을 흔들며 왼손은 감정 표현
   sing(p, t, u, b) {
     const dip = (1 + Math.cos(b.phase * 2 * PI)) / 2, sw = Math.sin((b.n % 2 + b.phase) * PI) * (b.n % 4 < 2 ? 1 : -1), big = Math.floor(b.n / 8 + u.seed * 3) % 3;
@@ -122,15 +174,7 @@ const BASE = {
     p.shR = [-.72, 0, -.32]; p.elR = [-2.2, 0, 0];
     if (big === 0) { p.shL = [-.4 - .25 * Math.max(0, sw), 0, -.35]; p.elL = [-.8, 0, 0]; } else if (big === 1) { p.shL = [-1.6, 0, -.5 + .2 * sw]; p.elL = [-.25, 0, 0]; } else { p.shL = [-.2, 0, -1.2 - .3 * dip]; p.elL = [-.4, 0, 0]; }
   },
-  stageDance(p, t, u, b) {
-    BASE.groove(p, t, u, b);
-    const dip = (1 + Math.cos(b.phase * 2 * PI)) / 2, sw = Math.sin((b.n % 2 + b.phase) * PI) * (b.n % 4 < 2 ? 1 : -1), move = Math.floor(b.n / 8 + u.seed * 4) % 4;
-    p.bodyY = .07 * Math.sin(b.phase * PI);
-    if (move === 0) { p.shR = [-.2, 0, 2.6 - .5 * dip]; p.elR = [-.3 * dip, 0, 0]; p.shL = [-.6, 0, -.3]; p.elL = [-1.4, 0, 0]; }
-    else if (move === 1) { if (b.n % 2 === 0) p.shR = [-.3, 0, 2.5]; else p.shR = [-.7, 0, -.35]; p.elR = [-.1, 0, 0]; p.shL = [.2, 0, -.55]; p.elL = [-1.6, 0, .3]; p.torso = [.04, .3 * sw, 0]; }
-    else if (move === 2) { p.shL = [0, 0, -2.6 + .3 * sw]; p.shR = [0, 0, 2.6 + .3 * sw]; p.elL = [-.3, 0, 0]; p.elR = [-.3, 0, 0]; p.torso = [0, 0, .12 * sw]; p.bodyX = .05 * sw; }
-    else { p.bodyX = .18 * sw; p.legL = [-.12 * dip, 0, -.15 * Math.max(0, sw)]; p.legR = [-.12 * dip, 0, .15 * Math.max(0, -sw)]; p.shL = [-.6 * sw - .3, 0, -.2]; p.shR = [.6 * sw - .3, 0, .2]; p.elL = [-.8, 0, 0]; p.elR = [-.8, 0, 0]; }
-  },
+  stageDance(p, t, u, b) { CHOREO(p, u, b, 1); },  // v12: 스테이지 — 크고 흐르는 안무 9종
   // v9 부르스(블루스): 마주 보고 천천히 좌우로 흔들기. 리드는 손을 상대 허리에, 상대는 어깨에. u.kissK(0~1) 로 서로 기울임
   blues(p, t, u) {
     const s = Math.sin(t * 1.55), w = Math.sin(t * .77), k = u.kissK || 0;
@@ -208,7 +252,7 @@ function update(a, dt, opt = {}) {
   const u = a.userData, m = u.motion, R = u.rig; if (!R) return;
   m.t += dt; const b = beatInfo();
   if (u.moving) u.walkPh += dt * (opt.speed || 1) * 9;
-  const baseName = u.seated ? (u.talk ? 'sitTalk' : 'sit') : u.moving ? 'walk' : (u.dance && !u.seated ? u.dance : 'idle');
+  const baseName = u.seated ? (u.talk ? 'sitTalk' : 'sit') : u.moving ? (u.drunk ? 'drunkWalk' : 'walk') : (u.dance && !u.seated ? u.dance : u.drunk ? 'drunkIdle' : 'idle');
   const p = {}; BASE[baseName](p, m.t, u, b);
   let glass = !!u.holdGlass;
   if (m.g) {

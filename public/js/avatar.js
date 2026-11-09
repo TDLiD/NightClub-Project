@@ -39,8 +39,8 @@ function randomLook(seed, gender) {
     face: {
       eyeColor: pick(EYEC), eyeSize: .85 + r() * .35, eyeTilt: (r() - .5) * .28, eyeGap: (r() - .5) * .05, lid: r() < .6 ? 1 : 0,
       browThick: f ? .55 + r() * .45 : .95 + r() * .6, browTilt: (r() - .5) * .3, browArch: r(),
-      lipColor: pick(f ? LIPS_F : LIPS_M), lipW: .85 + r() * .3, lipFull: .8 + r() * .5, nose: .82 + r() * .4,
-      faceW: .9 + r() * .14, jaw: .92 + r() * .18, blush: f ? .2 + r() * .4 : r() * .12, liner: f ? .3 + r() * .7 : 0,
+      lipColor: pick(f ? LIPS_F : LIPS_M), lipW: .85 + r() * .3, lipFull: f ? 1.0 + r() * .45 : .8 + r() * .4, nose: .82 + r() * .4,
+      faceW: .9 + r() * .14, jaw: .92 + r() * .18, blush: f ? .25 + r() * .4 : r() * .12, liner: f ? .55 + r() * .45 : 0,
       shadow: f && r() < .8 ? pick(SHADOWS) : null, freckles: r() < .15, mole: r() < .25 ? [(r() - .5) * .9, .15 + r() * .5] : null,
       beard: !f && r() < .25 ? (r() < .6 ? 'stubble' : 'goatee') : null, glasses: r() < .2, sunglasses: r() < .14, earring: f && r() < .55,
     },
@@ -67,7 +67,7 @@ function mergeLook(seed, gender, look) {
 
 /* ───────── 스타일라이즈드(v4) 비율 ─────────
  * 큰 두상·큰 눈·작은 코/입·가는 목·긴 다리의 3D 캐릭터 스타일. TOON=false 로 바꾸면 v3 실사 비율로 돌아감 */
-const TOON = true, HEAD_S = TOON ? 1.8 : 1, EYE_K = TOON ? 1.85 : 1.3;
+const TOON = true, HEAD_S = TOON ? 1.32 : 1, EYE_K = TOON ? 1.5 : 1.3;   // v12: 실사형 글래머 비율(두상 1.8→1.32 · 눈 1.85→1.5)
 /* ───────── 얼굴 텍스처 ───────── */
 const FW = 1024, FH = 512, K = FW / (Math.PI * 2);
 const EXPR = {
@@ -350,12 +350,26 @@ function mergeStatic(root) {
   });
 }
 
+/* v12 겉옷 벗기기: 상의(겉옷) 재질을 쓰는 메시를 찾아 → 몸통은 실크 캐미솔, 팔은 맨살, 오버셔츠 겉감은 숨김. off 로 원래대로.
+ *  (정적 메시는 재질별로 병합되어 있어 '재질 교체' 방식으로 처리 — 노출 표현 없음: 캐미솔/슬립 이너가 남는다) */
+function undress(g, on) {
+  const u = g.userData; if (!u || !u.mats || !u.fig) return false;
+  if (!on) { if (u.undressed) { u.undressed.forEach((st, o) => { o.material = st.m; o.visible = st.v; }); u.undressed = null; } return true; }
+  if (u.undressed) return true;
+  const { top, sleeve, skin, kind, inner } = u.mats, R = u.rig, arms = new Set([R.shL, R.elL, R.shR, R.elR]);
+  const cami = std(kind === 'dress' ? '#1a0b14' : (inner && inner !== '#f6f6f6' ? inner : '#5a0f24'), { roughness: .2, metalness: .18 });
+  u.undressed = new Map();
+  u.fig.traverse(o => { if (!o.isMesh || (o.material !== top && o.material !== sleeve)) return;
+    u.undressed.set(o, { m: o.material, v: o.visible });
+    if (arms.has(o.parent)) o.material = skin; else if (kind === 'overshirt' && o.material === top) o.visible = false; else o.material = cami; });
+  return true;
+}
 /* ───────── 아바타 생성 ───────── */
 function create(o = {}) {
   const look = mergeLook(o.seed != null ? o.seed : U.hash(o.name || String(Math.random())), o.gender, o.look);
-  const f = look.gender === 'f', B = (look.build || 1) * (TOON ? .86 : 1), LIMB = TOON ? .82 : 1;
+  const f = look.gender === 'f', B = (look.build || 1) * (TOON ? .88 : 1), LIMB = TOON ? .9 : 1, CV = look.curve != null ? look.curve : (f ? .6 : .5);   // CV: 여성 글래머 / 남성 어깨
   const root = new T.Group(), fig = new T.Group(); root.add(fig);
-  const figScale = look.height / (TOON ? 1.98 : 1.75); fig.scale.setScalar(figScale);
+  const figScale = look.height / (TOON ? 1.84 : 1.75); fig.scale.setScalar(figScale);
   const body = new T.Group(); fig.add(body);
   const hipH = TOON ? 1.0 : .965, hips = new T.Group(); hips.position.y = hipH; body.add(hips);
   const torso = new T.Group(); hips.add(torso);
@@ -367,27 +381,32 @@ function create(o = {}) {
   if (look.set && look.pattern && look.pattern !== 'solid' && look.bottom !== 'skirt') { mBot.map = patternTex(look.pattern, look.topColor); mBot.color.setRGB(1, 1, 1); }   // 상하 같은 패턴 셋업
   const mRip = look.fit === 'ripped' ? (() => { const m = clothMat(look.bottomColor, 'denim', { roughness: .85 }); m.map = ripTex(look.bottomColor); m.color.setRGB(1, 1, 1); return m; })() : null;
   // 몸통
-  const prof = (f ? F_PROF : M_PROF).map(([rr, y]) => new T.Vector2(rr * B, y));
+  const curveK = y => f ? (y > .28 && y < .44 ? 1 + .07 * CV : y > .1 && y < .2 ? 1 - .07 * CV : y > -.08 && y < .06 ? 1 + .09 * CV : 1) : (y > .36 ? 1 + .1 * (CV - .5) : 1);
+  const prof = (f ? F_PROF : M_PROF).map(([rr, y]) => new T.Vector2(rr * B * curveK(y), y)), PK = look.gender + B.toFixed(2) + CV.toFixed(2);
   const crop = look.top === 'crop', over = look.top === 'overshirt';
-  const tor = mesh(G('tor' + look.gender + B.toFixed(2), () => new T.LatheGeometry(prof, 22)), crop ? mSkin : over ? clothMat(look.innerColor || '#f6f6f6', 'fabric') : mTop); tor.scale.z = .68; torso.add(tor);
-  if (crop) { const up = mesh(G('crop' + look.gender + B.toFixed(2), () => new T.LatheGeometry(prof.filter(v => v.y >= .14).map(v => new T.Vector2(v.x * 1.04, v.y)), 22)), mTop); up.scale.z = .7; torso.add(up);
+  const tor = mesh(G('tor' + PK, () => new T.LatheGeometry(prof, 22)), crop ? mSkin : over ? clothMat(look.innerColor || '#f6f6f6', 'fabric') : mTop); tor.scale.z = .68; torso.add(tor);
+  if (crop) { const up = mesh(G('crop' + PK, () => new T.LatheGeometry(prof.filter(v => v.y >= .14).map(v => new T.Vector2(v.x * 1.04, v.y)), 22)), mTop); up.scale.z = .7; torso.add(up);
     const hem = mesh(G('hem' + B.toFixed(2), () => new T.TorusGeometry(1, .06, 5, 22)), mTop, 0, .15, 0, (f ? .132 : .155) * B, (f ? .132 : .155) * B, (f ? .132 : .155) * B); hem.rotation.x = Math.PI / 2; hem.scale.y = .7 * (f ? .132 : .155) * B; torso.add(hem); }
   if ((look.top === 'jacket' || over) && look.inner === 'turtle') { const tn = mesh(cyl(.05, .056, .1), clothMat(look.innerColor || '#2a2a2e', 'fabric'), 0, .56, .004); torso.add(tn); }
   if (look.necklace) { const nk = mesh(G('neck', () => new T.TorusGeometry(.068, .004, 6, 28)), G('neckM', () => std('#e8c56a', { metalness: .95, roughness: .2 })), 0, .5, .028); nk.rotation.x = Math.PI / 2 - .5; nk.scale.set(1, 1.15, 1); torso.add(nk); }
-  if (over) { const shell = mesh(G('over' + look.gender + B.toFixed(2), () => new T.LatheGeometry(prof.filter(v => v.y >= -.12).map(v => new T.Vector2(v.x * 1.06, v.y)), 22, Math.PI * .14, Math.PI * 1.72)), mTop); shell.scale.z = .7; shell.material.side = T.DoubleSide; torso.add(shell);
+  if (over) { const shell = mesh(G('over' + PK, () => new T.LatheGeometry(prof.filter(v => v.y >= -.12).map(v => new T.Vector2(v.x * 1.06, v.y)), 22, Math.PI * .14, Math.PI * 1.72)), mTop); shell.scale.z = .7; shell.material.side = T.DoubleSide; torso.add(shell);
     const col2 = mesh(G('collar', () => new T.TorusGeometry(.06, .014, 6, 14)), mTop, 0, .54, -.005, 1.15, .8, 1); col2.rotation.x = Math.PI / 2; torso.add(col2); }
   if (look.top === 'jacket' || look.top === 'vest') {   // V넥 안쪽 셔츠
     const vg = G('vneck', () => { const sh = new T.Shape(); sh.moveTo(-.07, .17); sh.lineTo(.07, .17); sh.lineTo(0, -.06); sh.closePath(); return new T.ShapeGeometry(sh); });
     const inner = mesh(vg, std(look.top === 'vest' ? '#f4f2ee' : (f ? '#f2e6ee' : '#f4f2ee')), 0, .36, .112); inner.rotation.x = -.22; torso.add(inner); }
   if (look.top === 'vest') { const bt = std('#0d0b10'); for (const s of [-1, 1]) { const w = mesh(G('cone', () => new T.ConeGeometry(1, 1, 4)), bt, s * .028, .5, .12, .022, .04, .012); w.rotation.z = s * Math.PI / 2; w.position.y = .505; w.position.z = .118; torso.add(w); } }
   if (look.top === 'shirt') { const col = mesh(G('collar', () => new T.TorusGeometry(.06, .014, 6, 14)), mTop, 0, .54, .01, 1, .75, 1); col.rotation.x = Math.PI / 2; torso.add(col); }
-  const hip = mesh(cyl(.172 * B, .158 * B, .18, 18), look.bottom === 'pants' || look.bottom === 'shorts' ? mBot : (look.top === 'dress' ? mTop : std(look.bottomColor, { roughness: .6 })), 0, -.05, 0); hip.scale.z = .7; hips.add(hip);
+  if (f) {   // v12: 여성 실루엣 — 가슴 볼륨(의상 재질), 크기는 CV(글래머)
+    const bm = crop ? mTop : over ? clothMat(look.innerColor || '#f6f6f6', 'fabric') : mTop, bk = (.78 + .5 * CV) * B;
+    for (const sd of [-1, 1]) { const bu = mesh(sph(), bm, sd * .056 * B, .352, .068 * B, .064 * bk, .06 * bk, .052 * bk); bu.rotation.x = .25; torso.add(bu); }
+  }
+  const hip = mesh(cyl(.172 * B * (f ? 1 + .1 * CV : 1), .158 * B * (f ? 1 + .12 * CV : 1), .18, 18), look.bottom === 'pants' || look.bottom === 'shorts' ? mBot : (look.top === 'dress' ? mTop : std(look.bottomColor, { roughness: .6 })), 0, -.05, 0); hip.scale.z = .7; hips.add(hip);
   if (look.bottom === 'pants') { const belt = mesh(G('belt', () => new T.TorusGeometry(1, .08, 5, 22)), std('#18141c', { metalness: .4, roughness: .35 }), 0, .03, 0, .163 * B, .163 * B, .163 * B); belt.rotation.x = Math.PI / 2; belt.scale.y = .7 * .163 * B; hips.add(belt); }
   let skirt = null;
   if (look.bottom === 'skirt') { const len = look.top === 'dress' ? .44 : .34; skirt = mesh(G('sk' + len + B.toFixed(2), () => new T.LatheGeometry([[.172 * B, .05], [.2 * B, -.1], [.25 * B, -len + .04], [.262 * B, -len]].map(([a, b]) => new T.Vector2(a, b)), 22)), look.top === 'dress' ? mTop : std(look.bottomColor, { roughness: .5, side: T.DoubleSide })); skirt.material.side = T.DoubleSide; skirt.scale.z = .8; skirt.userData.noMerge = true; hips.add(skirt); }
   // 목 · 머리
   const neck = new T.Group(); neck.position.y = .55; torso.add(neck);
-  neck.add(TOON ? mesh(cyl(.036, .046, .15), mSkin, 0, .05, .005) : mesh(cyl(.046, .054, .12), mSkin, 0, .04, .005));
+  neck.add(TOON ? mesh(cyl(f ? .036 : .044, f ? .046 : .054, .15), mSkin, 0, .05, .005) : mesh(cyl(.046, .054, .12), mSkin, 0, .04, .005));
   const head = new T.Group(); head.position.y = TOON ? .1 : .075; head.scale.setScalar(HEAD_S); neck.add(head);
   const F = look.face, r = .115, sx = .86 * (F.faceW || 1), sy = 1.03 * (F.jaw || 1), sz = .98;
   const skull = new T.Group(); skull.position.set(0, .095, .012); skull.scale.set(sx, sy, sz); head.add(skull);
@@ -426,7 +445,7 @@ function create(o = {}) {
   // 팔
   const bare = look.top === 'tee' || look.top === 'dress' || look.top === 'crop';
   const arm = s => {
-    const sh = new T.Group(); sh.position.set(s * (f ? .172 : .198) * B * (TOON ? 1.02 : 1), .45, 0); torso.add(sh);
+    const sh = new T.Group(); sh.position.set(s * (f ? .172 : .198 * (1 + .12 * (CV - .5))) * B * (TOON ? 1.02 : 1), .45, 0); torso.add(sh);
     sh.add(mesh(sph(), look.top === 'dress' ? mSkin : mSleeve, 0, -.01, 0, .052 * B, .052, .052));
     sh.add(mesh(cyl(.05 * B * LIMB, .042 * LIMB, .28), bare ? mSkin : mSleeve, 0, -.14, 0));
     if (look.oversize && !bare) sh.add(mesh(cyl(.07 * B, .072, .2), mSleeve, 0, -.1, 0));
@@ -435,7 +454,7 @@ function create(o = {}) {
     el.add(mesh(cyl(.042 * LIMB, .033 * LIMB, .25), bare || look.top === 'overshirt' ? mSkin : mSleeve, 0, -.125, 0));
     if (look.top === 'overshirt') el.add(mesh(cyl(.05, .048, .05), mSleeve, 0, -.01, 0));
     const hand = new T.Group(); hand.position.y = -.27; el.add(hand);
-    const hk = TOON ? 1.32 : 1; hand.scale.setScalar(hk); hand.add(mesh(G('palm', () => new T.SphereGeometry(1, 12, 8)), mSkin, 0, -.035, .004, .03, .045, .016));
+    const hk = TOON ? 1.12 : 1; hand.scale.setScalar(hk); hand.add(mesh(G('palm', () => new T.SphereGeometry(1, 12, 8)), mSkin, 0, -.035, .004, .03, .045, .016));
     for (let k = 0; k < 4; k++) { const fl = [.052, .058, .055, .045][k], fx = (k - 1.5) * .0135 * -s; const fg = mesh(G('fing', () => new T.CylinderGeometry(.0065, .006, 1, 6)), mSkin, fx, -.075 - fl / 2 * .9, .012, 1, fl, 1); fg.rotation.x = .35; hand.add(fg); }
     { const th = mesh(G('fing', () => new T.CylinderGeometry(.0065, .006, 1, 6)), mSkin, s * -.024, -.045, .016, 1.15, .045, 1.15); th.rotation.set(.5, 0, s * -.6); hand.add(th); }
     return { sh, el, hand };
@@ -443,12 +462,12 @@ function create(o = {}) {
   const AL = arm(-1), AR = arm(1);
   // 다리
   const leg = s => {
-    const lg = new T.Group(); lg.position.set(s * .09 * B, -.04, 0); hips.add(lg);
+    const lg = new T.Group(); lg.position.set(s * .09 * B * (f ? 1 + .08 * CV : 1), -.04, 0); hips.add(lg);
     const legMat = look.bottom === 'pants' ? mBot : mSkin;
     if (look.bottom === 'shorts') lg.add(mesh(cyl(.088 * B, .078 * B, .2), mBot, 0, -.09, 0));
     const TL1 = TOON ? .47 : .44, TL2 = TOON ? .46 : .43;
     const wide = look.bottom === 'pants' && look.fit === 'wide', thighMat = look.bottom === 'pants' && look.fit === 'ripped' ? mRip : legMat;
-    lg.add(mesh(cyl((wide ? .086 : .078 * LIMB) * B, wide ? .08 : .06 * LIMB, TL1), thighMat, 0, -TL1 / 2, 0));
+    lg.add(mesh(cyl((wide ? .086 : .078 * LIMB * (f ? 1 + .1 * CV : 1)) * B, wide ? .08 : .06 * LIMB, TL1), thighMat, 0, -TL1 / 2, 0));
     const kn = new T.Group(); kn.position.y = -TL1; lg.add(kn);
     kn.add(mesh(cyl(wide ? .08 : .058 * LIMB, wide ? .1 : .044 * LIMB, TL2), legMat, 0, -TL2 / 2, 0));
     if (look.shoes === 'boots' && look.bottom !== 'pants') kn.add(mesh(cyl(.05, .048, .26), G('bootM', () => std('#121014', { roughness: .3, metalness: .15 })), 0, -TL2 + .1, .005));
@@ -471,7 +490,7 @@ function create(o = {}) {
   // 이름표
   const label = makeLabel(o.name || '', o.labelColor || look.topColor); if (NC.LABEL_LAYER) label.layers.set(NC.LABEL_LAYER); label.position.y = look.height + (TOON ? .36 : .32); root.add(label);
 
-  const u = root.userData = {
+  const u = root.userData = { gender: look.gender, look, mats: { top: mTop, sleeve: mSleeve, skin: mSkin, kind: look.top, inner: look.innerColor },
     name: o.name, look, label, fig, figScale, hipH, skirt, glass, face: { cv: fcv, tex: ftex },
     rig: { body, hips, torso, neck, head, shL: AL.sh, elL: AL.el, shR: AR.sh, elR: AR.el, legL: LL.lg, knL: LL.kn, legR: LR.lg, knR: LR.kn },
     seed: (U.hash(o.name || 'x') % 1000) / 1000, seated: false, moving: false, dance: null, talk: false, walkPh: 0,
@@ -490,7 +509,7 @@ function create(o = {}) {
 
 /* 이름표 크기: 가까우면 작게(얼굴 가림 방지), 대화 상대는 숨김 */
 function fitLabel(g, cam) { const l = g.userData.label; if (!l) return; const d = cam.position.distanceTo(g.position), k = U.clamp(d / 10, .32, 1); l.scale.set(1.9 * k, .48 * k, 1); l.visible = !g.userData.hideLabel; }
-NC.Avatar = { create, randomLook, mergeLook, drawFace, fitLabel, EXPR, FACE_SIZE: [FW, FH],
+NC.Avatar = { create, undress, randomLook, mergeLook, drawFace, fitLabel, EXPR, FACE_SIZE: [FW, FH],
   /* 시작 화면 미리보기용: 얼굴 정면만 잘라서 작은 캔버스에 그림 */
   preview(cv, look, expr = 'smile') { const big = document.createElement('canvas'); big.width = FW; big.height = FH; drawFace(big, look, expr); const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); g.save(); g.beginPath(); g.ellipse(cv.width / 2, cv.height / 2, cv.width * .42, cv.height * .48, 0, 0, 7); g.clip(); g.drawImage(big, FW * .25 - 200, FH * .5 - 230, 400, 460, 0, 0, cv.width, cv.height); g.restore(); },
 };

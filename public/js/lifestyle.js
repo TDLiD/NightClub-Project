@@ -80,7 +80,8 @@ function placeFor(ctx) {   // 주문한 소품을 놓을 위치
 }
 function serve(item, ctx, server) {
   if (item.alc > 0 && life.tipsy >= 4) { NC.ui.chatAdd(server, '손님, 오늘은 조금 많이 드신 것 같아요. 시원한 물 한 잔 드릴게요 💧'); item = MENU.bar.find(m => m.id === 'water'); }
-  if (item.price && !NC.Wallet.spend(item.price)) { NC.ui.toast(`🪙 코인이 부족해요 (${item.price} 필요)`); return false; }
+  if (item.price && NC.goldenFree && NC.goldenFree()) NC.ui.toast('🔔 골든벨 ALL PAY — 무료!');
+  else if (item.price && !NC.Wallet.spend(item.price)) { NC.ui.toast(`🪙 코인이 부족해요 (${item.price} 필요)`); return false; }
   if (item.price) NC.Audio.sfx('coin');
   setTimeout(() => {
     const at = placeFor(ctx);

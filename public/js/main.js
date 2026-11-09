@@ -169,10 +169,11 @@ NC.dataReady.catch(e => { console.error(e); $('#err').textContent = '데이터 �
 /* ───────── 시작 화면: 아바타 커스터마이즈 ───────── */
 const COLORS = ['#ff3d9a', '#3de6ff', '#ffd23d', '#9b5cff', '#4cd964', '#ff8a3d', '#ffffff', '#1d1d2e'];
 const saved = U.store.get('nc_look', null) || {};
-const cfg = { gender: saved.gender || 'f', hairStyle: saved.hairStyle || '', top: saved.top || '', topColor: saved.topColor || COLORS[0], seed: saved.seed || (Math.random() * 1e9 | 0) };
+const cfg = { gender: saved.gender || 'f', hairStyle: saved.hairStyle || '', top: saved.top || '', topColor: saved.topColor || COLORS[0], seed: saved.seed || (Math.random() * 1e9 | 0), full: saved.full || null, styleName: saved.styleName || '' };
 const HAIRS = { f: [['long', '긴 생머리'], ['wavy', '웨이브'], ['bob', '단발'], ['ponytail', '포니테일'], ['bun', '똥머리']], m: [['short', '짧은 머리'], ['twoblock', '투블럭'], ['slick', '올백'], ['side', '가르마'], ['curly', '곱슬'], ['buzz', '삭발']] };
 const TOPS = { f: [['dress', '원피스'], ['tee', '티셔츠'], ['shirt', '블라우스'], ['jacket', '재킷']], m: [['shirt', '셔츠'], ['jacket', '재킷'], ['tee', '티셔츠']] };
 function buildLook() {
+  if (cfg.full) { const l = JSON.parse(JSON.stringify(cfg.full)); l.gender = cfg.gender = l.gender || cfg.gender; return l; }   // v12: 스타일 프리셋 / 내 캐릭터
   const base = NC.Avatar.randomLook(cfg.seed, cfg.gender);
   if (!HAIRS[cfg.gender].some(h => h[0] === cfg.hairStyle)) cfg.hairStyle = base.hairStyle;
   if (!TOPS[cfg.gender].some(h => h[0] === cfg.top)) cfg.top = base.top;
@@ -184,13 +185,14 @@ function renderCustom() {
   const l = buildLook(); sel('#cHair', HAIRS[cfg.gender], l.hairStyle); sel('#cTop', TOPS[cfg.gender], l.top);
   document.querySelectorAll('#cGender button').forEach(b => b.classList.toggle('on', b.dataset.g === cfg.gender));
   document.querySelectorAll('#sws .sw').forEach(s => s.classList.toggle('on', s.dataset.c === cfg.topColor));
-  NC.Avatar.preview($('#facePrev'), l, 'smile');
+  if (NC.entry && NC.entry.preview) NC.entry.preview(l); else NC.Avatar.preview($('#facePrev'), l, 'smile');
 }
-COLORS.forEach(c => { const s = document.createElement('div'); s.className = 'sw'; s.dataset.c = c; s.style.background = c; s.onclick = () => { cfg.topColor = c; renderCustom(); }; $('#sws').appendChild(s); });
-$('#cGender').onclick = e => { const b = e.target.closest('button'); if (b) { cfg.gender = b.dataset.g; renderCustom(); } };
-$('#cHair').onchange = e => { cfg.hairStyle = e.target.value; renderCustom(); };
-$('#cTop').onchange = e => { cfg.top = e.target.value; renderCustom(); };
-$('#cFace').onclick = () => { cfg.seed = Math.random() * 1e9 | 0; renderCustom(); };
+NC.entry = Object.assign(NC.entry || {}, { cfg, buildLook, renderCustom, HAIRS, TOPS });
+COLORS.forEach(c => { const s = document.createElement('div'); s.className = 'sw'; s.dataset.c = c; s.style.background = c; s.onclick = () => { cfg.topColor = c; if (cfg.full) cfg.full.topColor = c; renderCustom(); }; $('#sws').appendChild(s); });
+$('#cGender').onclick = e => { const b = e.target.closest('button'); if (b) { cfg.gender = b.dataset.g; if (cfg.full && cfg.full.gender !== cfg.gender) { cfg.full = null; cfg.styleName = ''; } renderCustom(); } };
+$('#cHair').onchange = e => { cfg.hairStyle = e.target.value; if (cfg.full) cfg.full.hairStyle = e.target.value; renderCustom(); };
+$('#cTop').onchange = e => { cfg.top = e.target.value; if (cfg.full) { cfg.full.top = e.target.value; if (e.target.value === 'dress') cfg.full.bottom = 'skirt'; } renderCustom(); };
+$('#cFace').onclick = () => NC.entry && NC.entry.openStyles ? NC.entry.openStyles() : (cfg.seed = Math.random() * 1e9 | 0, renderCustom());
 renderCustom();
 try { $('#nick').value = localStorage.getItem('nc_nick') || ''; } catch (e) { }
 $('#modeSel').addEventListener('click', e => { const b = e.target.closest('button[data-m]'); if (!b) return; NC.settings.playMode = b.dataset.m; document.querySelectorAll('#modeSel button').forEach(x => x.classList.toggle('on', x === b)); });
@@ -235,6 +237,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
     NC.server = true; try { NC.config = await (await fetch('/api/config', { cache: 'no-store' })).json(); } catch (e) { }
     await loadScript('ops.js'); await loadScript('js/voice.js'); await loadScript('multi.js');
     $('#modeSel').style.display = ''; NC.settings.playMode = 'online'; document.querySelector('#modeSel [data-m=online]').classList.add('on');
+    if (NC.entry && NC.entry.onlineCount) NC.entry.onlineCount(h.online || 0);
     $('#badge').textContent = NC.config.llm ? 'SERVER · AI' : 'SERVER';
   } catch (e) { console.warn('서버 없음 → 데모 모드', e); }
 })();
