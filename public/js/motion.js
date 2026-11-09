@@ -105,10 +105,12 @@ function BLUES_ACT(p, u) {
 
 /* v12 안무 엔진: 박자(b.n + b.phase)에 맞춘 '연속' 함수만 사용 → 뚝뚝 끊기는 로봇 느낌 제거.
  *  8박마다 루틴 교체(시드·성별별 선호), 관절 보간(update 의 lerp)이 루틴 사이를 부드럽게 이어 줌. A = 진폭(스테이지 1, 플로어 .7) */
-const ROUT_F = ['hipSway', 'bodyRoll', 'hairFlip', 'armWave', 'disco', 'stepTouch', 'hipCircle', 'shimmy', 'vogue'];
+const ROUT_F_ = 0; const ROUT_F = ['hipSway', 'bodyRoll', 'hairFlip', 'armWave', 'disco', 'stepTouch', 'hipCircle', 'shimmy', 'vogue'];
 const ROUT_M = ['pump', 'runMan', 'disco', 'stepTouch', 'armWave', 'shimmy', 'bounceRock', 'bodyRoll', 'pump'];
+const sm2l = x => { const t = Math.max(0, Math.min(1, x)); return t * t * (3 - 2 * t); };
 function CHOREO(p, u, b, A) {
-  const c = b.n + b.phase, f = u.gender === 'f', L = f ? ROUT_F : ROUT_M, pick = L[(Math.floor(c / 8) * 7 + Math.floor((u.seed || .3) * 97)) % L.length];
+  const c = b.n + b.phase, f = u.gender === 'f', L = f ? ROUT_F : ROUT_M, blk = Math.floor(c / 8), h = (blk * 7 + Math.floor((u.seed || .3) * 97));
+  const pick = u.danceStyle && (h % 5) < 3 ? u.danceStyle : L[h % L.length];     // v14 개성: 자기 '주특기' 안무를 60% 확률로
   const S = x => Math.sin(x * PI), C = x => Math.cos(x * PI), bounce = (1 - C(c * 2)) / 2;          // 1박마다 무릎 바운스(0~1)
   // 공통 바탕: 무릎 바운스 + 몸통 미세 흔들림 + 고개 끄덕임
   p.hipsY = u.hipH - (.04 + .03 * A) * bounce; p.knL = [.3 * bounce * A + .05, 0, 0]; p.knR = [.3 * bounce * A + .05, 0, 0]; p.legL = [-.14 * bounce * A, 0, -.06]; p.legR = [-.14 * bounce * A, 0, .06];
@@ -137,6 +139,13 @@ function CHOREO(p, u, b, A) {
       p.head = [.22 * bounce * A, 0, 0]; p.torso = [.1 * bounce, .1 * S(c / 2), 0]; },
     runMan() { const s = S(c), l = Math.max(0, s), r = Math.max(0, -s); p.legL = [-.75 * l * A, 0, -.05]; p.knL = [1.3 * l * A + .05, 0, 0]; p.legR = [-.75 * r * A, 0, .05]; p.knR = [1.3 * r * A + .05, 0, 0];   // 러닝맨
       p.hipsY = u.hipH - .06 * A; p.shL = [-1.0 * (1 - l), 0, -.2]; p.elL = [-1.6, 0, 0]; p.shR = [-1.0 * (1 - r), 0, .2]; p.elR = [-1.6, 0, 0]; p.torso = [.15, .1 * s, 0]; },
+    breaking() {   // 브레이크: 탑록(2마디) → 바닥으로 내려가 손 짚고 다리 스윕(식스스텝 느낌) 반복
+      const ph = (c / 8) % 2, low = ph > 1 ? 1 : sm2l(ph * 1.6 - .6), s = S(c), q = S(c * 2);
+      if (low < .5) { p.legL = [-.3 * Math.max(0, s), 0, -.2]; p.knL = [.6 * Math.max(0, s), 0, 0]; p.legR = [-.3 * Math.max(0, -s), 0, .2]; p.knR = [.6 * Math.max(0, -s), 0, 0]; p.shL = [-1.0, 0, -.6 - .3 * s]; p.elL = [-1.3, 0, 0]; p.shR = [-1.0, 0, .6 - .3 * s]; p.elR = [-1.3, 0, 0]; p.torso = [.15, .3 * s, 0]; }
+      else { p.hipsY = u.hipH - .62; p.torso = [.9, .25 * s, 0]; p.head = [-.5, 0, 0]; p.shL = [-1.5, 0, -.2]; p.elL = [-.1, 0, 0]; p.shR = [-1.5, 0, .2]; p.elR = [-.1, 0, 0];
+        p.legL = [-1.2 + .9 * Math.max(0, s), 0, -.5 * q - .2]; p.knL = [1.6 - .9 * Math.max(0, s), 0, 0]; p.legR = [-1.2 + .9 * Math.max(0, -s), 0, .5 * q + .2]; p.knR = [1.6 - .9 * Math.max(0, -s), 0, 0]; p.bodyX = .12 * s; } },
+    robot() { const st = Math.floor(c * 2) % 4, k = [[-1.57, 0], [-1.57, -1.57], [0, -1.57], [-.4, -.8]][st]; p.shL = [k[0], 0, -.15]; p.elL = [k[1], 0, 0]; p.shR = [k[1] ? -.3 : -1.57, 0, .15]; p.elR = [-1.57, 0, 0]; p.head = [0, [0, .5, 0, -.5][st], 0]; p.torso = [0, [0, .2, 0, -.2][st], 0]; p.hipsY = u.hipH - .02; },   // 일부러 '로봇 춤'(개성)
+    techno() { const q = S(c * 2), j = Math.max(0, S(c * 2)); p.shL = [-2.2 * Math.max(0, q) - .4, 0, -.25]; p.elL = [-.6, 0, 0]; p.shR = [-2.2 * Math.max(0, -q) - .4, 0, .25]; p.elR = [-.6, 0, 0]; p.bodyY = (p.bodyY || 0) + .05 * j; p.head = [.25 * j, 0, 0]; p.torso = [.08, .12 * q, 0]; },   // 90년대 테크노: 교대로 찌르기 + 점프
     bounceRock() { const s = S(c / 2); p.torso = [.1 + .12 * bounce * A, .3 * s * A, 0]; p.head = [.25 * bounce * A, -.2 * s, 0]; p.bodyX = .06 * s;   // 상체 크게 흔들며 바운스
       p.shL = [-1.2, .3 * s, -.6]; p.elL = [-1.3 + .4 * bounce, 0, 0]; p.shR = [-1.2, .3 * s, .6]; p.elR = [-1.3 + .4 * bounce, 0, 0]; p.legL = [-.15 * bounce, 0, -.18]; p.legR = [-.15 * bounce, 0, .18]; },
   };
@@ -152,6 +161,11 @@ const BASE = {
     p.legL = [s * .5, 0, -.02]; p.legR = [-s * .5, 0, .02]; p.knL = [Math.max(0, -c) * .9 + .05, 0, 0]; p.knR = [Math.max(0, c) * .9 + .05, 0, 0];
     p.shL = [-s * .42, 0, -.1]; p.shR = [s * .42, 0, .1]; p.elL = [-.35 - Math.max(0, -s) * .3, 0, 0]; p.elR = [-.35 - Math.max(0, s) * .3, 0, 0];
     p.torso = [.04, s * .07, 0]; p.head = [-.03, -s * .05, 0]; p.bodyY = (Math.abs(c) - .5) * .04;
+    const ws = u.walkStyle;   // v14 개성 걸음
+    if (ws === 'swagger') { p.torso = [-.04, s * .2, -s * .06]; p.shL = [-s * .55, 0, -.25]; p.shR = [s * .55, 0, .25]; p.elL = [-.2, 0, 0]; p.elR = [-.2, 0, 0]; p.head = [-.08, -s * .1, s * .05]; }
+    else if (ws === 'model') { p.legL = [s * .45, 0, .05]; p.legR = [-s * .45, 0, -.05]; p.bodyX = .05 * s; p.torso = [-.03, s * .05, -s * .1]; p.head = [-.06, 0, s * .04]; p.shL = [-s * .3, 0, -.08]; p.shR = [s * .3, 0, .08]; }
+    else if (ws === 'shy') { p.head = [.25, 0, 0]; p.torso = [.12, 0, 0]; p.shL = [-s * .15, 0, -.02]; p.shR = [s * .15, 0, .02]; p.elL = [-.6, 0, 0]; p.elR = [-.6, 0, 0]; }
+    else if (ws === 'bouncy') { p.bodyY = Math.abs(c) * .07; p.shL = [-s * .6, 0, -.2]; p.shR = [s * .6, 0, .2]; p.head = [-.05, 0, s * .08]; }
   },
   groove(p, t, u, b) { CHOREO(p, u, b, .7); },
   // v12 취한 걸음: 보폭 불규칙 · 상체 좌우로 크게 기울고 팔을 벌려 균형 · 고개가 흔들림
@@ -211,6 +225,11 @@ const GEST = {
   slap: { dur: 1.3, expr: 'annoyed', f(p, t) { const k = t < .3 ? t / .3 : Math.max(0, 1 - (t - .3) / .7), sw = t < .3 ? 0 : Math.min(1, (t - .3) / .12); p.shR = [-1.35 * k, 0, .9 - 1.5 * sw * k]; p.elR = [-.25, 0, 0]; p.torso = [-.05, -.45 * sw * k, 0]; p.head = [-.08, .2 * k, 0]; } },
   push: { dur: 1.1, expr: 'annoyed', f(p, t) { const k = Math.sin(U.clamp(t / .9, 0, 1) * PI); p.shL = [-1.45 * k, 0, .3]; p.shR = [-1.45 * k, 0, -.3]; p.elL = [-.2, 0, 0]; p.elR = [-.2, 0, 0]; p.torso = [-.15 * k, 0, 0]; p.head = [-.15 * k, 0, 0]; } },
   flinch: { dur: 1.0, expr: 'sad', f(p, t) { const k = Math.exp(-t * 3); p.head = [-.1, -.6 * k, .15 * k]; p.torso = [-.1 * k, -.25 * k, 0]; p.bodyX = -.06 * k; } },
+  vomit: { dur: 3.2, expr: 'sad', f(p, t) { const k = Math.min(1, t / .5, (3.2 - t) / .5), h = Math.sin(t * 9) * Math.max(0, Math.min(1, (t - .8) * 2)) * (t < 2.6 ? 1 : 0);   // v14: 허리 숙여 무릎 짚고 우웩
+    p.torso = [1.0 * k, 0, 0]; p.head = [.3 * k + .15 * h, 0, 0]; p.hipsY = (p.hipsY || 0) - .08 * k; p.knL = [.4 * k, 0, 0]; p.knR = [.4 * k, 0, 0]; p.legL = [-.35 * k, 0, -.08]; p.legR = [-.35 * k, 0, .08];
+    p.shL = [-.9 * k, 0, -.1]; p.elL = [-.3, 0, 0]; p.shR = [-.9 * k, 0, .1]; p.elR = [-.3, 0, 0]; } },
+  pickup: { dur: 1.6, expr: 'joy', f(p, t) { const k = Math.sin(Math.min(1, t / 1.4) * PI); p.torso = [.9 * k, 0, 0]; p.knL = [.9 * k, 0, 0]; p.knR = [.9 * k, 0, 0]; p.legL = [-.6 * k, 0, -.1]; p.legR = [-.6 * k, 0, .1]; p.hipsY = (p.hipsY || 0) - .25 * k; p.shR = [-1.3 * k, 0, .1]; p.elR = [-.2, 0, 0]; } },
+  aegyo: { dur: 2.2, expr: 'joy', f(p, t) { const k = Math.min(1, t / .3, (2.2 - t) / .3), s = Math.sin(t * 8); p.shL = [-2.3 * k, 0, .9 * k]; p.elL = [-2.2 * k, 0, 0]; p.shR = [-2.3 * k, 0, -.9 * k]; p.elR = [-2.2 * k, 0, 0]; p.head = [.05, 0, .25 * s * k]; p.bodyX = .03 * s * k; p.torso = [.05, 0, .1 * s * k]; } },
   crossArms: { dur: 2.5, expr: 'annoyed', f(p) { p.shL = [-.55, 0, .5]; p.elL = [-1.95, 0, 0]; p.shR = [-.55, 0, -.5]; p.elR = [-1.95, 0, 0]; p.head = [-.05, 0, 0]; } },
 };
 

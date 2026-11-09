@@ -188,7 +188,7 @@ function play(song, singer = 'me') {
   stop(true);
   const cmp = compose(song, K.keyShift), sd = 60 / song.bpm / 4, t0 = AU.C.currentTime + .35;
   const st = K.playing = { song, cmp, sd, t0, next: 0, singer, ticks: 0, voiced: 0, hit: 0, taps: [], goodTaps: 0, beats: 0, cheer: 0, detected: -1, done: false };
-  AU.lead.gain.setTargetAtTime(singer === 'me' ? (K.guide ? .55 : 0) : singer === 'blues' ? .3 : .9, AU.C.currentTime, .05);
+  AU.lead.gain.setTargetAtTime(singer === 'me' ? (K.guide ? .55 : 0) : singer === 'blues' ? .3 : singer === 'band' ? .75 : .9, AU.C.currentTime, .05);
   timer = setInterval(() => {
     const now = AU.C.currentTime;
     while (st.next < st.cmp.totalSteps && st.t0 + st.next * sd < now + .18) {
@@ -206,16 +206,17 @@ function play(song, singer = 'me') {
     NC.ui.fade(() => { P.x = SING.x; P.z = SING.z; P.ry = SING.ry; P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry; });
     if (K.companion) NC.Motion.play(K.companion.g, 'cheer');
   }
-  lyricEl.style.display = singer === 'blues' ? 'none' : 'block'; panelState(); NC.emit('karaoke:start', song, singer);
+  lyricEl.style.display = singer === 'blues' || singer === 'band' ? 'none' : 'block'; panelState(); NC.emit('karaoke:start', song, singer);
 }
 function stop(silent) {
   if (timer) clearInterval(timer); timer = null; const st = K.playing; K.playing = null;
   if (A) A.lead.gain.setTargetAtTime(0, A.C.currentTime, .02);
-  if (st) { if (st.singer === 'me') { singPose(NC.player.group, false); NC.player.busy = false; } else if (st.singer === 'blues') { if (BL.n) setTimeout(() => endBlues('stop'), 0); } else if (K.companion) { singPose(K.companion.g, false); seatCompanion(); } }
+  if (st) { if (st.singer === 'me') { singPose(NC.player.group, false); NC.player.busy = false; } else if (st.singer === 'blues') { if (BL.n) setTimeout(() => endBlues('stop'), 0); } else if (st.singer === 'band') { } else if (K.companion) { singPose(K.companion.g, false); seatCompanion(); } }
   lyricEl.style.display = 'none'; if (!silent) screen.mode = 'menu'; panelState();
 }
 function finish() {
   const st = K.playing; if (!st || st.done) return; st.done = true; let score, how;
+  if (st.singer === 'band') { stop(true); NC.emit('band:songEnd', st.song); return; }
   if (st.singer === 'blues') { if (BL.n) { const nx = st.song === SONGS[2] ? SONGS[4] : SONGS[2]; K.playing = null; play(nx, 'blues'); if (NC.Dialog.cur) NC.Dialog.npcSay(U.pick(['한 곡 더 출까요? ㅎㅎ', '이 노래도 좋다… 계속 춰요']), 'smile'); return; } stop(true); return; }
   if (st.singer !== 'me') { const n = K.companion; score = Math.round(U.clamp(74 + Math.random() * 22 + (n && n.trait === 'outgoing' ? 4 : 0), 60, 100)); how = 'npc'; }
   else if (K.mic && st.ticks > 20) { const acc = st.hit / st.ticks, pres = st.voiced / st.ticks; score = Math.round(U.clamp(52 + 48 * (.35 * Math.min(1, pres * 1.2) + .65 * Math.min(1, acc * 1.35)), 0, 100)); how = 'mic'; }
@@ -708,7 +709,7 @@ NC.tickers.push(dt => {
   P.group.position.set(P.x, NC.groundY(P.x, P.z), P.z); n.g.position.set(n.x, NC.groundY(n.x, n.z), n.z);
 });
 $('#kCall').onclick = () => callWaiter();
-K.G = G; K.dims = { KX, KZ, HX, HZ, H }; K.callWaiter = callWaiter; K.startBlues = startBlues; K.endBlues = endBlues; K.BL = BL; K.ACT = ACT;
+K.G = G; K.dims = { KX, KZ, HX, HZ, H }; K.playSong = (song, mode) => play(song, mode); K.stopSong = () => stop(true); K.callWaiter = callWaiter; K.startBlues = startBlues; K.endBlues = endBlues; K.BL = BL; K.ACT = ACT;
 
 /* 상호작용 후보 */
 NC.interactProviders.push(() => {

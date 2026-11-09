@@ -111,13 +111,77 @@ function enter(R) {
   const P = NC.player; if (P.busy || cur) return;
   if (NC.Dialog && NC.Dialog.cur) NC.Dialog.close('bye');
   NC.ui.fade(() => { if (P.seat) NC.requestStand(); P.x = R.entry.x + R.cx; P.z = R.entry.z + R.cz; P.ry = R.entry.ry; P.target = null; P.autoPath = null; P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry;
-    R.G.visible = true; setClub(false, R); borrow(R, true); cur = R; NC.ui.toast(`${R.label}에 들어왔어요`); });
+    R.G.visible = true; setClub(false, R); borrow(R, true); cur = R; NC.ui.toast(`${R.label}에 들어왔어요`);
+    if (R.id === 'wroom') { const lk = P.group.userData.look; if (lk && lk.gender === 'm') wrEpisode(); else setTimeout(() => NC.bubble && NC.bubble(WR.ladies[0].g, U.pick(['아까 골든벨 오빠 봤어? 완전 내 스타일 ㅋㅋ', '립 뭐 써요? 색 너무 예쁘다~', '오늘 부킹 몇 번 했어? 나 벌써 세 번 ㅋㅋ']), 3), 800); } });
 }
 function leave(R) {
-  const P = NC.player; NC.ui.fade(() => { if (P.seat) NC.requestStand(); const d = R.id === 'restroom' ? W.spots.restroomDoor : W.spots.smokeDoor; P.x = d.x; P.z = d.z; P.ry = R.id === 'restroom' ? -Math.PI / 2 : Math.PI / 2; P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry;
+  const P = NC.player; NC.ui.fade(() => { if (P.seat) NC.requestStand(); const d = R.id === 'restroom' ? W.spots.restroomDoor : R.id === 'wroom' ? W.spots.wroomDoor : W.spots.smokeDoor; P.x = d.x; P.z = d.z; P.ry = R.id === 'smoke' ? Math.PI / 2 : -Math.PI / 2; P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry;
     R.G.visible = false; setClub(true, R); borrow(R, false); cur = null; });
 }
-NC.Rooms = { restroom: RR, smoke: SM, enter, leave, current: () => cur };
+/* ═════ 🚺 여자 화장실 (v14) — 남자가 들어가면 코믹 소동극, 여자면 파우더룸 수다 ═════ */
+const WR = makeRoom('wroom', '🚺 여자 화장실', 80, 60, 4.0, 3.2, 3.0);
+RR.label = '🚹 남자 화장실'; W.zoneLabel.restroom = '🚹 남자 화장실';
+{
+  const tile = M.pbr('marble', { repeat: [4, 3], roughness: .5, env: 1.2, gen: { a: '#fbe8f0', b: '#d8a8c0', tiles: 4 } }), wall = M.pbr('marble', { repeat: [4, 2], roughness: .6, gen: { a: '#ffeef5', b: '#e8c0d4' } });
+  shell(WR, tile, wall, M.std('#fff4f8', { roughness: .9 }));
+  for (let i = -1; i <= 1; i += 2) WR.add(new T.Mesh(new T.PlaneGeometry(1.4, .5), (() => { const m = M.glow('#fff0f6'); m.color.multiplyScalar(3); return m; })()), i * 1.6, 2.99, 0).rotation.x = Math.PI / 2;
+  const marble = M.pbr('marble', { repeat: [2, 1], roughness: .35, gen: { a: '#f4e8ee', b: '#b88aa0' } }), wood = M.std('#5a2a3a', { roughness: .5 });
+  WR.add(new T.Mesh(box(4.4, .1, .6), marble), .2, .88, -2.9); WR.add(new T.Mesh(box(4.4, .8, .55), wood), .2, .43, -2.88);       // 세면대 카운터(북쪽)
+  const mir = WR.add(new T.Mesh(new T.PlaneGeometry(4.2, 1.3), new T.MeshStandardMaterial({ color: 0xe8d8e0, roughness: .02, metalness: 1, envMapIntensity: 1.8 })), .2, 1.85, -3.18);
+  const bulb = (() => { const m = new T.MeshBasicMaterial({ color: 0xfff0d8 }); m.color.multiplyScalar(2.6); return m; })(), bg = new T.SphereGeometry(.035, 10, 8);
+  for (let k = 0; k < 12; k++) WR.add(new T.Mesh(bg, bulb), -1.85 + k * .37, 2.58, -3.14);
+  const part = M.std('#d86a9a', { roughness: .4 });                                                                             // 칸 2개(남쪽)
+  WR.stalls = [];
+  for (let k = 0; k < 2; k++) { const x = 1.0 + k * 1.5; WR.add(new T.Mesh(box(.05, 2.1, 1.4), part), x - .72, 1.15, 2.5); if (k === 1) WR.add(new T.Mesh(box(.05, 2.1, 1.4), part), x + .78, 1.15, 2.5);
+    const door = WR.add(new T.Mesh(box(1.38, 1.9, .04), part), x + .03, 1.1, 1.8); WR.stalls.push({ x, z: 1.2, door }); }
+  const sofa = M.pbr('tufted', { repeat: [3, 1], roughness: .6, color: '#ff8ab8' });                                              // 파우더룸 소파(서쪽)
+  WR.add(new T.Mesh(box(.7, .45, 2.2), sofa), -3.55, .23, -.6); WR.add(new T.Mesh(box(.2, .7, 2.2), sofa), -3.88, .6, -.6);
+  { const s = NC.neonSign('💄 POWDER ROOM', 2.2, .42, { font: '900 80px Arial', color: '#fff4fb', glow: '#ff5fb0', ph: 200 }); s.material.color.setScalar(1.8); s.rotation.y = Math.PI / 2; WR.add(s, -3.95, 2.3, -.6); }
+  WR.rects.push([-4.0, -1.7, -3.2, .5], [-2.0, -3.2, 2.4, -2.6]);
+  WR.exit = { x: 3.4, z: -.6 }; WR.entry = { x: 3.2, z: -.6, ry: -Math.PI / 2 };
+  // 여성 손님 3명(장식용 아바타) + 청소 아주머니(숨어 있다 등장)
+  const glamLook = c => ({ gender: 'f', top: 'dress', mini: true, strapless: true, topColor: c, bottom: 'skirt', bottomColor: c });
+  WR.ladies = [['수정', glamLook('#ff2d78'), [-.8, -2.3, Math.PI]], ['미나', glamLook('#141418'), [.9, -2.3, Math.PI]], ['카렌', glamLook('#ffffff'), [-3.3, -.2, Math.PI / 2]]].map(([nm, lk, [x, z, ry]], i) => {
+    const g = NC.Avatar.create({ name: nm, look: lk, seed: U.hash('wr' + nm), expr: 'neutral' }); g.position.set(WR.cx + x, 0, WR.cz + z); g.rotation.y = ry; if (i === 2) NC.seatAvatar(g, WR.cx + x, WR.cz + z, ry, .46); WR.G.add(g); return { g, x, z, ry, nm };
+  });
+  WR.ajumma = NC.Avatar.create({ name: '청소 아주머니', look: { gender: 'f', hairStyle: 'bun', hairColor: '#8a8a90', top: 'shirt', topColor: '#7ab8a0', bottom: 'pants', bottomColor: '#3a3a42', mini: false, strapless: false, wings: false, height: 1.55, build: 1.15, curve: .2, face: { glasses: true, liner: 0, blush: 0 } }, seed: 77, expr: 'annoyed' });
+  WR.ajumma.visible = false; WR.G.add(WR.ajumma);
+  const mop = new T.Group(); mop.add(new T.Mesh(new T.CylinderGeometry(.015, .015, 1.4, 6), M.std('#c8a060'))); const head = new T.Mesh(box(.3, .06, .12), M.std('#e8e8ec', { roughness: 1 })); head.position.y = -.7; mop.add(head); mop.position.set(.12, -.1, .2); mop.rotation.x = .3;
+  WR.ajumma.userData.rig.elR.children.find(c => c.isGroup).add(mop);
+}
+function throwItem(fromG, toG, emoji, delay) {
+  setTimeout(() => {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64; const c = cv.getContext('2d'); c.font = '52px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(emoji, 32, 36);
+    const sp = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(cv), depthTest: false })); sp.scale.set(.3, .3, 1); WR.G.add(sp);
+    const a = fromG.position.clone().setY(1.4), b = toG.position.clone().setY(1.5), t0 = performance.now();
+    const step = () => { const e = Math.min(1, (performance.now() - t0) / 550); sp.position.lerpVectors(a, b, e); sp.position.y += Math.sin(e * Math.PI) * .6; sp.material.rotation = e * 8;
+      if (e < 1) requestAnimationFrame(step); else { WR.G.remove(sp); NC.Audio.sfx && NC.Audio.sfx('slap'); Mo.play(toG, 'flinch'); } }; step();
+  }, delay);
+}
+function scream() { const A = NC.Audio, C = A && A.ctx; if (!C) return; const t = C.currentTime; [0, .25].forEach((d, i) => { const o = C.createOscillator(), g = C.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(900 + i * 150, t + d); o.frequency.linearRampToValueAtTime(1500 + i * 200, t + d + .35); o.frequency.linearRampToValueAtTime(1100, t + d + .8); g.gain.setValueAtTime(0, t + d); g.gain.linearRampToValueAtTime(.06, t + d + .05); g.gain.exponentialRampToValueAtTime(.0001, t + d + .9); o.connect(g); g.connect(A.master); o.start(t + d); o.stop(t + d + 1); }); }
+let wrBusy = false;
+function wrEpisode() {   // 남자가 여자 화장실에 들어갔을 때 — 코믹 소동극(랜덤 대사)
+  const P = NC.player, B = NC.bubble || (() => {}), L = WR.ladies; if (wrBusy) return; wrBusy = true; P.busy = true;
+  const pg = P.group; L.forEach(l => { l.g.userData.lookAt = pg.position; });
+  setTimeout(() => { B(L[0].g, '……응?', 1.6); B(L[1].g, '……?!', 1.6); }, 900);
+  setTimeout(() => { scream(); L.forEach((l, i) => { B(l.g, U.pick(['꺄아아악!!! 변태야!!', '여기 여자 화장실이거든요?!', '엄마야!! 나가요 나가!!', '뭐야 뭐야?! 경찰 불러!!', '어머머 미쳤나 봐!!']), 2.2); Mo.play(l.g, 'flinch'); });
+    NC.camShake = 1.0; NC.ui.toast('😱 헉… 여기 여자 화장실이었다!'); }, 1900);
+  ['👜', '🧻', '💄', '🪮', '👠'].forEach((e, i) => throwItem(L[i % 2].g, pg, e, 2600 + i * 320));
+  setTimeout(() => { const a = WR.ajumma; a.visible = true; a.position.set(WR.cx + 2.5, 0, WR.cz + 1.4); a.rotation.y = Math.atan2(pg.position.x - a.position.x, pg.position.z - a.position.z); a.userData.lookAt = pg.position;
+    B(a, U.pick(['아이고 이 총각이!! 여긴 여자 화장실이여!!', '어디서 남자가!! 빗자루 맛 좀 볼텨?!', '눈 감고 당장 나가!!']), 2.6); Mo.play(a, 'slap'); setTimeout(() => { NC.Audio.sfx && NC.Audio.sfx('slap'); Mo.play(pg, 'flinch'); }, 350); }, 4400);
+  setTimeout(() => { B(pg, U.pick(['죄, 죄송합니다!!', '표지판을 잘못 봤어요!!', '저 아무것도 못 봤어요!!']), 1.8); }, 5300);
+  setTimeout(() => { leave(WR); P.busy = false; wrBusy = false; setTimeout(() => { WR.ajumma.visible = false; L.forEach(l => l.g.userData.lookAt = null);
+    NC.ui.toast('🚨 여자 화장실에서 쫓겨났어요! 클럽 여성 손님 호감도 -3');
+    (NC.npcs || []).forEach(n => { if (n.gender === 'f') n.aff = U.clamp((n.aff ?? 40) - 3, 0, 100); });
+    const near = (NC.npcs || []).filter(n => n.gender === 'f' && n.enabled && n.g.visible && Math.hypot(n.x - P.x, n.z - P.z) < 10).slice(0, 2);
+    near.forEach((n, i) => setTimeout(() => { NC.bubble && NC.bubble(n.g, U.pick(['ㅋㅋㅋ 저 사람 여자 화장실 들어갔대', '어머 저 오빠 아까 그 변태 ㅋㅋ', '헐 진짜? 대박 ㅋㅋㅋ']), 2.6); Mo.play(n.g, 'laugh'); }, 700 + i * 600)); }, 500); }, 6600);
+}
+NC.tickers.push(dt => {
+  if (NC.camShake > 0) { NC.camShake -= dt; const k = NC.camShake * .06; NC.camera.position.x += (Math.random() - .5) * k; NC.camera.position.y += (Math.random() - .5) * k; }
+  if (cur !== WR) return; const near = true; [...WR.ladies.map(l => l.g), WR.ajumma].forEach(g => { if (g.visible) Mo.update(g, dt, { near, speed: 1 }); });
+});
+NC.on && NC.on('room:enter', () => {});
+NC.Rooms = { restroom: RR, smoke: SM, wroom: WR, enter, leave, current: () => cur, wrEpisode };
 
 /* 화장실 행동 */
 function useToilet(kind, st) {
@@ -148,7 +212,7 @@ function initSmokers() {
 /* E 상호작용 */
 NC.interactProviders.push(() => {
   const P = NC.player, out = []; if (!P.group || P.seat || P.busy) return out;
-  if (!cur) { [[W.spots.restroomDoor, RR, '🚻 화장실 가기 (E)'], [W.spots.smokeDoor, SM, '🚬 흡연실 들어가기 (E)']].forEach(([d, R, lb]) => { if (!d) return; const dist = Math.hypot(P.x - d.x, P.z - d.z); if (dist < 2.3) out.push({ label: lb, dist, run: () => enter(R) }); }); return out; }
+  if (!cur) { [[W.spots.restroomDoor, RR, '🚹 남자 화장실 가기 (E)'], [W.spots.wroomDoor, WR, '🚺 여자 화장실 가기 (E)'], [W.spots.smokeDoor, SM, '🚬 흡연실 들어가기 (E)']].forEach(([d, R, lb]) => { if (!d) return; const dist = Math.hypot(P.x - d.x, P.z - d.z); if (dist < 2.3) out.push({ label: lb, dist, run: () => enter(R) }); }); return out; }
   const R = cur, lx = P.x - R.cx, lz = P.z - R.cz, near = (o, r = 1.1) => Math.hypot(lx - o.x, lz - o.z) < r;
   if (near(R.exit, 1.4)) out.push({ label: '🚪 클럽으로 돌아가기 (E)', dist: .5, run: () => leave(R) });
   if (R === RR) {
@@ -156,6 +220,9 @@ NC.interactProviders.push(() => {
     if (P.group.userData.look && P.group.userData.look.gender === 'm') RR.urinals.forEach(u => { if (near(u, .9)) out.push({ label: '🚹 소변기 이용 (E)', dist: .3, run: () => useToilet('urinal') }); });
     RR.sinks.forEach(s => { if (near(s, .9)) { out.push({ label: '🧼 손 씻기 (E)', dist: .2, run: wash }); out.push({ label: '🪞 거울 보고 매무새 정리 (E)', dist: .35, run: mirror }); } });
     if (near(RR.dryer, .9)) out.push({ label: '💨 핸드 드라이어 (E)', dist: .3, run: dryer });
+  } else if (R === WR) {
+    if (!wrBusy) { WR.ladies.forEach(l => { const d = Math.hypot(lx - l.x, lz - l.z); if (d < 1.6) out.push({ label: `💬 ${l.nm}와 수다 떨기 (E)`, dist: d, run: () => { NC.bubble && NC.bubble(l.g, U.pick(['여기 거울 조명 진짜 잘 받죠?', '저 남자 화장실 줄 엄청 길던데 ㅋㅋ', '오늘 DJ 선곡 미쳤다~', '이따 같이 스테이지 나가요!']), 2.6); Mo.play(l.g, 'laugh'); } }); });
+      if (Math.abs(lz + 2.6) < 1.0 && Math.abs(lx) < 2.2) out.push({ label: '💄 거울 보고 화장 고치기 (E)', dist: .4, run: mirror }); }
   } else {
     SM.tables.forEach(t => { if (near(t, 1.3)) out.push({ label: '🚬 담배 한 대 피우기 (E)', dist: .6, run: smoke }); });
     SM.npcs.forEach(n => { const d = Math.hypot(P.x - n.x, P.z - n.z); if (d < 2.0) {

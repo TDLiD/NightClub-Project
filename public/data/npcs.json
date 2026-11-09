@@ -1060,6 +1060,254 @@
       "color": "#8e7cff",
       "hair": "#1c1410",
       "job": "나이 · 직업"
+    },
+    {
+      "id": "sophia",
+      "name": "소피아",
+      "gender": "f",
+      "age": 26,
+      "tag": "💃 댄서",
+      "trait": "playful",
+      "color": "#ff2d78",
+      "hair": "#e8c35a",
+      "job": "26 · 모델",
+      "look": {
+        "gender": "f",
+        "skin": "#f6dccb",
+        "hairColor": "#e8c35a",
+        "hairStyle": "wavy",
+        "top": "dress",
+        "mini": true,
+        "strapless": true,
+        "topColor": "#ff2d78",
+        "bottom": "skirt",
+        "bottomColor": "#ff2d78"
+      },
+      "dance": "vogue",
+      "walk": "model"
+    },
+    {
+      "id": "naomi",
+      "name": "나오미",
+      "gender": "f",
+      "age": 28,
+      "tag": "🔥 비보이걸",
+      "trait": "outgoing",
+      "color": "#ffd23d",
+      "hair": "#120c0a",
+      "job": "28 · 댄서",
+      "look": {
+        "gender": "f",
+        "skin": "#6b4026",
+        "hairColor": "#120c0a",
+        "hairStyle": "braids",
+        "top": "crop",
+        "strapless": true,
+        "topColor": "#ffd23d",
+        "bottom": "shorts",
+        "mini": true,
+        "bottomColor": "#141418"
+      },
+      "dance": "breaking",
+      "walk": "swagger"
+    },
+    {
+      "id": "yuna",
+      "name": "유나",
+      "gender": "f",
+      "age": 24,
+      "tag": "🍸 술고래",
+      "trait": "playful",
+      "color": "#9b5cff",
+      "hair": "#241812",
+      "job": "24 · 대학원생",
+      "look": {
+        "gender": "f",
+        "skin": "#f7dcc8",
+        "hairStyle": "bob",
+        "top": "crop",
+        "strapless": false,
+        "topColor": "#9b5cff",
+        "bottom": "skirt",
+        "mini": true,
+        "bottomColor": "#141418"
+      },
+      "dance": "hipSway",
+      "walk": "bouncy",
+      "habit": "drinker"
+    },
+    {
+      "id": "chloe",
+      "name": "클로이",
+      "gender": "f",
+      "age": 29,
+      "tag": "😎 시크",
+      "trait": "cool",
+      "color": "#c0c0d0",
+      "hair": "#a8743a",
+      "job": "29 · 포토그래퍼",
+      "look": {
+        "gender": "f",
+        "skin": "#f2d0bc",
+        "hairColor": "#a8743a",
+        "hairStyle": "long",
+        "top": "dress",
+        "mini": true,
+        "strapless": true,
+        "topColor": "#c0c0d0",
+        "bottom": "skirt",
+        "bottomColor": "#c0c0d0"
+      },
+      "dance": "bodyRoll",
+      "walk": "model"
+    },
+    {
+      "id": "amina",
+      "name": "아미나",
+      "gender": "f",
+      "age": 25,
+      "tag": "🎉 흥부자",
+      "trait": "outgoing",
+      "color": "#3de6ff",
+      "hair": "#1c1410",
+      "job": "25 · 승무원",
+      "look": {
+        "gender": "f",
+        "skin": "#8d5a3b",
+        "hairColor": "#1c1410",
+        "hairStyle": "ponytail",
+        "top": "crop",
+        "strapless": true,
+        "topColor": "#3de6ff",
+        "bottom": "skirt",
+        "mini": true,
+        "bottomColor": "#ffffff"
+      },
+      "dance": "hipCircle",
+      "walk": "bouncy"
+    },
+    {
+      "id": "jake",
+      "name": "제이크",
+      "gender": "m",
+      "age": 30,
+      "tag": "💪 헬창",
+      "trait": "outgoing",
+      "color": "#141418",
+      "hair": "#c9a060",
+      "job": "30 · 트레이너",
+      "look": {
+        "gender": "m",
+        "skin": "#f2d0bc",
+        "hairColor": "#c9a060",
+        "hairStyle": "short",
+        "top": "tee",
+        "topColor": "#141418",
+        "muscle": 1,
+        "face": {
+          "attractive": true
+        }
+      },
+      "dance": "pump",
+      "walk": "swagger"
+    },
+    {
+      "id": "marcus",
+      "name": "마커스",
+      "gender": "m",
+      "age": 27,
+      "tag": "🎤 래퍼",
+      "trait": "playful",
+      "color": "#c8102e",
+      "hair": "#120c0a",
+      "job": "27 · 래퍼",
+      "look": {
+        "gender": "m",
+        "skin": "#5a3420",
+        "hairColor": "#120c0a",
+        "hairStyle": "buzz",
+        "top": "tee",
+        "oversize": true,
+        "topColor": "#c8102e",
+        "necklace": true,
+        "muscle": 0.5
+      },
+      "dance": "breaking",
+      "walk": "swagger"
+    },
+    {
+      "id": "taejun",
+      "name": "태준",
+      "gender": "m",
+      "age": 33,
+      "tag": "🤓 아재",
+      "trait": "shy",
+      "color": "#7a6a50",
+      "hair": "#241812",
+      "job": "33 · 회계사",
+      "look": {
+        "gender": "m",
+        "hairStyle": "side",
+        "top": "shirt",
+        "topColor": "#7a6a50",
+        "face": {
+          "glasses": true,
+          "attractive": false
+        }
+      },
+      "dance": "robot",
+      "walk": "shy",
+      "habit": "drinker"
+    },
+    {
+      "id": "doyun",
+      "name": "도윤",
+      "gender": "m",
+      "age": 26,
+      "tag": "✨ 꽃미남",
+      "trait": "cool",
+      "color": "#1d2742",
+      "hair": "#17110f",
+      "job": "26 · 배우 지망생",
+      "look": {
+        "gender": "m",
+        "hairStyle": "slick",
+        "top": "jacket",
+        "setup": true,
+        "topColor": "#1d2742",
+        "face": {
+          "attractive": true
+        }
+      },
+      "dance": "disco",
+      "walk": "model"
+    },
+    {
+      "id": "leo",
+      "name": "레오",
+      "gender": "m",
+      "age": 31,
+      "tag": "🍺 주정뱅이",
+      "trait": "playful",
+      "color": "#e8b84a",
+      "hair": "#8a5a30",
+      "job": "31 · 바텐더",
+      "look": {
+        "gender": "m",
+        "skin": "#f6dccb",
+        "hairColor": "#8a5a30",
+        "hairStyle": "curly",
+        "top": "shirt",
+        "pattern": "graphic",
+        "topColor": "#e8b84a",
+        "face": {
+          "attractive": false,
+          "beard": "stubble"
+        }
+      },
+      "dance": "techno",
+      "walk": "bouncy",
+      "habit": "drinker"
     }
   ],
   "crowdModels": [],

@@ -17,7 +17,7 @@ async function req(path, opt = {}) {
   try {
     const r = await fetch(`${DB}/${path}`, Object.assign({ signal: ctl.signal, cache: 'no-store' }, opt.body ? { headers: { 'Content-Type': 'application/json' } } : {}, opt));   // GET 은 헤더 없이 → CORS 사전요청 없음
     const txt = await r.text(); let data = null; try { data = txt ? JSON.parse(txt) : null; } catch (e) { }
-    if (!r.ok) { const err = new Error((data && data.error) || `HTTP ${r.status}`); err.status = r.status; throw err; }
+    if (!r.ok) { const err = new Error(r.status === 401 || r.status === 403 ? 'DB 접근이 거부됐어요 — Firebase 콘솔 → Realtime Database → 규칙에서 users 읽기/쓰기를 허용해 주세요 (docs/21 참고).' : (data && data.error) || `HTTP ${r.status}`); err.status = r.status; throw err; }
     return data;
   } catch (e) { if (e.name === 'AbortError') throw new Error('서버 응답이 없어요 (시간 초과). 네트워크를 확인해 주세요.'); if (e.status) throw e; throw new Error('서버에 연결할 수 없어요. 네트워크를 확인해 주세요.'); }
   finally { clearTimeout(to); }
@@ -239,7 +239,10 @@ const qm = $('#qmenu');
 if (qm) { const sep = document.createElement('div'); sep.className = 'qsep'; qm.appendChild(sep);
   const bc = document.createElement('button'); bc.id = 'qChar'; qm.appendChild(bc);
   const refresh = () => { const a = NC.account; bc.textContent = a ? `🧍 내 캐릭터 변경 (No.${a.characterNo})` : '🧍 캐릭터 변경은 로그인 후 가능'; bc.disabled = !a; };
-  bc.onclick = () => { qm.style.display = 'none'; changeCharacter().then(refresh); }; $('#btnQuality').addEventListener('click', refresh); refresh(); }
+  const bo = document.createElement('button'); bo.id = 'qLogout'; bo.textContent = '🚪 로그아웃'; qm.appendChild(bo);
+  bo.onclick = () => { qm.style.display = 'none'; NC.ui.modal('<h3>🚪 로그아웃할까요?</h3><p style="font-size:13px">처음 입장 화면으로 돌아가요.</p>', [['로그아웃', 'ok', true], ['취소', 0]]).then(r => { if (r.val !== 'ok') return; setSession(null); location.reload(); }); };
+  bc.onclick = () => { qm.style.display = 'none'; changeCharacter().then(refresh); };
+  const refresh2 = () => { refresh(); bo.style.display = NC.account ? '' : 'none'; }; $('#btnQuality').addEventListener('click', refresh2); refresh2(); }
 
 /* ───── 입장 가드: 로그인 상태면 계정 닉네임·캐릭터 강제 ───── */
 NC.hooks.beforeStart.unshift(async () => { const a = NC.account; if (a) { applyAccount(a); NC.settings.name = a.nickname; NC.settings.look = E.buildLook(); } });

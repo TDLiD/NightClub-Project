@@ -128,7 +128,7 @@ function dispatchWaiter(to, ctx, greet) {
   NC.Waiters.walk(o, route, () => {
     o.g.userData.lookAt = P(); Mo.play(o.g, 'bow');
     const items = MENU[ctx.kind === 'vipEnter' ? 'vip' : ctx.kind] || MENU.table;
-    const extra = [{ t: '💃 부킹 부탁해요', run: () => { o.busy = false; NC.Waiters.runTree(o); } }, { t: '🧾 팁 드릴게요 (🪙5)', run: () => { if (NC.Wallet.spend(5)) { NC.Audio.sfx('coin'); NC.ui.chatAdd(o.def.title, '감사합니다! 오늘 서비스 확실히 챙겨 드릴게요 😄'); } back(); } }];
+    const extra = [{ t: '💃 부킹 부탁해요', run: () => { NC.ui.hideDlg(); P().busy = false; if (P().seat && NC.Episodes && NC.Episodes.bookToSeat(o)) back(); else { o.busy = false; NC.Waiters.runTree(o); } } }, /* v14: 테이블·VIP 자리로 부킹 */ { t: '🧾 팁 드릴게요 (🪙5)', run: () => { if (NC.Wallet.spend(5)) { NC.Audio.sfx('coin'); NC.ui.chatAdd(o.def.title, '감사합니다! 오늘 서비스 확실히 챙겨 드릴게요 😄'); } back(); } }];
     if (ctx.kind === 'vipEnter') extra.unshift({ t: '🛋 소파에 앉을게요', run: () => { const v = W.vip[ctx.room], i = v.occ.findIndex(x => !x); if (i >= 0) NC.ui.fade(() => { v.occ[i] = 'me'; NC.sitPlayer({ kind: 'vip', room: ctx.room, s: i }, v.seats[i]); }); back(); } });
     menuDlg(o.def.title, '🤵 서비스', greet, items, ctx, extra, () => { if (o.busy) setTimeout(back, 600); });
   }, 3.0);

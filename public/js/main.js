@@ -36,13 +36,13 @@ function emote(name) {
 NC.emote = emote;
 addEventListener('keydown', e => {
   if (typing() || !P.group) return; if (NC.Games && NC.Games.active) return;
-  const k = e.key.toLowerCase(); keys[k] = true;
+  const k = (e.key || '').toLowerCase(); keys[k] = true;
   if (k === 'e' || (k === 'enter' && !NC.chatEnabled)) { if (curAct) curAct.run(); e.preventDefault(); }
   if (k === 'enter' && NC.chatEnabled) { $('#chatin').focus(); e.preventDefault(); }
   if (EMOTE_KEYS[k] && !NC.ui.dlgOpen() && !NC.Dialog.cur) emote(EMOTE_KEYS[k]);
   if (k === 'escape' && NC.Dialog.cur) NC.Dialog.close('bye');
 });
-addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+addEventListener('keyup', e => { keys[(e.key || '').toLowerCase()] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 addEventListener('wheel', e => { if (e.target === NC.canvas) cam.dist = U.clamp(cam.dist + e.deltaY * .01, 5, 18); }, { passive: true });
 const ray = new T.Raycaster(), plane = new T.Plane(new T.Vector3(0, 1, 0), 0), pt = { down: false, moved: 0, id: null, x: 0, y: 0 };
@@ -173,7 +173,9 @@ const cfg = { gender: saved.gender || 'f', hairStyle: saved.hairStyle || '', top
 const HAIRS = { f: [['long', '긴 생머리'], ['wavy', '웨이브'], ['bob', '단발'], ['ponytail', '포니테일'], ['bun', '똥머리']], m: [['short', '짧은 머리'], ['twoblock', '투블럭'], ['slick', '올백'], ['side', '가르마'], ['curly', '곱슬'], ['buzz', '삭발']] };
 const TOPS = { f: [['dress', '원피스'], ['tee', '티셔츠'], ['shirt', '블라우스'], ['jacket', '재킷']], m: [['shirt', '셔츠'], ['jacket', '재킷'], ['tee', '티셔츠']] };
 function buildLook() {
-  if (cfg.full) { const l = JSON.parse(JSON.stringify(cfg.full)); l.gender = cfg.gender = l.gender || cfg.gender; return l; }   // v12: 스타일 프리셋 / 내 캐릭터
+  if (cfg.full) {   // 예전 버전에 저장된 캐릭터에 빠진 항목(얼굴 색 등)은 기본값으로 채움
+    const full = JSON.parse(JSON.stringify(cfg.full)), g = cfg.gender = full.gender || cfg.gender, base = NC.Avatar.randomLook(cfg.seed, g);
+    const l = Object.assign(base, full, { gender: g }); l.face = Object.assign(base.face, full.face || {}); return l; }   // v12: 스타일 프리셋 / 내 캐릭터
   const base = NC.Avatar.randomLook(cfg.seed, cfg.gender);
   if (!HAIRS[cfg.gender].some(h => h[0] === cfg.hairStyle)) cfg.hairStyle = base.hairStyle;
   if (!TOPS[cfg.gender].some(h => h[0] === cfg.top)) cfg.top = base.top;

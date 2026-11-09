@@ -334,7 +334,7 @@ for (let i = tblStart; i < S.children.length; i++) S.children[i].position.y += T
   // ★ 화장실 입구 (통로 동쪽 끝) · 흡연실 입구 (서쪽 벽, 무대 옆)
   const doorAt = (x, z, ry, label, glow, lc) => { put(new T.Mesh(box(.2, 2.8, 1.8), MAT.gold), x, 1.4, z).rotation.y = ry; const dp = put(new T.Mesh(new T.PlaneGeometry(1.5, 2.5), pbr('wood', { repeat: [1, 2], roughness: .5, gen: { a: '#1a100a', b: '#3e2616' } })), x + Math.sin(ry) * .12, 1.25, z + Math.cos(ry) * .12); dp.rotation.y = ry;
     const sg = NC.neonSign(label, 2.4, .6, { font: '900 110px "Malgun Gothic",sans-serif', color: '#ffffff', glow, ph: 220 }); sg.material.color.setScalar(2.2); sg.position.set(x + Math.sin(ry) * .14, 3.05, z + Math.cos(ry) * .14); sg.rotation.y = ry; S.add(sg); void lc; };
-  doorAt(ROOM.x - .06, 6.95, -Math.PI / 2, '🚻 화장실', '#3dd8ff', '#9ae8ff'); W.spots.restroomDoor = { x: ROOM.x - 1.1, z: 6.95 };
+  doorAt(ROOM.x - .06, 6.95, -Math.PI / 2, '🚹 남자', '#3dd8ff', '#9ae8ff'); W.spots.restroomDoor = { x: ROOM.x - 1.1, z: 6.95 }; doorAt(ROOM.x - .06, 4.6, -Math.PI / 2, '🚺 여자', '#ff5fb0', '#ffb0d8'); W.spots.wroomDoor = { x: ROOM.x - 1.1, z: 4.6 };
   doorAt(-ROOM.x + .06, -17, Math.PI / 2, '🚬 흡연실', '#ffb03d', '#ffcf8a'); W.spots.smokeDoor = { x: -ROOM.x + 1.1, z: -17 };
 }
 

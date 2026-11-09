@@ -13,6 +13,12 @@ let crowdOn = true;
 function spawn(def, role) {
   const look = def.look || { gender: def.gender, topColor: def.color, hairColor: def.hair };
   const g = NC.Avatar.create({ name: def.name, look, seed: U.hash(def.id || def.name), expr: role === 'persona' ? 'smile' : 'neutral', hiRes: role === 'persona' });
+  { // v14 개성: 주특기 춤 · 걸음걸이 · 습관 (데이터에 없으면 시드 기반 랜덤)
+    const r = U.rng(U.hash((def.id || def.name) + 'pers')), pk = a => a[Math.floor(r() * a.length)], f = (look.gender || def.gender) === 'f';
+    const u = g.userData; u.danceStyle = def.dance || pk(f ? ['hipSway', 'bodyRoll', 'hairFlip', 'vogue', 'hipCircle', 'disco', 'breaking', 'techno', 'shimmy'] : ['pump', 'runMan', 'disco', 'techno', 'breaking', 'robot', 'bounceRock', 'stepTouch']);
+    u.walkStyle = def.walk || pk(f ? ['model', 'bouncy', 'shy', 'model', null] : ['swagger', 'bouncy', 'shy', 'swagger', null]);
+    u.habit = def.habit || pk(['drinker', 'none', 'flirt', 'phone', 'none', 'drinker']);
+  }
   if (def.model && NC.VRMKit && NC.VRMKit.ok) NC.VRMKit.attach(g, def.model, { tint: def.tint });
   const n = {
     id: def.id, name: def.name, def, role, persona: role === 'persona' ? def : (role === 'crowd' ? { likes: [], lines: null, pullPush: .4 } : null),
