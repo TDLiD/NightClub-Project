@@ -57,6 +57,7 @@ const BASE = {
 /* ── 제스처 (dur 초, 기본 표정) ── */
 const GEST = {
   drink: { dur: 2.2, f(p, t) { const k = U.clamp((t - .6) / .4, 0, 1) * U.clamp((1.6 - t) / .3, 0, 1); p.shR = [-.55, 0, -.38]; p.elR = [-2.35, 0, 0]; p.head = [-.22 * k, 0, 0]; }, glass: true },
+  smoke: { dur: 3.0, f(p, t) { const k = U.clamp((t - .5) / .4, 0, 1) * U.clamp((2.3 - t) / .4, 0, 1); p.shR = [-.55, 0, -.38]; p.elR = [-2.35, 0, 0]; p.head = [-.22 * k, 0, 0]; } },
   cheers: { dur: 1.8, expr: 'smile', f(p, t) { const bump = Math.exp(-Math.pow((t - .8) * 8, 2)); p.shR = [-1.35 - .14 * bump, 0, -.15]; p.elR = [-.45, 0, 0]; p.torso = [.08, 0, 0]; }, glass: true },
   shy: { dur: 2.6, expr: 'shy', f(p, t) { p.head = [.35, 0, .2]; p.neck = [.1, 0, 0]; p.torso = [.12, .08 * Math.sin(t * 2), 0]; p.shR = [-.85, 0, -.4]; p.elR = [-2.3, 0, 0]; p.shL = [-.2, 0, .1]; p.elL = [-1.2, 0, .2]; } },
   laugh: { dur: 1.8, expr: 'laugh', f(p, t) { const q = Math.sin(t * 16); p.torso = [.18 + .06 * q, 0, 0]; p.head = [-.15 + .06 * q, 0, 0]; p.shL = [-.45, 0, .15]; p.elL = [-1.7, 0, 0]; p.shR = [-.45, 0, -.15]; p.elR = [-1.7, 0, 0]; p.bodyY = .01 * q; } },

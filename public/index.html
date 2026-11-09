@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>추억의 나이트 · 메타버스 v7</title>
+<title>추억의 나이트 · 메타버스 v8</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -60,8 +60,7 @@
   <p style="font-size:11px;margin-top:10px">가상공간 오락 콘텐츠 · 만 19세 이상 이용 · 🪙코인은 현금 가치가 없는 게임 재화입니다</p>
 </div></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>window.THREE || document.write('<script src="vendor/three.min.js"><\/script>');</script>
+<script src="vendor/three.min.js"></script>  <!-- three.js r128 (프로젝트 내장 · CDN 장애와 무관) -->
 <script src="vendor/GLTFLoader.js"></script>
 <script src="vendor/three-vrm.min.js"></script>
 <script>if (!window.THREE) { document.getElementById('err').textContent = '3D 라이브러리(three.js)를 불러오지 못했습니다. 인터넷 연결을 확인하거나 npm install 후 서버로 여세요.'; document.getElementById('go').disabled = true; }</script>
@@ -78,6 +77,8 @@
 <script src="js/waiter.js"></script>
 <script src="js/minigames.js"></script>
 <script src="js/karaoke.js"></script>
+<script src="js/lifestyle.js"></script>
+<script src="js/rooms.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

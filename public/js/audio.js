@@ -22,12 +22,14 @@ const ZONE_FX = {      // lp(Hz) · gain · wet(리버브) · bass(dB) · bleed
   corridor: { lp: 4200, gain: .62, wet: .1, bass: 0, bleed: .4 },
   vip: { lp: 520, gain: .3, wet: .04, bass: -2, bleed: .55 },
   vipOpen: { lp: 1800, gain: .5, wet: .06, bass: 0, bleed: .5 },
-  karaoke: { lp: 260, gain: .1, wet: .02, bass: -6, bleed: .6 },   // 2차 노래방: 클럽 음악은 먼 벽 너머로만
+  karaoke: { lp: 260, gain: .1, wet: .02, bass: -6, bleed: .6 },
+  restroom: { lp: 320, gain: .14, wet: .25, bass: -4, bleed: .5 },
+  smoke: { lp: 480, gain: .2, wet: .05, bass: -2, bleed: .5 },   // 2차 노래방: 클럽 음악은 먼 벽 너머로만
 };
 const STAGE_SPK = { x: 0, y: 2.6, z: -17.6 };
 
 const A = NC.Audio = {
-  ctx: null, on: true, bpm: 118, step: 0, next: 0, t0: 0, zone: 'tables', ducking: 0, ZONE_FX,
+  ctx: null, on: true, bpm: 128, step: 0, next: 0, t0: 0, zone: 'tables', ducking: 0, ZONE_FX,
   init() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
@@ -47,6 +49,7 @@ const A = NC.Audio = {
     this.voiceBus = g(1); this.voiceBus.connect(this.master);
     this.sfxBus = g(.5); this.sfxBus.connect(this.master);
     const n = C.sampleRate * .5, buf = C.createBuffer(1, n, C.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; this.noise = buf;
+    { const sv = NC.util.store.get('nc_music', ''); if (this.STYLES[sv]) { this.style = sv; this.bpm = this.STYLES[sv].bpm; } }
     this.next = this.t0 = C.currentTime + .1; this.timer = setInterval(() => this.sched(), 25);
   },
   impulse(sec) { const C = this.ctx, n = C.sampleRate * sec, b = C.createBuffer(2, n, C.sampleRate); for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6); } return b; },
@@ -73,14 +76,62 @@ const A = NC.Audio = {
   tone(f, t, dur, type, vol, lp, bus) { const C = this.ctx, o = C.createOscillator(), g = C.createGain(), fl = C.createBiquadFilter(); o.type = type; o.frequency.value = f; fl.type = 'lowpass'; fl.frequency.value = lp || 1800;
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .008); g.gain.exponentialRampToValueAtTime(.0008, t + dur); o.connect(fl); fl.connect(g); g.connect(bus || this.musicBus); o.start(t); o.stop(t + dur + .02); },
   hit(t, hp, dur, vol, bus) { const C = this.ctx, s = C.createBufferSource(), g = C.createGain(), f = C.createBiquadFilter(); s.buffer = this.noise; f.type = 'highpass'; f.frequency.value = hp; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); s.connect(f); f.connect(g); g.connect(bus || this.musicBus); s.start(t); s.stop(t + dur + .02); },
-  play(s, t) { const C = this.ctx, bar = Math.floor(s / 16) % 4, root = [55, 43.65, 65.41, 49][bar];
-    if (s % 4 === 0) { const o = C.createOscillator(), g = C.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + .12); g.gain.setValueAtTime(1.1, t); g.gain.exponentialRampToValueAtTime(.001, t + .24); o.connect(g); g.connect(this.musicBus); o.start(t); o.stop(t + .26); }
-    if (s % 8 === 4) this.hit(t, 1400, .13, .35);
-    if (s % 4 === 2) this.hit(t, 7000, .06, .22); else if (s % 2 === 1) this.hit(t, 8500, .03, .07);
-    if (s % 4 === 2) this.tone(root * 2, t, .2, 'sawtooth', .28, 600);
-    if (s % 4 === 0) this.tone(root, t, .16, 'sine', .4, 400);
-    const arp = [1, 1.5, 2, 1.5, 2.5, 2, 1.5, 1][s % 8]; if (s % 2 === 0) this.tone(root * 4 * arp, t, .12, 'square', .045, 2500);
-    if (s % 16 === 6 || s % 16 === 14) [1, 1.2, 1.5].forEach(m => this.tone(root * 4 * m, t, .3, 'sawtooth', .05, 1500)); },
+  /* ── 스테이지 음악 스타일 (우측 패널 · DJ 신청곡으로 변경) ── */
+  style: 'euro',
+  STYLES: {
+    euro:   { name: '90s 유로댄스', bpm: 128, roots: [55, 43.65, 65.41, 49] },
+    disco:  { name: '디스코 펑크', bpm: 116, roots: [55, 61.74, 49, 41.2] },
+    house:  { name: '딥 하우스', bpm: 122, roots: [43.65, 43.65, 49, 38.89] },
+    hiphop: { name: '올드스쿨 힙합', bpm: 92, roots: [41.2, 41.2, 49, 36.71] },
+    trot:   { name: '신나는 트로트', bpm: 136, roots: [55, 73.42, 82.41, 55] },
+    lounge: { name: '칠 라운지', bpm: 86, roots: [49, 41.2, 55, 46.25] },
+    synth:  { name: '레트로 신스팝', bpm: 110, roots: [55, 43.65, 49, 41.2] },
+  },
+  setStyle(id) { const S = this.STYLES[id]; if (!S) return; this.style = id; this.bpm = S.bpm; NC.util.store.set('nc_music', id); if (this.ctx) { this.step = 0; this.next = this.t0 = this.ctx.currentTime + .08; } NC.emit('music:style', id); },
+  kick(t, v = 1.1) { const C = this.ctx, o = C.createOscillator(), g = C.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + .12); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + .24); o.connect(g); g.connect(this.musicBus); o.start(t); o.stop(t + .26); },
+  play(s, t) {
+    const S = this.STYLES[this.style] || this.STYLES.euro, bar = Math.floor(s / 16) % 4, root = S.roots[bar], b = s % 16;
+    switch (this.style) {
+      case 'disco':      // 4온더플로어 + 오픈 하이햇 + 옥타브 베이스 + 스트링 스탭
+        if (s % 4 === 0) this.kick(t, 1); if (s % 8 === 4) this.hit(t, 1500, .14, .32); if (s % 4 === 2) this.hit(t, 6500, .16, .2); else this.hit(t, 9000, .02, .05);
+        if (s % 2 === 0) this.tone(root * (s % 4 === 0 ? 1 : 2), t, .12, 'sawtooth', .3, 700);
+        if (b === 2 || b === 10) [2, 2.52, 3].forEach(m => this.tone(root * 4 * m, t, .22, 'sawtooth', .045, 2200));
+        if (b % 4 === 3) this.tone(root * 8 * [1, 1.5, 1.33, 1.2][bar], t, .08, 'square', .03, 3000); break;
+      case 'house':      // 킥 + 오프비트 오르간 코드 + 셰이커
+        if (s % 4 === 0) this.kick(t, 1.05); if (s % 8 === 4) this.hit(t, 1200, .1, .25); this.hit(t, 8000, .025, s % 2 ? .06 : .03);
+        if (s % 4 === 2) [1, 1.19, 1.5, 1.78].forEach(m => this.tone(root * 4 * m, t, .14, 'square', .03, 1800));
+        if (b === 0 || b === 7 || b === 10) this.tone(root * 2, t, .2, 'sine', .45, 300); break;
+      case 'hiphop':     // 붐뱁: 스윙 킥·스네어, 로즈 코드
+        if (b === 0 || b === 7 || b === 10) this.kick(t, 1.2); if (b === 4 || b === 12) { this.hit(t, 1100, .18, .42); this.hit(t, 3000, .08, .15); }
+        if (s % 2 === 0) this.hit(t + (s % 4 === 2 ? .03 : 0), 7500, .03, .09);
+        if (b === 0 || b === 8) [1, 1.19, 1.5, 1.89].forEach(m => this.tone(root * 4 * m, t, .9, 'triangle', .04, 1400));
+        if (b === 0 || b === 10) this.tone(root, t, .4, 'sine', .5, 250); break;
+      case 'trot':       // 쿵짝(뽕짝): 1·3 베이스, 2·4 스탭
+        if (s % 8 === 0) { this.kick(t, 1); this.tone(root, t, .22, 'triangle', .5, 700); }
+        if (s % 8 === 4) { this.hit(t, 1600, .1, .3); this.tone(root * 1.5, t, .22, 'triangle', .45, 700); [2, 2.52, 3].forEach(m => this.tone(root * 2 * m, t, .1, 'square', .05, 2400)); }
+        if (s % 2 === 0) this.hit(t, 8000, .03, .06);
+        if (s % 4 === 0) this.tone(root * 4 * [1, 1.12, 1.26, 1.5, 1.68, 1.5, 1.26, 1.12][(s / 4) % 8], t, .2, 'square', .05, 2600); break;
+      case 'lounge':     // 브러시 드럼 + 일렉피아노 + 서브 베이스
+        if (b === 0 || b === 10) this.kick(t, .6); if (b === 4 || b === 12) this.hit(t, 2500, .22, .1); if (s % 2 === 0) this.hit(t, 6000, .06, .04);
+        if (b === 0) [1, 1.26, 1.5, 1.89].forEach(m => this.tone(root * 4 * m, t, 1.8, 'sine', .05, 1600));
+        if (b === 8) [1.5, 1.89, 2.24].forEach(m => this.tone(root * 4 * m, t, 1.2, 'sine', .035, 1600));
+        if (b === 0 || b === 6) this.tone(root, t, .8, 'sine', .45, 220); break;
+      case 'synth':      // 80s 신스팝: 게이트 스네어 + 아르페지오 + 패드
+        if (s % 4 === 0) this.kick(t, 1); if (s % 8 === 4) { this.hit(t, 900, .25, .38); this.hit(t, 2500, .3, .12); }
+        if (s % 2 === 1) this.hit(t, 8000, .03, .05);
+        this.tone(root * 4 * [1, 1.5, 2, 3, 2, 1.5, 1.26, 1.5][s % 8], t, .1, 'square', .035, 2800);
+        if (s % 2 === 0) this.tone(root * 2, t, .1, 'sawtooth', .28, 500);
+        if (b === 0) [1, 1.26, 1.5].forEach(m => this.tone(root * 2 * m, t, 2, 'sawtooth', .025, 1200)); break;
+      default: {         // euro (기본)
+        if (s % 4 === 0) this.kick(t);
+        if (s % 8 === 4) this.hit(t, 1400, .13, .35);
+        if (s % 4 === 2) this.hit(t, 7000, .06, .22); else if (s % 2 === 1) this.hit(t, 8500, .03, .07);
+        if (s % 4 === 2) this.tone(root * 2, t, .2, 'sawtooth', .28, 600);
+        if (s % 4 === 0) this.tone(root, t, .16, 'sine', .4, 400);
+        const arp = [1, 1.5, 2, 1.5, 2.5, 2, 1.5, 1][s % 8]; if (s % 2 === 0) this.tone(root * 4 * arp, t, .12, 'square', .045, 2500);
+        if (s % 16 === 6 || s % 16 === 14) [1, 1.2, 1.5].forEach(m => this.tone(root * 4 * m, t, .3, 'sawtooth', .05, 1500)); }
+    }
+  },
   /* ── 효과음 (공간 처리 없이 바로 들림) ── */
   sfx(name) {
     const C = this.ctx; if (!C) return; const t = C.currentTime, b = this.sfxBus;

@@ -119,3 +119,19 @@ button{font-family:inherit}
 #karaLyrics{position:fixed;left:50%;bottom:150px;transform:translateX(-50%);width:min(1100px,96vw);height:auto;z-index:7;pointer-events:none;filter:drop-shadow(0 0 12px rgba(0,0,0,.8))}
 @media (max-width:640px){.ksong{grid-template-columns:56px 1fr;font-size:13px}.ksong .ka,.ksong .kg{display:none}#karaLyrics{bottom:180px}#karaBar{top:52px}}
 #vrmPick{width:100%;margin-top:8px}
+/* ── v8: 클럽 설정 패널 · 생활 HUD · 착석 액션바 · 화장실 오버레이 ── */
+#clubPanel{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:12;display:flex;align-items:flex-start}
+#cpToggle{width:42px;height:56px;border-radius:12px 0 0 12px;border:1px solid var(--line);border-right:0;background:rgba(30,12,60,.88);color:#fff;font-size:22px;cursor:pointer;box-shadow:0 0 14px rgba(123,61,255,.45)}
+#cpBody{display:none;width:230px;max-height:78vh;overflow:auto;background:rgba(22,10,46,.92);border:1px solid var(--line);border-right:0;border-radius:0 0 0 14px;padding:10px 10px 12px;backdrop-filter:blur(6px)}
+#clubPanel.open #cpBody{display:block}
+#cpBody h4{margin:8px 2px 6px;font-size:13px;color:#ffd6f0}
+.cpGrid{display:grid;grid-template-columns:1fr;gap:5px;margin-bottom:6px}
+.cpGrid button{padding:7px 9px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:#2b1758;color:#fff;cursor:pointer;text-align:left;font-size:12.5px}
+.cpGrid button.on{background:linear-gradient(135deg,#ff3d9a,#7b3dff);border:0}
+#lifeHud{position:fixed;left:12px;top:92px;z-index:8;display:none;padding:6px 11px;border-radius:14px;background:rgba(20,8,40,.8);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:12.5px}
+#seatBar{position:fixed;left:50%;bottom:118px;transform:translateX(-50%);display:none;gap:6px;z-index:9;flex-wrap:wrap;justify-content:center;max-width:94vw}
+#seatBar button{padding:8px 13px;border-radius:20px;border:1px solid rgba(255,255,255,.22);background:rgba(36,14,70,.88);color:#fff;font-weight:700;cursor:pointer;font-size:13px}
+#seatBar button:hover{background:linear-gradient(135deg,#ff3d9a,#7b3dff)}
+#roomOverlay{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff;font-size:22px;font-weight:800}
+#roomOverlay .bar{width:260px;height:8px;border-radius:4px;background:#333;overflow:hidden}#roomOverlay .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#3dd8ff,#7b3dff)}
+@media (max-width:640px){#cpBody{width:190px}#seatBar{bottom:150px}#lifeHud{top:84px}}

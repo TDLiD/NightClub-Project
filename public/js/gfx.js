@@ -239,20 +239,20 @@ const upMat = sm(`uniform sampler2D tLow, tCur; uniform vec2 texel; uniform floa
   void main(){ vec4 s = texture2D(tLow, vUv + vec2(-2.0,0.0) * texel) + texture2D(tLow, vUv + vec2(2.0,0.0) * texel) + texture2D(tLow, vUv + vec2(0.0,-2.0) * texel) + texture2D(tLow, vUv + vec2(0.0,2.0) * texel);
     s += (texture2D(tLow, vUv + vec2(-1.0,-1.0) * texel) + texture2D(tLow, vUv + vec2(1.0,-1.0) * texel) + texture2D(tLow, vUv + vec2(-1.0,1.0) * texel) + texture2D(tLow, vUv + vec2(1.0,1.0) * texel)) * 2.0;
     gl_FragColor = s / 12.0 + texture2D(tCur, vUv) * curW; }`, { tLow: { value: null }, tCur: { value: null }, texel: { value: new T.Vector2() }, curW: { value: 1 } });
-const finalMat = sm(`uniform sampler2D tScene, tBloom; uniform float bloomStr, exposure, vignette, grain, ca, time, sat; varying vec2 vUv;
+const finalMat = sm(`uniform sampler2D tScene, tBloom; uniform float bloomStr, exposure, vignette, grain, ca, time, sat, wobble; varying vec2 vUv;
   vec3 RRTAndODTFit(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
   vec3 aces(vec3 c){ const mat3 IN = mat3(vec3(0.59719,0.07600,0.02840), vec3(0.35458,0.90834,0.13383), vec3(0.04823,0.01566,0.83777));
     const mat3 OUT = mat3(vec3(1.60475,-0.10208,-0.00327), vec3(-0.53108,1.10813,-0.07276), vec3(-0.07367,-0.00605,1.07602));
     c *= exposure / 0.6; c = IN * c; c = RRTAndODTFit(c); c = OUT * c; return clamp(c, 0.0, 1.0); }
   vec3 srgb(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
-  void main(){ vec2 d = vUv - 0.5; float r2 = dot(d, d); vec2 off = d * ca * r2;
-    vec3 c = vec3(texture2D(tScene, vUv + off).r, texture2D(tScene, vUv).g, texture2D(tScene, vUv - off).b);
-    c += texture2D(tBloom, vUv).rgb * bloomStr;
+  void main(){ vec2 uv = vUv + vec2(sin(vUv.y * 9.0 + time * 1.3), cos(vUv.x * 7.0 + time * 1.1)) * wobble * 0.006; vec2 d = uv - 0.5; float r2 = dot(d, d); vec2 off = d * (ca + wobble * 0.02) * r2;
+    vec3 c = vec3(texture2D(tScene, uv + off).r, texture2D(tScene, uv).g, texture2D(tScene, uv - off).b);
+    c += texture2D(tBloom, uv).rgb * bloomStr;
     c = aces(c); float l = dot(c, vec3(0.2126, 0.7152, 0.0722)); c = mix(vec3(l), c, sat);
     c *= mix(1.0, smoothstep(0.85, 0.15, r2 * 1.9), vignette);
     float n = fract(sin(dot(vUv * 1000.0 + time, vec2(12.9898, 78.233))) * 43758.5453) - 0.5; c += n * grain * (1.0 - l * 0.6);
     gl_FragColor = vec4(srgb(clamp(c, 0.0, 1.0)), 1.0); }`,
-{ tScene: { value: null }, tBloom: { value: null }, bloomStr: { value: .42 }, exposure: { value: EXPOSURE }, vignette: { value: .55 }, grain: { value: .035 }, ca: { value: .014 }, time: { value: 0 }, sat: { value: 1.06 } });
+{ tScene: { value: null }, tBloom: { value: null }, bloomStr: { value: .42 }, exposure: { value: EXPOSURE }, vignette: { value: .55 }, grain: { value: .035 }, ca: { value: .014 }, time: { value: 0 }, sat: { value: 1.06 }, wobble: { value: 0 } });
 if (!Q.film) { finalMat.uniforms.grain.value = 0; finalMat.uniforms.ca.value = 0; }
 
 const gl2 = R.capabilities.isWebGL2, halfOK = gl2 ? !!(R.extensions.get('EXT_color_buffer_float') || R.extensions.get('EXT_color_buffer_half_float')) : !!(R.extensions.get('OES_texture_half_float') && R.extensions.get('EXT_color_buffer_half_float'));

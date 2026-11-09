@@ -149,12 +149,26 @@ const ledMat = new T.MeshBasicMaterial({ map: ledTex }); ledMat.color.setScalar(
 put(new T.Mesh(new T.PlaneGeometry(19, 5.9), ledMat), 0, 4.3, -ROOM.z + .06);
 put(new T.Mesh(box(19.6, 6.5, .1), MAT.black), 0, 4.3, -ROOM.z + .01);
 const sign = NC.neonSign('추억의 나이트', 13, 2.6); sign.material.color.setScalar(2.2); put(sign, 0, 8.9, -ROOM.z + .08);
+/* ── 무대 조명 테마 (우측 패널) ── h0/h1: 색상 범위(0~1), sat/lit: 채도·밝기, spots: 무빙라이트 색, laser: 레이저, beam: 빔 세기, speed: 움직임 속도 */
+const THEMES = W.THEMES = {
+  neon:   { name: '네온 파티', h0: 0, h1: 1, sat: .9, lit: .36, spots: ['#ff3d9a', '#3de6ff', '#ffd23d', '#9b5cff', '#ffffff', '#ff6a3d'], laser: true, beam: 1, speed: 1, led: [null, null], text: '★ NIGHT FEVER 1998 ★', haze: ['#b9a6ff', '#ff9ad6', '#8fe8ff'], fog: '#2a1f44', glow: ['#ff5cb0', '#5ce8ff'] },
+  gold:   { name: '클래식 골드', h0: .06, h1: .12, sat: .75, lit: .26, spots: ['#ffcf7a', '#ffb35a', '#ffe2b0', '#ff9a5a', '#fff1d6', '#ffc070'], laser: false, beam: .7, speed: .5, led: [30, 48], text: '♛ GOLDEN NIGHT ♛', haze: ['#ffd9a0', '#ffc27a', '#fff0d0'], fog: '#2e2216', glow: ['#ffb35a', '#ffd88a'] },
+  blue:   { name: '블루 라운지', h0: .55, h1: .72, sat: .75, lit: .24, spots: ['#5a7bff', '#7a5cff', '#3dc8ff', '#9a8cff', '#c8d8ff', '#4a6aff'], laser: false, beam: .75, speed: .4, led: [200, 260], text: '~ BLUE MOON LOUNGE ~', haze: ['#8fa8ff', '#a08cff', '#8fe0ff'], fog: '#161c3a', glow: ['#5a7bff', '#3dc8ff'] },
+  mono:   { name: '모노 시크', h0: 0, h1: 0, sat: 0, lit: .16, spots: ['#ffffff', '#e6e6f2', '#ffffff', '#d8d8e8', '#ffffff', '#ececf6'], laser: false, beam: .5, speed: .6, led: [0, 0], ledSat: 0, text: 'NOSTALGIA CLUB', haze: ['#d8d8e0', '#c8c8d4', '#e8e8f0'], fog: '#1c1c22', glow: ['#e8e8f0', '#c8c8d8'] },
+  sunset: { name: '선셋 레트로', h0: .9, h1: 1.08, sat: .9, lit: .32, spots: ['#ff6a3d', '#ff3d9a', '#ffb03d', '#c23dff', '#ffd0a0', '#ff4f6a'], laser: true, laserHue: [.9, 1.05], beam: .9, speed: .8, led: [330, 400], text: '☀ SUNSET DRIVE 1986 ☀', haze: ['#ffb0a0', '#ff9ad6', '#ffc890'], fog: '#3a1a2a', glow: ['#ff6a3d', '#ff3d9a'] },
+  dim:    { name: '다크 바 (조명 최소)', h0: .75, h1: .85, sat: .5, lit: .08, spots: ['#6a4a8a', '#4a3a6a', '#6a4a8a', '#4a3a6a', '#5a4a7a', '#4a3a6a'], laser: false, beam: .15, speed: .25, led: [270, 290], ledDim: .35, text: 'late night', haze: ['#6a5a8a', '#5a4a7a', '#6a5a8a'], fog: '#120c1a', glow: ['#5a3a7a', '#3a2a5a'], spotK: .4 },
+};
+let TH = THEMES.neon;
+W.setTheme = id => { const th = THEMES[id]; if (!th) return; TH = th; W.themeId = id; U.store.set('nc_theme', id);
+  spots.forEach((sp, i) => { const c = col(th.spots[i % th.spots.length]); if (sp.L) sp.L.color.copy(c); sp.beam.material.uniforms.color.value.copy(c); sp.head.children[1] && sp.head.children[1].material && sp.head.children[1].material.color.copy(c).multiplyScalar(6); });
+  haze.forEach((h, i) => h.sp.material.color.copy(col(th.haze[i % 3]))); S.fog.color.copy(col(th.fog)); glows[0].color.copy(col(th.glow[0])); glows[1].color.copy(col(th.glow[1]));
+  NC.emit && NC.emit('theme', id); };
 function drawLED(t, b) {
   const g = ledG; g.fillStyle = '#07030f'; g.fillRect(0, 0, 1024, 320);
-  const hue = (t * 20) % 360, gr = g.createLinearGradient(0, 0, 1024, 320); gr.addColorStop(0, `hsla(${hue},80%,25%,.9)`); gr.addColorStop(1, `hsla(${(hue + 120) % 360},80%,20%,.9)`); g.fillStyle = gr; g.fillRect(0, 0, 1024, 320);
-  for (let i = 0; i < 48; i++) { const v = (.35 + .65 * Math.abs(Math.sin(i * .7 + t * 3 + Math.sin(i) * 2))) * (.55 + .45 * (1 - b.phase)); const h = v * 230; g.fillStyle = `hsl(${(hue + i * 7) % 360},95%,62%)`; g.fillRect(i * 21.3 + 2, 305 - h, 16, h); }
+  const L0 = TH.led[0], L1 = TH.led[1], ls = TH.ledSat ?? 80, hue = L0 == null ? (t * 20) % 360 : L0 + (L1 - L0) * (.5 + .5 * Math.sin(t * .3)), dimK = TH.ledDim || 1, gr = g.createLinearGradient(0, 0, 1024, 320); gr.addColorStop(0, `hsla(${hue},${ls}%,${25 * dimK}%,.9)`); gr.addColorStop(1, `hsla(${L0 == null ? (hue + 120) % 360 : L1},${ls}%,${20 * dimK}%,.9)`); g.fillStyle = gr; g.fillRect(0, 0, 1024, 320);
+  for (let i = 0; i < 48; i++) { const v = (.35 + .65 * Math.abs(Math.sin(i * .7 + t * 3 + Math.sin(i) * 2))) * (.55 + .45 * (1 - b.phase)); const h = v * 230 * dimK; g.fillStyle = `hsl(${L0 == null ? (hue + i * 7) % 360 : L0 + (L1 - L0) * (i / 48)},${TH.ledSat ?? 95}%,${62 * (dimK < 1 ? .6 : 1)}%)`; g.fillRect(i * 21.3 + 2, 305 - h, 16, h); }
   g.font = '900 64px Arial'; g.textAlign = 'center'; g.fillStyle = '#fff'; g.shadowColor = '#ff3d9a'; g.shadowBlur = 26;
-  g.fillText(b.n % 16 < 8 ? '★ NIGHT FEVER 1998 ★' : 'DJ NOSTALGIA ♪ ' + Math.round(b.bpm) + ' BPM', 512 + Math.sin(t) * 40, 80); g.shadowBlur = 0;
+  g.globalAlpha = dimK; g.fillText(b.n % 16 < 8 ? TH.text : 'DJ NOSTALGIA ♪ ' + Math.round(b.bpm) + ' BPM', 512 + Math.sin(t) * 40, 80); g.shadowBlur = 0; g.globalAlpha = 1;
   g.drawImage(ledMask, 0, 0); ledTex.needsUpdate = true;
 }
 W.spots.dj = { x: 0, z: -18.3, y: .5, ry: 0 };
@@ -317,6 +331,11 @@ for (let i = tblStart; i < S.children.length; i++) S.children[i].position.y += T
   const ks = NC.neonSign('🎤 2차 노래방', 3.2, .9, { font: '900 120px "Malgun Gothic",sans-serif', color: '#fff2fb', glow: '#ff3dbb', ph: 256 }); ks.material.color.setScalar(2.4); ks.position.set(dx + .14, 3.45, dz); ks.rotation.y = Math.PI / 2; S.add(ks);
   const kl = new T.PointLight(col('#ff5fc8'), 1.1, 7); kl.position.set(dx + 1.2, 2.6, dz); S.add(kl);
   W.spots.karaokeDoor = { x: dx + 1.1, z: dz };
+  // ★ 화장실 입구 (통로 동쪽 끝) · 흡연실 입구 (서쪽 벽, 무대 옆)
+  const doorAt = (x, z, ry, label, glow, lc) => { put(new T.Mesh(box(.2, 2.8, 1.8), MAT.gold), x, 1.4, z).rotation.y = ry; const dp = put(new T.Mesh(new T.PlaneGeometry(1.5, 2.5), pbr('wood', { repeat: [1, 2], roughness: .5, gen: { a: '#1a100a', b: '#3e2616' } })), x + Math.sin(ry) * .12, 1.25, z + Math.cos(ry) * .12); dp.rotation.y = ry;
+    const sg = NC.neonSign(label, 2.4, .6, { font: '900 110px "Malgun Gothic",sans-serif', color: '#ffffff', glow, ph: 220 }); sg.material.color.setScalar(2.2); sg.position.set(x + Math.sin(ry) * .14, 3.05, z + Math.cos(ry) * .14); sg.rotation.y = ry; S.add(sg); void lc; };
+  doorAt(ROOM.x - .06, 6.95, -Math.PI / 2, '🚻 화장실', '#3dd8ff', '#9ae8ff'); W.spots.restroomDoor = { x: ROOM.x - 1.1, z: 6.95 };
+  doorAt(-ROOM.x + .06, -17, Math.PI / 2, '🚬 흡연실', '#ffb03d', '#ffcf8a'); W.spots.smokeDoor = { x: -ROOM.x + 1.1, z: -17 };
 }
 
 /* ═════ ③ VIP 룸 ═════ */
@@ -413,19 +432,20 @@ W.update = function (dt, t, agents) {
   const b = NC.Audio ? NC.Audio.beat() : { phase: (t * 118 / 60) % 1, n: Math.floor(t * 118 / 60), bpm: 118 };
   const kick = 1 - b.phase;
   ball.rotation.y += dt * .5; updateSpecks(ball.rotation.y);
-  spots.forEach(s => { const a = t * .55 + s.k * 1.6; s.tg.position.set(Math.cos(a) * 7, 0, -8 + Math.sin(a * 1.3) * 5.5);
+  const sp = TH.speed, spK = TH.spotK || 1;
+  spots.forEach(s => { const a = t * .55 * sp + s.k * 1.6; s.tg.position.set(Math.cos(a) * 7, 0, -8 + Math.sin(a * 1.3) * 5.5);
     const dx = s.tg.position.x - s.pos.x, dy = s.tg.position.y - s.pos.y, dz = s.tg.position.z - s.pos.z;
     s.yoke.rotation.y = Math.atan2(dx, dz); s.head.rotation.x = -Math.atan2(-dy, Math.hypot(dx, dz)) + 0; s.head.rotation.x = Math.atan2(-dy, Math.hypot(dx, dz));
-    if (s.L) s.L.intensity = 2.2 + Math.sin(t * 3 + s.k) * .5 + kick * .5; s.beam.material.uniforms.time.value = t; s.beam.material.uniforms.intensity.value = (s.L ? .26 : .2) + kick * .1; });
+    if (s.L) s.L.intensity = (2.2 + Math.sin(t * 3 * sp + s.k) * .5 + kick * .5 * sp) * spK; s.beam.material.uniforms.time.value = t; s.beam.material.uniforms.intensity.value = ((s.L ? .26 : .2) + kick * .1 * sp) * TH.beam; });
   glows[0].intensity = 1.1 + Math.sin(t * 4) * .4; glows[1].intensity = 1.1 + Math.cos(t * 4) * .4;
-  for (let i = 0, k = 0; i < TX; i++) for (let j = 0; j < TZ; j++, k++) { const h = (t * .1 + (i + j) * .045) % 1, v = .35 + .4 * Math.max(0, Math.sin(t * 2 + (i * 2 + j * 3) * .6)) + kick * .25 * ((i + j + b.n) % 2); tmpC.setHSL(h, .9, v * .36); tiles.setColorAt(k, tmpC); }
+  for (let i = 0, k = 0; i < TX; i++) for (let j = 0; j < TZ; j++, k++) { const f = (t * .1 * sp + (i + j) * .045) % 1, h = (TH.h0 + (TH.h1 - TH.h0) * (TH.h1 - TH.h0 >= .99 ? f : .5 + .5 * Math.sin(f * 6.283))) % 1, v = .35 + .4 * Math.max(0, Math.sin(t * 2 * sp + (i * 2 + j * 3) * .6)) + kick * .25 * sp * ((i + j + b.n) % 2); tmpC.setHSL(h, TH.sat, v * TH.lit); tiles.setColorAt(k, tmpC); }
   tiles.instanceColor.needsUpdate = true;
-  const pattern = Math.floor(b.n / 8) % 4, laserOn = pattern !== 3; const hue = (Math.floor(b.n / 4) * .17) % 1;
+  const pattern = Math.floor(b.n / 8) % 4, laserOn = TH.laser && pattern !== 3; const hue = (Math.floor(b.n / 4) * .17) % 1;
   lasers.forEach((m, i) => {
     m.visible = laserOn; if (!laserOn) return;
     const f = (i / (lasers.length - 1) - .5) * 1.8, a = pattern === 0 ? f + Math.sin(t * .9) * .5 : pattern === 1 ? f * Math.sin(t * 1.4) : f + (i % 2 ? 1 : -1) * Math.sin(t * 2) * .3;
     lzTarget.set(Math.sin(a) * 30, pattern === 2 ? 1 + Math.sin(t * 3 + i) * 2 : .4 + Math.abs(Math.sin(t * .7 + i * .3)) * 3, -18.9 + Math.cos(a) * 30); m.lookAt(lzTarget);
-    m.material.color.setHSL((hue + i * .015) % 1, 1, .5).convertSRGBToLinear().multiplyScalar(1.5); m.material.opacity = .18 + .3 * kick;
+    m.material.color.setHSL(TH.laserHue ? (TH.laserHue[0] + (TH.laserHue[1] - TH.laserHue[0]) * ((hue + i * .05) % 1)) % 1 : (hue + i * .015) % 1, 1, .5).convertSRGBToLinear().multiplyScalar(1.5); m.material.opacity = .18 + .3 * kick;
   });
   haze.forEach(h => { h.p += dt * .12; h.sp.position.set(h.x + Math.sin(h.p) * 1.5, h.y + Math.sin(h.p * 1.3) * .3, h.z + Math.cos(h.p * .8) * 1.2); h.sp.material.rotation += h.r * dt; h.sp.material.opacity = .05 + .02 * Math.sin(h.p * 2) + kick * .01; });
   candles.forEach((c, i) => { const f = .8 + .2 * Math.sin(t * 13 + i * 3) * Math.sin(t * 7.3 + i); c.material.color.setRGB(4 * f, 2.2 * f, .7 * f); c.scale.y = 1.4 + .3 * f; });
@@ -456,6 +476,7 @@ ball.userData.dyn = true; floor.userData.dyn = true;
     const mm = new T.Mesh(out, list[0].material); list.forEach(m => S.remove(m)); S.add(mm); after++; });
   console.info(`[world] 정적 메시 병합 ${before} → ${after}`);
 })();
+W.setTheme(THEMES[U.store.get('nc_theme', 'neon')] ? U.store.get('nc_theme', 'neon') : 'neon');
 // 그림자: 바닥·무대는 받기, 큰 가구는 드리우기
 if (Q.shadows) S.children.forEach(o => { if (o.isMesh && !o.material.transparent && !o.isInstancedMesh && o !== floor && !o.userData.dyn) { o.castShadow = true; o.receiveShadow = true; } });
 })();

@@ -14,6 +14,7 @@ function standLocal() {
   if (!P.seat) return; const s = P.seat; let sp;
   if (s.kind === 'table') { NC.tableOcc[s.t][s.s] = null; sp = NC.standPos(s.t, s.s); }
   else if (s.kind === 'karaoke' && NC.Karaoke) sp = NC.Karaoke.stand(s);
+  else if (s.kind && NC.standHandlers && NC.standHandlers[s.kind]) sp = NC.standHandlers[s.kind](s);
   else { const v = W.vip[s.room]; v.occ[s.s] = null; const seat = v.seats[s.s]; sp = { x: seat.x + Math.sin(seat.ry) * 1.3, z: seat.z + Math.cos(seat.ry) * 1.3 }; }
   NC.unseatAvatar(P.group, sp.x, sp.z); P.x = sp.x; P.z = sp.z; P.seat = null; if (!NC.Dialog.cur) P.busy = false; NC.emit('stand');
 }
@@ -124,8 +125,8 @@ function frame() {
     const f = (NC.camOverride && NC.camOverride()) || NC.Dialog.focus(camera);
     if (f) { camTarget.set(f.tx, f.ty, f.tz); camPos.set(f.cx, f.cy, f.cz);
       if (innerWidth > 800) { let dx = f.tx - f.cx, dz = f.tz - f.cz; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; camTarget.x += -dz * .95; camTarget.z += dx * .95; camPos.x += -dz * .95; camPos.z += dx * .95; } }   // 오른쪽 대화 패널을 피해 인물을 왼쪽에 배치
-    else { const tx = P.group.position.x, tz = P.group.position.z, ty = 1.4 + P.y, inner = P.room >= 0 || P.zone === 'karaoke', dist = P.zone === 'karaoke' ? Math.min(cam.dist, 4.2) : P.room >= 0 ? Math.min(cam.dist, 8) : cam.dist;
-      camTarget.set(tx, ty, tz); camPos.set(tx + Math.sin(cam.yaw) * Math.cos(cam.pitch) * dist, ty + Math.sin(cam.pitch) * dist, tz + Math.cos(cam.yaw) * Math.cos(cam.pitch) * dist); camPos.y = Math.min(camPos.y, P.zone === 'karaoke' ? 2.85 : W.ROOM.h - .5); void inner; }
+    else { const tx = P.group.position.x, tz = P.group.position.z, ty = 1.4 + P.y, inner = P.room >= 0 || P.zone === 'karaoke', dist = ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? Math.min(cam.dist, 4.2) : P.room >= 0 ? Math.min(cam.dist, 8) : cam.dist;
+      camTarget.set(tx, ty, tz); camPos.set(tx + Math.sin(cam.yaw) * Math.cos(cam.pitch) * dist, ty + Math.sin(cam.pitch) * dist, tz + Math.cos(cam.yaw) * Math.cos(cam.pitch) * dist); camPos.y = Math.min(camPos.y, ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? 2.75 : W.ROOM.h - .5); void inner; }
     camera.position.lerp(camPos, Math.min(1, dt * (f ? 3 : 6))); NC._look = NC._look || camTarget.clone(); NC._look.lerp(camTarget, Math.min(1, dt * 6)); camera.lookAt(NC._look);
     const doorOpen = P.room >= 0 ? W.vip[P.room].door.open : 0;
     NC.Audio.update(P, Math.atan2(camera.position.x - P.x, camera.position.z - P.z), P.zone, doorOpen);

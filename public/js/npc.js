@@ -103,7 +103,7 @@ NC.NPC = {
       npcs.filter(n => n.role === 'crowd').forEach(n => { if (k >= max) return; const pool = data.crowdModels.filter(m => !m.gender || m.gender === n.gender); if (!pool.length) return; const m = pool[k % pool.length]; NC.VRMKit.attach(n.g, m.model, { tint: m.tint }); k++; });
     }
     NC.DJ = addStaff('DJ 노스탤지어', { gender: 'm', hairStyle: 'curly', hairColor: '#e8e2da', top: 'jacket', topColor: '#3de6ff', bottom: 'pants', face: { glasses: true, beard: 'goatee' } }, W.spots.dj, 'groove');
-    addStaff('바텐더 J', { gender: 'f', hairStyle: 'ponytail', hairColor: '#17110f', top: 'vest', topColor: '#121018', bottom: 'pants', bottomColor: '#121018' }, W.spots.bartender, null).userData.holdGlass = true;
+    NC.Bartender = addStaff('바텐더 J', { gender: 'f', hairStyle: 'ponytail', hairColor: '#17110f', top: 'vest', topColor: '#121018', bottom: 'pants', bottomColor: '#121018' }, W.spots.bartender, null); NC.Bartender.userData.holdGlass = true;
     console.info(`[npc] 페르소나 ${data.personas ? data.personas.length : 0}명 · 손님 ${(data.npcs || []).length}명`);
   },
   update(dt, cam) {

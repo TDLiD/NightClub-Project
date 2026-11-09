@@ -155,5 +155,5 @@ NC.interactProviders.push(() => {
   waiters.forEach(o => { if (o.busy) return; const d = Math.hypot(o.x - P.x, o.z - P.z); if (d < 3) out.push({ label: `🤵 ${o.def.title} 부르기 (E) · 🪙${NC.Wallet.get()}`, dist: d - .3, run: () => runTree(o) }); });
   return out;
 });
-NC.Waiters = { init(d) { DATA = d; spawnWaiters(); }, update: updateWaiters, list: waiters };
+NC.Waiters = { init(d) { DATA = d; spawnWaiters(); }, update: updateWaiters, list: waiters, walk, runTree, data: () => DATA };
 })();
