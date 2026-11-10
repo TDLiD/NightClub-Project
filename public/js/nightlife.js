@@ -101,7 +101,7 @@ NC.interactProviders.push(() => {
 });
 
 /* ── ④ 골든벨 ── */
-const BELL = { x: 2.7, z: -17.9 }, gold = NC.mat && NC.mat.std ? NC.mat.std('#ffcf3d', { metalness: 1, roughness: .18, emissive: '#5a3a00' }) : new T.MeshStandardMaterial({ color: 0xffcf3d, metalness: 1, roughness: .18 });
+const BELL = { x: 7.2, z: -15.3 }, gold = NC.mat && NC.mat.std ? NC.mat.std('#ffcf3d', { metalness: 1, roughness: .18, emissive: '#5a3a00' }) : new T.MeshStandardMaterial({ color: 0xffcf3d, metalness: 1, roughness: .18 });
 const bellG = new T.Group(), swing = new T.Group(); bellG.position.set(BELL.x, NC.groundY(BELL.x, BELL.z), BELL.z);
 { const dark = NC.mat && NC.mat.std ? NC.mat.std('#1a1220', { metalness: .6, roughness: .3 }) : new T.MeshStandardMaterial({ color: 0x1a1220 });
   const post = (x) => { const m = new T.Mesh(new T.CylinderGeometry(.035, .045, 1.9, 12), gold); m.position.set(x, .95, 0); bellG.add(m); }; post(-.42); post(.42);

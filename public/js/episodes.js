@@ -65,6 +65,7 @@ function setupGroups() {
 }
 function tickGroups(dt) {
   GROUPS.forEach(g => {
+    if ([g.a, g.b, g.fr].concat(g.ns || []).some(n => n && n.party)) return;   // v15: 디스코/블루스 타임에 플로어로 나간 동안 그룹 연출 멈춤
     g.t -= dt;
     if (g.kind === 'kiss') { const a = g.a, b = g.b, now = performance.now() / 1000, d = .21 - .06 * Math.max(0, Math.sin(now * .5)), ang = Math.sin(now * .3) * .3;
       a.x = g.c.x - Math.cos(ang) * d; a.z = g.c.z - Math.sin(ang) * d; b.x = g.c.x + Math.cos(ang) * d; b.z = g.c.z + Math.sin(ang) * d;

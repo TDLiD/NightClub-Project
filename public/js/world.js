@@ -3,6 +3,8 @@
  *  ② 일반 테이블 (대리석 상판·가죽 스툴·캔들·아이스버킷) · 동쪽 벽 바 (백라이트 선반·거울·펜던트 조명·맥주 탭)
  *  ③ VIP 룸 3개 (남쪽, 유리 슬라이딩 도어 · 터프팅 가죽 소파 · 크리스털 샹들리에)
  *  ④ 웨이터/부킹 통로 (아르데코 카펫 · 풋라이트 · 서쪽 끝 '2차 노래방' 입구)
+ *  v15 국빈관식 배치: 북쪽 DJ 단(한 층 더 높게) → 초청가수 무대 → 댄스·블루스 플로어 → 뒤쪽 홀 전체 테이블 16개
+ *      ㄷ자 외곽 = 서쪽 노래방 동(+흡연실) · 남쪽 VIP 룸 3개 · 동쪽 바 + 화장실 동
  *  재질: gfx.js 의 절차적 PBR 텍스처 + 환경맵 반사. 조명: 무빙헤드 볼륨 빔 · 레이저 · 미러볼 반사점 · 연기 · LED 월
  */
 (() => {
@@ -19,12 +21,15 @@ const pbr = (n, o) => M.pbr(n, o);
 const Z = W.zones = {
   stage: { x0: -11, x1: 11, z0: -20, z1: -13.2, y: .5 },
   dance: { x0: -8, x1: 8, z0: -12.6, z1: -3 },
-  corridor: { x0: -24, x1: 24, z0: 4.8, z1: 9.1 },
+  corridor: { x0: -18, x1: 18, z0: 9.6, z1: 11.9 },
+  dj: { x0: -5.2, x1: 5.2, z0: -20, z1: -16.2, y: .5 + .8 },
   bar: { x0: 18.4, x1: 24, z0: -14, z1: 3 },
 };
 const inR = (r, x, z) => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1;
 /* v4: 양옆 테이블존을 0.42m 높인 라운지 테라스로 (계단 3곳 · 유리 난간) → 층이 생겨 공간이 입체적으로 */
-const TY = .42, TER = { inner: 11.2, z0: -14, z1: 4, westX: -ROOM.x, eastX: 19.2, steps: [-10, -4, 2], stepW: 2.2, band: .8 };
+const TY = 0, TER = { inner: 99, z0: 0, z1: 0, westX: 0, eastX: 0, steps: [], stepW: 0, band: 0 };   // v15: 테라스 제거(평지 홀 + 테이블 16개)
+const RISE = .8;   // v15: DJ 단은 가수 무대보다 0.8m 더 높게
+const TABLE_POS = [[-3.2, .6], [3.2, .6], [-8.9, .6], [8.9, .6], [-14.2, .6], [14.2, .6], [-3.2, 6.2], [3.2, 6.2], [-8.9, 6.2], [8.9, 6.2], [-14.2, 6.2], [14.2, 6.2], [-14.2, -10.6], [-14.2, -5], [14.2, -10.6], [14.2, -5]];
 W.TY = TY; W.terrace = TER;
 
 /* ── 공용 재질 ── */
@@ -102,9 +107,9 @@ for (let z = -14; z <= 2; z += 8) for (const s of [-1, 1]) { put(new T.Mesh(box(
   [[0, -ROOM.z, 0, ROOM.x * 2], [0, ROOM.z, Math.PI, ROOM.x * 2], [-ROOM.x, 0, Math.PI / 2, ROOM.z * 2], [ROOM.x, 0, -Math.PI / 2, ROOM.z * 2]].forEach(([x, z, r, len]) => {
     const wv = put(new T.Mesh(new T.PlaneGeometry(len, .9), ao), x + Math.sin(r) * .02, .45, z + Math.cos(r) * .02); wv.rotation.y = r;                               // 벽 아래
     const fl = put(new T.Mesh(new T.PlaneGeometry(len, 1.2), ao), x + Math.sin(r) * .6, .008, z + Math.cos(r) * .6); fl.rotation.set(-Math.PI / 2, 0, r + Math.PI); }); // 바닥 가장자리
-  const blobs = [[-16, -10, 3.6], [-16, -4, 3.6], [-16, 2, 3.6], [14, -10, 3.6], [14, -4, 3.6], [14, 2, 3.6]];
+  const blobs = TABLE_POS.map(([x, z]) => [x, z, 3.4]);
   blobs.forEach(([x, z, r]) => { const b = NC.contactShadow(r, r); b.position.set(x, TY + .012, z); S.add(b); });
-  [[0, -17.4, 8.5, 2.2], [-9.6, -18.6, 2.6, 2.2], [9.6, -18.6, 2.6, 2.2], [21.4, -5.5, 2.4, 17]].forEach(([x, z, w, d]) => { const b = NC.contactShadow(w, d); b.position.set(x, x === 0 || Math.abs(x) > 9 && z < -18 ? .512 : .012, z); S.add(b); }); }
+  [[0, -17.4, 8.5, 2.2], [-9.6, -18.6, 2.6, 2.2], [9.6, -18.6, 2.6, 2.2], [21.4, -5.5, 2.4, 17]].forEach(([x, z, w, d]) => { const b = NC.contactShadow(w, d); b.position.set(x, x === 0 ? .512 + RISE : Math.abs(x) > 9 && z < -18 ? .512 : .012, z); S.add(b); }); }
 /* ═════ ① 메인 스테이지 / DJ 부스 ═════ */
 const stg = Z.stage;
 put(new T.Mesh(box(stg.x1 - stg.x0, .5, stg.z1 - stg.z0), MAT.stageFloor), 0, .25, (stg.z0 + stg.z1) / 2).receiveShadow = !!Q.shadows;
@@ -117,6 +122,7 @@ for (let x = -9; x <= 9; x += 3) put(new T.Mesh(box(.04, .02, 6), M.emi('#ff3d9a
   const cm = pbr('leather', { repeat: [6, 8], color: '#7a0c22', roughness: 1, normalScale: .4, side: T.DoubleSide }); cm.emissive = col('#1a0006');
   for (const s of [-1, 1]) { put(new T.Mesh(cg, cm), s * 11.6, 4.8 + .5, -ROOM.z + .5); }
   put(new T.Mesh(new T.PlaneGeometry(27, 1.2, 80, 1).translate(0, 0, 0), cm), 0, 10.3, -ROOM.z + .6); }
+const djFrom = S.children.length;
 // DJ 부스: 원목 전면 + 브러시드 메탈 상판 + CDJ·믹서
 put(new T.Mesh(box(7.6, 1.1, 1.4), MAT.wood), 0, 1.05, -17.4);
 put(new T.Mesh(box(7.8, .06, 1.55), MAT.brushed), 0, 1.63, -17.4);
@@ -125,7 +131,17 @@ put(new T.Mesh(box(7.6, .06, .05), M.emi('#3de6ff', 4)), 0, 1.0, -16.68);
 [-2.4, -.9, .9, 2.4].forEach((x, i) => { if (i === 1 || i === 2) return; put(new T.Mesh(box(1.1, .1, .9), MAT.black), x, 1.71, -17.4); put(new T.Mesh(new T.CylinderGeometry(.34, .34, .03, 32), M.std('#22222a', { roughness: .3, metalness: .6 })), x, 1.78, -17.35); put(new T.Mesh(box(.5, .01, .2), M.emi('#4fc3ff', 2.4)), x, 1.765, -17.75); });
 put(new T.Mesh(box(1.4, .12, .9), MAT.black), 0, 1.72, -17.4);
 { const knobs = new T.InstancedMesh(new T.CylinderGeometry(.03, .03, .04, 10), M.emi('#ff3d9a', 1.6), 24), o = new T.Object3D(); for (let i = 0; i < 24; i++) { o.position.set(-.5 + (i % 6) * .2, 1.8, -17.7 + Math.floor(i / 6) * .18); o.updateMatrix(); knobs.setMatrixAt(i, o.matrix); } S.add(knobs); }
-W.rects.push([-4, -18.4, 4, -16.6]);
+for (let i = djFrom; i < S.children.length; i++) S.children[i].position.y += RISE;   // v15: 부스 전체를 DJ 단 위로
+/* v15 DJ 단: 가수 무대(0.5m) 뒤로 한 층 더 높은 단(1.3m) — 계단 · 전면 LED · 크롬 난간 */
+{ const dz0 = -20, dz1 = -16.2, w = 10.4, cz = (dz0 + dz1) / 2;
+  put(new T.Mesh(box(w, RISE, dz1 - dz0), MAT.stageFloor), 0, .5 + RISE / 2, cz).receiveShadow = !!Q.shadows;
+  put(new T.Mesh(box(w + .06, RISE, .05), MAT.black), 0, .5 + RISE / 2, dz1 + .02);
+  for (const y of [.62, .92, 1.22]) put(new T.Mesh(box(w, .025, .03), M.emi('#3de6ff', 3)), 0, y, dz1 + .06);
+  for (const sx of [-1, 1]) { for (let k = 0; k < 3; k++) { const h = RISE * (3 - k) / 3; put(new T.Mesh(box(.42, h, 1.3), MAT.stageFloor), sx * (w / 2 + .21 + k * .42), .5 + h / 2, dz1 - .9); }
+    put(new T.Mesh(new T.CylinderGeometry(.025, .025, 3.6, 8).rotateX(Math.PI / 2), MAT.chrome), sx * (w / 2 - .1), .5 + RISE + .95, cz - .2);
+    for (const z of [dz0 + .4, cz, dz1 - .25]) put(new T.Mesh(new T.CylinderGeometry(.02, .02, .95, 8), MAT.chrome), sx * (w / 2 - .1), .5 + RISE + .47, z); }
+  const ds = NC.neonSign('♪ DJ BOOTH', 2.2, .42, { font: '800 100px Arial', color: '#e8fbff', glow: '#3de6ff', ph: 200 }); ds.position.set(-3.6, .5 + RISE * .55, dz1 + .09); S.add(ds);
+  W.rects.push([-w / 2, dz0, w / 2, dz1]); }
 // 라인어레이(천장 매달림) + 서브우퍼(바닥)
 for (const s of [-1, 1]) {
   for (let k = 0; k < 6; k++) { const cab = put(new T.Mesh(box(1.3, .42, .8), MAT.matte), s * 9.2, 8.6 - k * .44, -14.6 + k * .03); cab.rotation.x = k * .05; const gr = put(new T.Mesh(new T.PlaneGeometry(1.2, .34), MAT.grill), s * 9.2, 8.6 - k * .44, -14.19 + k * .03); gr.rotation.x = k * .05; }
@@ -157,12 +173,18 @@ const THEMES = W.THEMES = {
   mono:   { name: '모노 시크', h0: 0, h1: 0, sat: 0, lit: .16, spots: ['#ffffff', '#e6e6f2', '#ffffff', '#d8d8e8', '#ffffff', '#ececf6'], laser: false, beam: .5, speed: .6, led: [0, 0], ledSat: 0, text: 'NOSTALGIA CLUB', haze: ['#d8d8e0', '#c8c8d4', '#e8e8f0'], fog: '#1c1c22', glow: ['#e8e8f0', '#c8c8d8'] },
   sunset: { name: '선셋 레트로', h0: .9, h1: 1.08, sat: .9, lit: .32, spots: ['#ff6a3d', '#ff3d9a', '#ffb03d', '#c23dff', '#ffd0a0', '#ff4f6a'], laser: true, laserHue: [.9, 1.05], beam: .9, speed: .8, led: [330, 400], text: '☀ SUNSET DRIVE 1986 ☀', haze: ['#ffb0a0', '#ff9ad6', '#ffc890'], fog: '#3a1a2a', glow: ['#ff6a3d', '#ff3d9a'] },
   dim:    { name: '다크 바 (조명 최소)', h0: .75, h1: .85, sat: .5, lit: .08, spots: ['#6a4a8a', '#4a3a6a', '#6a4a8a', '#4a3a6a', '#5a4a7a', '#4a3a6a'], laser: false, beam: .15, speed: .25, led: [270, 290], ledDim: .35, text: 'late night', haze: ['#6a5a8a', '#5a4a7a', '#6a5a8a'], fog: '#120c1a', glow: ['#5a3a7a', '#3a2a5a'], spotK: .4 },
+  /* v15 추가 테마 5종 — sparkle:false 는 미러볼 반사점·레이저·깜빡임·비트 펄스가 모두 꺼진 '반짝임 없는' 조명 */
+  cabaret: { name: '레드 카바레', h0: .97, h1: 1.03, sat: .85, lit: .26, spots: ['#ff2a3d', '#ffb35a', '#ff5a6a', '#ffd27a', '#ff3d5a', '#ffe0b0'], laser: false, beam: .85, speed: .55, led: [350, 372], text: '♠ CABARET ROUGE ♠', haze: ['#ff8a8a', '#ffb07a', '#ff9aa8'], fog: '#2e1016', glow: ['#ff2a3d', '#ffb35a'] },
+  aurora:  { name: '오로라 웨이브', h0: .38, h1: .78, sat: .8, lit: .3, spots: ['#3dffb0', '#3dd8ff', '#9b5cff', '#5affd8', '#c08aff', '#3d9aff'], laser: true, laserHue: [.38, .78], beam: .95, speed: .7, led: [140, 280], text: '✧ AURORA NIGHT ✧', haze: ['#8affd8', '#8ad8ff', '#c0a0ff'], fog: '#0e2228', glow: ['#3dffb0', '#9b5cff'] },
+  warm:    { name: '웜 라운지 (반짝임 없음)', h0: .07, h1: .1, sat: .6, lit: .2, spots: ['#ffc890', '#ffb878', '#ffd8a8', '#ffbf80', '#ffe2c0', '#ffc890'], laser: false, beam: .35, speed: .12, led: [28, 38], ledDim: .55, text: 'WARM LOUNGE', haze: ['#ffd0a0', '#ffc090', '#ffe0c0'], fog: '#241a12', glow: ['#ffb070', '#ffcf90'], sparkle: false, spotK: .7 },
+  pastel:  { name: '파스텔 드림 (반짝임 없음)', h0: .78, h1: .95, sat: .45, lit: .3, spots: ['#ffb0d8', '#c8b0ff', '#b0d8ff', '#ffc8e0', '#d8c8ff', '#b0e8ff'], laser: false, beam: .45, speed: .15, led: [280, 330], ledSat: 55, ledDim: .7, text: '~ pastel dream ~', haze: ['#ffc8e8', '#d8c8ff', '#c8e0ff'], fog: '#221c2e', glow: ['#ffb0d8', '#b0c8ff'], sparkle: false, spotK: .8 },
+  white:   { name: '화이트 스포트라이트 (반짝임 없음)', h0: .1, h1: .12, sat: .08, lit: .34, spots: ['#ffffff', '#fff6ea', '#ffffff', '#f4f0ff', '#ffffff', '#fff6ea'], laser: false, beam: .55, speed: 0, led: [40, 40], ledSat: 10, ledDim: .8, text: 'NOSTALGIA · SPOTLIGHT', haze: ['#f0f0f8', '#e8e8f0', '#ffffff'], fog: '#1e1c24', glow: ['#ffffff', '#f0ecff'], sparkle: false, spotK: 1.15, keyK: 1.6 },
 };
 let TH = THEMES.neon;
 W.setTheme = id => { const th = THEMES[id]; if (!th) return; TH = th; W.themeId = id; U.store.set('nc_theme', id);
   spots.forEach((sp, i) => { const c = col(th.spots[i % th.spots.length]); if (sp.L) sp.L.color.copy(c); sp.beam.material.uniforms.color.value.copy(c); sp.head.children[1] && sp.head.children[1].material && sp.head.children[1].material.color.copy(c).multiplyScalar(6); });
   haze.forEach((h, i) => h.sp.material.color.copy(col(th.haze[i % 3]))); S.fog.color.copy(col(th.fog)); glows[0].color.copy(col(th.glow[0])); glows[1].color.copy(col(th.glow[1]));
-  NC.emit && NC.emit('theme', id); };
+  key.intensity = .75 * (th.keyK || 1); NC.emit && NC.emit('theme', id); };
 function drawLED(t, b) {
   const g = ledG; g.fillStyle = '#07030f'; g.fillRect(0, 0, 1024, 320);
   const L0 = TH.led[0], L1 = TH.led[1], ls = TH.ledSat ?? 80, hue = L0 == null ? (t * 20) % 360 : L0 + (L1 - L0) * (.5 + .5 * Math.sin(t * .3)), dimK = TH.ledDim || 1, gr = g.createLinearGradient(0, 0, 1024, 320); gr.addColorStop(0, `hsla(${hue},${ls}%,${25 * dimK}%,.9)`); gr.addColorStop(1, `hsla(${L0 == null ? (hue + 120) % 360 : L1},${ls}%,${20 * dimK}%,.9)`); g.fillStyle = gr; g.fillRect(0, 0, 1024, 320);
@@ -171,7 +193,7 @@ function drawLED(t, b) {
   g.globalAlpha = dimK; g.fillText(b.n % 16 < 8 ? TH.text : 'DJ NOSTALGIA ♪ ' + Math.round(b.bpm) + ' BPM', 512 + Math.sin(t) * 40, 80); g.shadowBlur = 0; g.globalAlpha = 1;
   g.drawImage(ledMask, 0, 0); ledTex.needsUpdate = true;
 }
-W.spots.dj = { x: 0, z: -18.3, y: .5, ry: 0 };
+W.spots.dj = { x: 0, z: -18.3, y: .5 + RISE, ry: 0 };
 
 /* 댄스플로어: LED 타일 + 위에 얹은 강화유리(반사) */
 const DF = Z.dance, TILE = 1.6, TX = 10, TZ = 6;
@@ -188,7 +210,7 @@ const ballSpot = new T.SpotLight(col('#ffffff'), 1.2, 14, .12, .3, 1); ballSpot.
 const SPECK = 260, speckDir = [], speckPos = new Float32Array(SPECK * 3), speckCol = new Float32Array(SPECK * 3);
 for (let i = 0; i < SPECK; i++) { const y = -Math.random() * .85 + .1, a = Math.random() * Math.PI * 2, r = Math.sqrt(1 - y * y); speckDir.push([Math.cos(a) * r, y, Math.sin(a) * r]); const c = new T.Color().setHSL(Math.random(), .35, .8).multiplyScalar(1.25); speckCol.set([c.r, c.g, c.b], i * 3); }
 const speckGeo = new T.BufferGeometry(); speckGeo.setAttribute('position', new T.BufferAttribute(speckPos, 3)); speckGeo.setAttribute('color', new T.BufferAttribute(speckCol, 3));
-S.add(new T.Points(speckGeo, new T.PointsMaterial({ size: .2, map: NC.softDot(), vertexColors: true, transparent: true, opacity: .95, blending: T.AdditiveBlending, depthWrite: false })));
+const speckPts = new T.Points(speckGeo, new T.PointsMaterial({ size: .2, map: NC.softDot(), vertexColors: true, transparent: true, opacity: .95, blending: T.AdditiveBlending, depthWrite: false })); S.add(speckPts);
 function updateSpecks(yaw) {
   const B = ball.position, c = Math.cos(yaw), s = Math.sin(yaw);
   for (let i = 0; i < SPECK; i++) {
@@ -232,7 +254,7 @@ for (let i = 0; i < 26; i++) {
 }
 
 /* ═════ ② 일반 테이블 · 바 ═════ */
-const TABLES = [[-16, -10], [-16, -4], [-16, 2], [14, -10], [14, -4], [14, 2]].map(([x, z], i) => ({ id: i, x, z }));
+const TABLES = TABLE_POS.map(([x, z], i) => ({ id: i, x, z }));   // v15: 홀 뒤쪽 2줄 × 6 + 플로어 양옆 4
 const tblStart = S.children.length;
 const SEAT_R = 1.9;
 NC.tables = TABLES; NC.tableOcc = TABLES.map(() => [null, null, null, null]);
@@ -250,47 +272,16 @@ TABLES.forEach(tb => {
   const fl = put(new T.Mesh(new T.SphereGeometry(.028, 8, 6), M.glow('#ffb35a')), tb.x - .3, .99, tb.z + .2); fl.material = fl.material.clone(); fl.scale.y = 1.6; candles.push(fl); void cg;
   put(new T.Mesh(new T.CylinderGeometry(.16, .12, .26, 18), MAT.chrome), tb.x + .25, 1.02, tb.z - .15);
   [[-.04, '#1f4a28'], [.06, '#4a2a10']].forEach(([dx, c]) => { const b = put(new T.Mesh(new T.CylinderGeometry(.04, .05, .34, 10), M.std(c, { roughness: .08, metalness: .3 })), tb.x + .25 + dx, 1.2, tb.z - .15); b.rotation.z = dx * 3; });
-  [[.45, .45], [-.55, -.3], [.1, -.6]].forEach(([dx, dz]) => put(new T.Mesh(new T.CylinderGeometry(.035, .028, .11, 12, 1, true), glassMat), tb.x + dx, .95, tb.z + dz));
+  [[.45, .45], [-.55, -.3]].forEach(([dx, dz]) => put(new T.Mesh(new T.CylinderGeometry(.035, .028, .11, 12, 1, true), glassMat), tb.x + dx, .95, tb.z + dz));
   for (let s = 0; s < 4; s++) { const p = NC.seatPos(tb.id, s); put(new T.Mesh(new T.CylinderGeometry(.46, .42, .14, 24), MAT.leatherPlain), p.x, .47, p.z); put(new T.Mesh(new T.CylinderGeometry(.05, .05, .4, 8), MAT.chrome), p.x, .2, p.z); put(new T.Mesh(new T.TorusGeometry(.3, .015, 6, 24), MAT.gold), p.x, .16, p.z).rotation.x = Math.PI / 2; }
   const tag = new T.Sprite(new T.SpriteMaterial({ map: NC.textTex('T' + (tb.id + 1), 128, 64, '800 44px Arial', '#ffffff', '#ff3d9a'), transparent: true, depthWrite: false })); tag.scale.set(1.0, .5, 1); tag.position.set(tb.x, 2.2, tb.z); S.add(tag);
   // 테이블 위 작은 펜던트(빛 웅덩이)
   put(new T.Mesh(new T.CylinderGeometry(.005, .005, 6.5, 4), MAT.black), tb.x, 7.75, tb.z);
   const shade = put(new T.Mesh(new T.ConeGeometry(.32, .3, 24, 1, true), M.std('#1a1410', { roughness: .4, metalness: .6, side: T.DoubleSide })), tb.x, 4.4, tb.z);
   put(new T.Mesh(new T.SphereGeometry(.09, 12, 8), M.glow('#ffd29a')), tb.x, 4.3, tb.z).material.color.multiplyScalar(5); void shade;
-  W.circles.push([tb.x, tb.z, 2.55]);
+  W.circles.push([tb.x, tb.z, 2.3]);
 });
 for (let i = tblStart; i < S.children.length; i++) S.children[i].position.y += TY;
-/* 테라스 바닥 · 라이저 · 계단 · 유리 난간 */
-{ const deck = pbr('wood', { repeat: [6, 9], roughness: .6, env: 1.2, gen: { a: '#1a0f0b', b: '#4a2c1a' } }), riser = pbr('marble', { repeat: [8, 1], roughness: .9, gen: { a: '#120e18', b: '#5a4a6a' } });
-  const glassR = new T.MeshStandardMaterial({ color: col('#8a7ab8'), transparent: true, opacity: .07, roughness: .02, metalness: .5, envMapIntensity: .8, depthWrite: false, side: T.DoubleSide });
-  for (const side of [-1, 1]) {
-    const xa = side < 0 ? TER.westX : TER.inner, xb = side < 0 ? -TER.inner : TER.eastX, cx = (xa + xb) / 2, w = xb - xa, d = TER.z1 - TER.z0, cz = (TER.z0 + TER.z1) / 2;
-    const top = put(new T.Mesh(box(w, TY, d), deck), cx, TY / 2, cz); top.receiveShadow = !!Q.shadows;
-    const edgeX = side < 0 ? -TER.inner : TER.inner;
-    put(new T.Mesh(box(.04, TY - .02, d), riser), edgeX + side * -.02 * -1, TY / 2, cz);
-    put(new T.Mesh(box(.05, .03, d), M.emi('#ffcf7a', 3)), edgeX, TY + .005, cz);
-    put(new T.Mesh(box(w, .03, .05), M.emi('#ffcf7a', 2.4)), cx, TY + .005, TER.z1);
-    // 계단 (2단, 디딤판 LED)
-    TER.steps.forEach(sz => { for (let k = 0; k < 2; k++) { const hx = edgeX - side * (TER.band * (k + .5) / 2) - side * 0 , h = TY * (2 - k) / 2; const st = put(new T.Mesh(box(TER.band / 2, h, TER.stepW), deck), edgeX - side * (TER.band / 4 + k * TER.band / 2), h / 2, sz); st.receiveShadow = !!Q.shadows; put(new T.Mesh(box(.03, .02, TER.stepW), M.emi('#ffffff', 2.2)), edgeX - side * (k * TER.band / 2) - side * .015, h + .01, sz); void hx; } });
-    // 난간: 계단 구간을 뺀 나머지
-    const gaps = TER.steps.map(z => [z - TER.stepW / 2, z + TER.stepW / 2]).sort((a, b) => a[0] - b[0]); let z0 = TER.z0;
-    const segs = []; gaps.forEach(([a, b]) => { segs.push([z0, a]); z0 = b; }); segs.push([z0, TER.z1]);
-    segs.forEach(([a, b]) => { if (b - a < .3) return; const L = b - a, mz = (a + b) / 2;
-      put(new T.Mesh(box(.03, .9, L), glassR), edgeX, TY + .48, mz);
-      put(new T.Mesh(new T.CylinderGeometry(.03, .03, L, 10).rotateX(Math.PI / 2), MAT.gold), edgeX, TY + .95, mz);
-      for (let z = a + .05; z <= b; z += Math.max(.6, L / Math.ceil(L / 1.6))) put(new T.Mesh(new T.CylinderGeometry(.02, .02, .95, 8), MAT.chrome), edgeX, TY + .475, z);
-      W.rects.push([edgeX - .08, a, edgeX + .08, b]); });
-    // 바 쪽(동쪽 바깥) 가장자리: 계단 1곳(z -5.5) + 난간
-    if (side > 0) { const ex = TER.eastX; [[TER.z0, -6.6], [-4.4, TER.z1]].forEach(([a, b]) => { put(new T.Mesh(box(.03, .9, b - a), glassR), ex, TY + .48, (a + b) / 2); put(new T.Mesh(new T.CylinderGeometry(.03, .03, b - a, 10).rotateX(Math.PI / 2), MAT.gold), ex, TY + .95, (a + b) / 2); W.rects.push([ex - .08, a, ex + .08, b]); });
-      for (let k = 0; k < 2; k++) { const h = TY * (2 - k) / 2; put(new T.Mesh(box(.4, h, 2.2), deck), ex + .2 + k * .4, h / 2, -5.5); } put(new T.Mesh(box(w + .02, TY, .04), riser), cx, TY / 2, TER.z1 + .02); }
-    else put(new T.Mesh(box(w + .02, TY, .04), riser), cx, TY / 2, TER.z1 + .02);
-    put(new T.Mesh(box(w, TY, .04), riser), cx, TY / 2, TER.z0 - .02);
-  }
-  W.rects.push([TER.westX, TER.z1 - .06, -TER.inner, TER.z1 + .06], [TER.inner, TER.z1 - .06, TER.eastX, TER.z1 + .06]);
-  // 남쪽 가장자리는 통로로 내려가는 단(난간 없음, 단차 0.42 — 계단으로 보완)
-  W.rects.pop(); W.rects.pop();
-  for (const side of [-1, 1]) { const xa = side < 0 ? TER.westX + .2 : TER.inner + .2, xb = side < 0 ? -TER.inner - .2 : TER.eastX - .2; for (let k = 0; k < 2; k++) { const h = TY * (2 - k) / 2; put(new T.Mesh(box(xb - xa, h, .4), pbr('wood', { repeat: [6, 1], roughness: .6, gen: { a: '#1a0f0b', b: '#4a2c1a' } })), (xa + xb) / 2, h / 2, TER.z1 + .2 + k * .4); } put(new T.Mesh(box(xb - xa, .02, .03), M.emi('#ffffff', 2)), (xa + xb) / 2, TY + .01, TER.z1 + .02); }
-}
 // 바
 { put(new T.Mesh(box(1.4, 1.2, 16), MAT.leatherGold), 21.4, .6, -5.5);
   put(new T.Mesh(box(1.8, .08, 16.4), MAT.marbleDark), 21.3, 1.24, -5.5);
@@ -311,35 +302,61 @@ for (let i = tblStart; i < S.children.length; i++) S.children[i].position.y += T
   const bl = new T.PointLight(col('#ffc890'), 1.3, 14); bl.position.set(20.5, 3.6, -5.5); S.add(bl);
   W.rects.push([20.6, -13.8, 24, 2.8]); W.spots.bartender = { x: 22.6, z: -5.5, ry: -Math.PI / 2 }; }
 
-/* ═════ ④ 웨이터/부킹 통로 ═════ */
-{ const carpet = put(new T.Mesh(new T.PlaneGeometry(44, 2.4), MAT.carpet), 0, .012, 6.95); carpet.rotation.x = -Math.PI / 2; carpet.receiveShadow = !!Q.shadows;
-  { const pts = []; for (let x = -21; x <= 21; x += 1.5) for (const z of [5.6, 8.3]) pts.push([x, .02, z]);
+/* ═════ ④ v15 ㄷ자 외곽 동(棟) + VIP 앞 웨이터·부킹 통로 ═════
+ *  서쪽 동: 노래방(룸 1~4호 · 메인 입구) + 흡연실 · 동쪽 동: 바(북쪽) + 화장실(남쪽) + 창고 · 남쪽: VIP 룸 3개
+ *  각 동은 높이 4.6m 매스 + 대리석 파사드(원목 웨인스코팅 · 금색 몰딩 · 상단 네온) */
+const WING = W.wing = { west: -17.85, east: 17.85, z0: -ROOM.z, z1: 12 };
+let corridorLight = null, kdoorLight = null;
+{ const CZ = 10.75, WH = 4.6;
+  const carpet = put(new T.Mesh(new T.PlaneGeometry(WING.east - WING.west, 2.2), MAT.carpet), 0, .012, CZ); carpet.rotation.x = -Math.PI / 2; carpet.receiveShadow = !!Q.shadows;
+  { const pts = []; for (let x = -17; x <= 17; x += 1.5) for (const z of [CZ - 1.0, CZ + 1.0]) pts.push([x, .02, z]);
     const im = new T.InstancedMesh(new T.CylinderGeometry(.06, .06, .03, 12), M.glow('#ffe27a'), pts.length), o = new T.Object3D(); im.material.color.multiplyScalar(3); pts.forEach((p, i) => { o.position.set(...p); o.updateMatrix(); im.setMatrixAt(i, o.matrix); }); S.add(im); }
-  put(new T.Mesh(box(1.4, 1.1, .8), MAT.wood), 0, .55, 5.25);
-  put(new T.Mesh(box(1.5, .05, .9), MAT.marbleDark), 0, 1.12, 5.25); put(new T.Mesh(box(1.5, .03, .03), M.emi('#ffd23d', 3)), 0, 1.08, 5.7);
-  const ws = NC.neonSign('🤵 WAITER', 1.6, .4, { font: '800 100px Arial', color: '#fff6c8', glow: '#ffb800', ph: 200 }); ws.material.color.setScalar(1.8); ws.position.set(0, 1.55, 5.66); S.add(ws);
-  W.rects.push([-.75, 4.8, .75, 5.7]);
-  W.spots.waiterStation = { x: 1.5, z: 5.3, ry: 0 };
-  { const bs = NC.neonSign('BOOKING ROAD · 부킹 통로', 7, 1.1, { font: '800 80px "Malgun Gothic",sans-serif', color: '#ffd1ea', glow: '#ff3d9a' }); bs.material.color.setScalar(2); bs.position.set(ROOM.x - .1, 4.2, 6.95); bs.rotation.y = -Math.PI / 2; S.add(bs); }
-  const cl = new T.PointLight(col('#ff9ad0'), .9, 24); cl.position.set(0, 4.5, 6.9); S.add(cl);
-  W.corridorY = 6.95;
-  // ★ 2차 노래방 입구 (통로 서쪽 끝)
-  const dx = -ROOM.x + .06, dz = 6.95;
+  // 매스(동) 하나 = 박스 + 파사드 마감. face: +1 = 동쪽(+x)을 바라봄, -1 = 서쪽
+  const mass = (x0, x1, z0, z1, face, glow) => {
+    put(new T.Mesh(box(x1 - x0, WH, z1 - z0), MAT.marbleDark), (x0 + x1) / 2, WH / 2, (z0 + z1) / 2);
+    const fx = face > 0 ? x1 + .03 : x0 - .03, L = z1 - z0, cz = (z0 + z1) / 2;
+    put(new T.Mesh(box(.06, 1.2, L), MAT.wood), fx, .6, cz); put(new T.Mesh(box(.08, .05, L), MAT.gold), fx, 1.22, cz);
+    put(new T.Mesh(box(.08, .07, L), M.emi(glow, 3)), fx, WH - .12, cz); put(new T.Mesh(box(.1, .14, L + .1), MAT.gold), fx, WH, cz);
+    for (let z = z0 + 1.6; z < z1 - .8; z += 3.2) put(new T.Mesh(box(.12, WH - 1.3, .22), MAT.marbleTop), fx, 1.3 + (WH - 1.3) / 2, z);   // 파사드 기둥
+    W.rects.push([x0, z0, x1, z1]); };
+  mass(-ROOM.x, WING.west, -ROOM.z, WING.z1, +1, '#ff5fc8');          // 서쪽: 노래방 동
+  mass(WING.east, ROOM.x, 2.9, WING.z1, -1, '#3dd8ff');               // 동쪽: 화장실 동
+  mass(18.4, ROOM.x, -ROOM.z, -14.2, -1, '#ffb35a');                  // 동북: 바 창고
+  // 서쪽 동 간판
+  { const big = NC.neonSign('🎤 노래방 KARAOKE', 8, 1.3, { font: '900 110px "Malgun Gothic",sans-serif', color: '#fff2fb', glow: '#ff3dbb', ph: 180 }); big.material.color.setScalar(2.2); big.position.set(WING.west + .1, WH + .9, -1); big.rotation.y = Math.PI / 2; S.add(big); }
+  // 웨이터 스테이션 (통로 서쪽 끝, 노래방 동 앞)
+  { const wx = WING.west + .45;
+    put(new T.Mesh(box(.8, 1.1, 1.4), MAT.wood), wx, .55, CZ); put(new T.Mesh(box(.9, .05, 1.5), MAT.marbleDark), wx, 1.12, CZ); put(new T.Mesh(box(.03, .03, 1.5), M.emi('#ffd23d', 3)), wx + .45, 1.08, CZ);
+    const ws = NC.neonSign('🤵 WAITER', 1.6, .4, { font: '800 100px Arial', color: '#fff6c8', glow: '#ffb800', ph: 200 }); ws.material.color.setScalar(1.8); ws.position.set(wx + .42, 1.55, CZ); ws.rotation.y = Math.PI / 2; S.add(ws);
+    W.rects.push([wx - .4, CZ - .7, wx + .4, CZ + .7]); W.spots.waiterStation = { x: wx + 1.4, z: CZ, ry: Math.PI / 2 }; }
+  { const bs = NC.neonSign('BOOKING ROAD · 부킹 통로', 7, 1.1, { font: '800 80px "Malgun Gothic",sans-serif', color: '#ffd1ea', glow: '#ff3d9a' }); bs.material.color.setScalar(2); bs.position.set(0, 5.4, CZ); bs.rotation.y = Math.PI; S.add(bs);
+    put(new T.Mesh(new T.CylinderGeometry(.006, .006, 5, 4), MAT.black), -3, 8.4, CZ); put(new T.Mesh(new T.CylinderGeometry(.006, .006, 5, 4), MAT.black), 3, 8.4, CZ); }
+  corridorLight = new T.PointLight(col('#ff9ad0'), .9, 24); corridorLight.position.set(0, 4.5, CZ); S.add(corridorLight);
+  W.corridorY = CZ;
+  // ★ 노래방 메인 입구 (서쪽 동 가운데)
+  const dx = WING.west + .06, dz = -1;
   put(new T.Mesh(box(.2, 3.0, 2.4), MAT.gold), dx, 1.5, dz);
   const door = put(new T.Mesh(new T.PlaneGeometry(2.0, 2.7), pbr('tufted', { repeat: [2, 3], color: '#8a1a4a', gen: { leather: true, cells: 3 } })), dx + .12, 1.35, dz); door.rotation.y = Math.PI / 2;
   put(new T.Mesh(box(.05, .05, 2.2), M.emi('#ff5fa8', 4)), dx + .15, 2.8, dz);
-  const ks = NC.neonSign('🎤 2차 노래방', 3.2, .9, { font: '900 120px "Malgun Gothic",sans-serif', color: '#fff2fb', glow: '#ff3dbb', ph: 256 }); ks.material.color.setScalar(2.4); ks.position.set(dx + .14, 3.45, dz); ks.rotation.y = Math.PI / 2; S.add(ks);
-  const kl = new T.PointLight(col('#ff5fc8'), 1.1, 7); kl.position.set(dx + 1.2, 2.6, dz); S.add(kl);
+  const ks = NC.neonSign('🎤 노래방 입구', 3.2, .9, { font: '900 120px "Malgun Gothic",sans-serif', color: '#fff2fb', glow: '#ff3dbb', ph: 256 }); ks.material.color.setScalar(2.4); ks.position.set(dx + .14, 3.45, dz); ks.rotation.y = Math.PI / 2; S.add(ks);
+  kdoorLight = new T.PointLight(col('#ff5fc8'), 1.1, 7); kdoorLight.position.set(dx + 1.2, 2.6, dz); S.add(kdoorLight);
   W.spots.karaokeDoor = { x: dx + 1.1, z: dz };
-  // ★ 화장실 입구 (통로 동쪽 끝) · 흡연실 입구 (서쪽 벽, 무대 옆)
-  const doorAt = (x, z, ry, label, glow, lc) => { put(new T.Mesh(box(.2, 2.8, 1.8), MAT.gold), x, 1.4, z).rotation.y = ry; const dp = put(new T.Mesh(new T.PlaneGeometry(1.5, 2.5), pbr('wood', { repeat: [1, 2], roughness: .5, gen: { a: '#1a100a', b: '#3e2616' } })), x + Math.sin(ry) * .12, 1.25, z + Math.cos(ry) * .12); dp.rotation.y = ry;
-    const sg = NC.neonSign(label, 2.4, .6, { font: '900 110px "Malgun Gothic",sans-serif', color: '#ffffff', glow, ph: 220 }); sg.material.color.setScalar(2.2); sg.position.set(x + Math.sin(ry) * .14, 3.05, z + Math.cos(ry) * .14); sg.rotation.y = ry; S.add(sg); void lc; };
-  doorAt(ROOM.x - .06, 6.95, -Math.PI / 2, '🚹 남자', '#3dd8ff', '#9ae8ff'); W.spots.restroomDoor = { x: ROOM.x - 1.1, z: 6.95 }; doorAt(ROOM.x - .06, 4.6, -Math.PI / 2, '🚺 여자', '#ff5fb0', '#ffb0d8'); W.spots.wroomDoor = { x: ROOM.x - 1.1, z: 4.6 };
-  doorAt(-ROOM.x + .06, -17, Math.PI / 2, '🚬 흡연실', '#ffb03d', '#ffcf8a'); W.spots.smokeDoor = { x: -ROOM.x + 1.1, z: -17 };
+  // 노래방 룸 문 (장식 · 번호 네온) — 실제 입장은 메인 입구에서 카운터 안내
+  const roomDoor = (z, no) => { put(new T.Mesh(box(.14, 2.5, 1.4), MAT.gold), dx, 1.25, z); const d = put(new T.Mesh(new T.PlaneGeometry(1.15, 2.3), pbr('wood', { repeat: [1, 2], roughness: .5, gen: { a: '#2a0f1e', b: '#5a1e3a' } })), dx + .09, 1.15, z); d.rotation.y = Math.PI / 2;
+    put(new T.Mesh(box(.04, .3, .3), M.std('#141018', { roughness: .1, metalness: .5, transparent: true, opacity: .7 })), dx + .1, 1.65, z);   // 작은 유리창
+    const n = NC.neonSign(`${no}호`, .9, .4, { font: '900 120px Arial', color: '#fff', glow: '#ff6fd8', ph: 160 }); n.material.color.setScalar(2); n.position.set(dx + .12, 2.65, z); n.rotation.y = Math.PI / 2; S.add(n); };
+  [[-6.5, 1], [3.6, 2], [7.4, 3], [-13.5, 5]].forEach(([z, no]) => roomDoor(z, no));
+  // ★ 화장실 (동쪽 동) · 흡연실 (서쪽 동 북쪽)
+  const doorAt = (x, z, ry, label, glow) => { put(new T.Mesh(box(.2, 2.8, 1.8), MAT.gold), x, 1.4, z).rotation.y = ry; const dp = put(new T.Mesh(new T.PlaneGeometry(1.5, 2.5), pbr('wood', { repeat: [1, 2], roughness: .5, gen: { a: '#1a100a', b: '#3e2616' } })), x + Math.sin(ry) * .12, 1.25, z + Math.cos(ry) * .12); dp.rotation.y = ry;
+    const sg = NC.neonSign(label, 2.4, .6, { font: '900 110px "Malgun Gothic",sans-serif', color: '#ffffff', glow, ph: 220 }); sg.material.color.setScalar(2.2); sg.position.set(x + Math.sin(ry) * .14, 3.05, z + Math.cos(ry) * .14); sg.rotation.y = ry; S.add(sg); };
+  doorAt(WING.east - .06, 5.2, -Math.PI / 2, '🚹 남자', '#3dd8ff'); W.spots.restroomDoor = { x: WING.east - 1.1, z: 5.2 };
+  doorAt(WING.east - .06, 8.6, -Math.PI / 2, '🚺 여자', '#ff5fb0'); W.spots.wroomDoor = { x: WING.east - 1.1, z: 8.6 };
+  doorAt(WING.west + .06, -10, Math.PI / 2, '🚬 흡연실', '#ffb03d'); W.spots.smokeDoor = { x: WING.west + 1.1, z: -10 };
+  { const rs = NC.neonSign('RESTROOM · 화장실', 4.2, .8, { font: '800 90px "Malgun Gothic",sans-serif', color: '#e8fbff', glow: '#3dd8ff', ph: 200 }); rs.material.color.setScalar(2); rs.position.set(WING.east - .1, WH + .7, 7); rs.rotation.y = -Math.PI / 2; S.add(rs); }
 }
 
 /* ═════ ③ VIP 룸 ═════ */
-const VIP_Z0 = 9.2, VIP_Z1 = ROOM.z, VIP_COL = ['#b07cff', '#ffc46b', '#ff6fae'];
+const VIP_Z0 = 12, VIP_Z1 = ROOM.z, VIP_COL = ['#b07cff', '#ffc46b', '#ff6fae'];
 const vipGlass = new T.MeshStandardMaterial({ color: col('#c8a8ff'), transparent: true, opacity: .2, roughness: .03, metalness: .4, envMapIntensity: 1.8, depthWrite: false, side: T.DoubleSide });
 const frameMat = MAT.gold;
 const vipCenters = [-15, 0, 15], HW = 6.5, DOOR_W = 2.4;
@@ -376,38 +393,27 @@ vipCenters.forEach((cx, i) => {
   const doorLed = put(new T.Mesh(box(DOOR_W, .05, .05), M.emi('#6dff8a', 3)), cx, 3.45, VIP_Z0 - .1); door.led = doorLed; doorLed.userData.dyn = true; doorLed.material = doorLed.material.clone();
   const tableC = { x: cx, z: 16 };
   const seats = [[cx - 2.2, 18.5], [cx, 18.5], [cx + 2.2, 18.5], [cx - 5.1, 15.2], [cx + 5.1, 15.2], [cx - 5.1, 13.2]].map(([x, z]) => ({ x, z, ry: Math.atan2(tableC.x - x, tableC.z - z), h: .45 }));
-  W.vip.push({ id: i, cx, x0, x1, z0: VIP_Z0, z1: VIP_Z1, color: c, door, seats, occ: seats.map(() => null), light: L, champ, entry: { x: cx, z: VIP_Z0 + 2.2 }, front: { x: cx, z: 7 } });
+  W.vip.push({ id: i, cx, x0, x1, z0: VIP_Z0, z1: VIP_Z1, color: c, door, seats, occ: seats.map(() => null), light: L, champ, entry: { x: cx, z: VIP_Z0 + 2.2 }, front: { x: cx, z: VIP_Z0 - 1.25 } });
 });
 
 /* 다른 공간(노래방)이 들어갈 때 빌려 쓰는 광원 — 광원 개수를 늘리지 않아 셰이더 재컴파일·프레임 저하가 없음 */
 W.lights = { key, ball: ballSpot };
-S.children.forEach(o => { if (o.isPointLight && !W.lights.bar && Math.abs(o.position.x - 20.5) < .01) W.lights.bar = o; if (o.isPointLight && Math.abs(o.position.z - 6.9) < .01 && o.position.y === 4.5) W.lights.corridor = o; if (o.isPointLight && o.position.x < -20 && Math.abs(o.position.z - 6.95) < .01) W.lights.kdoor = o; });
+W.lights.corridor = corridorLight; W.lights.kdoor = kdoorLight;
+S.children.forEach(o => { if (o.isPointLight && !W.lights.bar && Math.abs(o.position.x - 20.5) < .01) W.lights.bar = o; });
 /* ── 질의 함수 ── */
 W.extraZones = [];      // karaoke.js 등 별도 공간이 { test(x,z), name, collide(p,r), label } 로 등록
-W.terraceVia = (from, to) => {
-  const up = p => terraceY(p.x, p.z) > TY * .9, a = up(from), b = up(to); if (a === b) return [];
-  const p = a ? from : to, side = p.x < 0 ? -1 : 1, sz = TER.steps.reduce((best, z) => Math.abs(z - p.z) < Math.abs(best - p.z) ? z : best, TER.steps[0]);
-  const top = { x: side * (TER.inner + .7), z: sz }, bot = { x: side * (TER.inner - TER.band - .7), z: sz };
-  return a ? [top, bot] : [bot, top];
-};
+W.terraceVia = () => [];   // v15: 테라스 없음(평지)
 W.vipAt = (x, z) => { for (const v of W.vip) if (x > v.x0 + .1 && x < v.x1 - .1 && z > v.z0 + .1 && z < v.z1) return v.id; return -1; };
 W.zoneAt = (x, z) => {
   for (const e of W.extraZones) if (e.test(x, z)) return { name: e.name };
   const v = W.vipAt(x, z); if (v >= 0) return { name: 'vip', room: v };
   if (inR(Z.stage, x, z)) return { name: 'stage' }; if (inR(Z.dance, x, z)) return { name: 'dance' };
-  if (inR(Z.corridor, x, z)) return { name: 'corridor' }; if (inR(Z.bar, x, z)) return { name: 'bar' }; if (Math.abs(x) < 9.5) return { name: 'hall' }; return { name: 'tables' };
+  if (inR(Z.corridor, x, z)) return { name: 'corridor' }; if (inR(Z.bar, x, z)) return { name: 'bar' }; if (z > -2.6 || Math.abs(x) > 9.5) return { name: 'tables' }; return { name: 'hall' };
 };
-W.zoneLabel = { hall: '메인 홀', stage: '메인 스테이지', dance: '댄스플로어', corridor: '부킹 통로', bar: '바', tables: '테이블존', vip: 'VIP 룸' };
-const terraceY = (x, z) => {
-  const ax = Math.abs(x), onX = x < 0 ? (x >= TER.westX && ax >= TER.inner) : (x <= TER.eastX && ax >= TER.inner);
-  if (z >= TER.z0 && z <= TER.z1 && onX) return TY;
-  if (z >= TER.z0 && z <= TER.z1 && ax > TER.inner - TER.band && ax < TER.inner && TER.steps.some(sz => Math.abs(z - sz) <= TER.stepW / 2)) return TY * (ax - (TER.inner - TER.band)) / TER.band;   // 안쪽 계단
-  if (x > TER.eastX && x < TER.eastX + .8 && Math.abs(z + 5.5) <= 1.1) return TY * (1 - (x - TER.eastX) / .8);                                                    // 바 쪽 계단
-  if (z > TER.z1 && z < TER.z1 + .8 && ((x < 0 && x > TER.westX && ax > TER.inner) || (x > 0 && x < TER.eastX && ax > TER.inner))) return TY * (1 - (z - TER.z1) / .8); // 통로 쪽 단
-  return -1;
-};
+W.zoneLabel = { hall: '메인 홀', stage: '메인 스테이지', dance: '댄스플로어', corridor: '부킹 통로', bar: '바', tables: '테이블존', vip: 'VIP 룸', dj: 'DJ 부스' };
+const terraceY = () => -1;   // v15: 테라스 없음
 W.terraceY = terraceY;
-NC.groundY = (x, z) => { const ty = terraceY(x, z); if (ty >= 0) return ty; if (x < stg.x0 || x > stg.x1 || z < -ROOM.z || z > ROOM.z) return 0; if (z <= stg.z1) return .5; if (z < stg.z1 + .9 && Math.abs(x) < 3) return .5 * (1 - (z - stg.z1) / .9); return 0; };
+NC.groundY = (x, z) => { if (Math.abs(x) <= Z.dj.x1 && z <= Z.dj.z1 && z >= -ROOM.z) return Z.dj.y; if (x < stg.x0 || x > stg.x1 || z < -ROOM.z || z > ROOM.z) return 0; if (z <= stg.z1) return .5; if (z < stg.z1 + .9 && Math.abs(x) < 3) return .5 * (1 - (z - stg.z1) / .9); return 0; };
 W.locked = i => (NC.roomLockedForMe ? NC.roomLockedForMe(i) : false);
 function collideRects(p, r, rects) {
   for (const [x0, z0, x1, z1] of rects) {
@@ -430,15 +436,15 @@ let ledT = 0;
 W.tickers = [];
 W.update = function (dt, t, agents) {
   const b = NC.Audio ? NC.Audio.beat() : { phase: (t * 118 / 60) % 1, n: Math.floor(t * 118 / 60), bpm: 118 };
-  const kick = 1 - b.phase;
-  ball.rotation.y += dt * .5; updateSpecks(ball.rotation.y);
+  const SPK = TH.sparkle !== false, kick = SPK ? 1 - b.phase : .35;   // v15: 반짝임 없는 테마 = 비트 펄스·반사점·깜빡임 정지
+  speckPts.visible = SPK; ballSpot.intensity = SPK ? 1.2 : 0; if (SPK) { ball.rotation.y += dt * .5; updateSpecks(ball.rotation.y); }
   const sp = TH.speed, spK = TH.spotK || 1;
   spots.forEach(s => { const a = t * .55 * sp + s.k * 1.6; s.tg.position.set(Math.cos(a) * 7, 0, -8 + Math.sin(a * 1.3) * 5.5);
     const dx = s.tg.position.x - s.pos.x, dy = s.tg.position.y - s.pos.y, dz = s.tg.position.z - s.pos.z;
     s.yoke.rotation.y = Math.atan2(dx, dz); s.head.rotation.x = -Math.atan2(-dy, Math.hypot(dx, dz)) + 0; s.head.rotation.x = Math.atan2(-dy, Math.hypot(dx, dz));
-    if (s.L) s.L.intensity = (2.2 + Math.sin(t * 3 * sp + s.k) * .5 + kick * .5 * sp) * spK; s.beam.material.uniforms.time.value = t; s.beam.material.uniforms.intensity.value = ((s.L ? .26 : .2) + kick * .1 * sp) * TH.beam; });
-  glows[0].intensity = 1.1 + Math.sin(t * 4) * .4; glows[1].intensity = 1.1 + Math.cos(t * 4) * .4;
-  for (let i = 0, k = 0; i < TX; i++) for (let j = 0; j < TZ; j++, k++) { const f = (t * .1 * sp + (i + j) * .045) % 1, h = (TH.h0 + (TH.h1 - TH.h0) * (TH.h1 - TH.h0 >= .99 ? f : .5 + .5 * Math.sin(f * 6.283))) % 1, v = .35 + .4 * Math.max(0, Math.sin(t * 2 * sp + (i * 2 + j * 3) * .6)) + kick * .25 * sp * ((i + j + b.n) % 2); tmpC.setHSL(h, TH.sat, v * TH.lit); tiles.setColorAt(k, tmpC); }
+    if (s.L) s.L.intensity = (SPK ? 2.2 + Math.sin(t * 3 * sp + s.k) * .5 + kick * .5 * sp : 2.1) * spK; s.beam.material.uniforms.time.value = t; s.beam.material.uniforms.intensity.value = ((s.L ? .26 : .2) + kick * .1 * sp) * TH.beam; });
+  glows[0].intensity = SPK ? 1.1 + Math.sin(t * 4) * .4 : 1; glows[1].intensity = SPK ? 1.1 + Math.cos(t * 4) * .4 : 1;
+  for (let i = 0, k = 0; i < TX; i++) for (let j = 0; j < TZ; j++, k++) { const f = (t * .1 * sp + (i + j) * .045) % 1, h = (TH.h0 + (TH.h1 - TH.h0) * (TH.h1 - TH.h0 >= .99 ? f : .5 + .5 * Math.sin(f * 6.283))) % 1, v = SPK ? .35 + .4 * Math.max(0, Math.sin(t * 2 * sp + (i * 2 + j * 3) * .6)) + kick * .25 * sp * ((i + j + b.n) % 2) : .5 + .08 * Math.sin(t * .3 + (i + j) * .25); tmpC.setHSL(h, TH.sat, v * TH.lit); tiles.setColorAt(k, tmpC); }
   tiles.instanceColor.needsUpdate = true;
   const pattern = Math.floor(b.n / 8) % 4, laserOn = TH.laser && pattern !== 3; const hue = (Math.floor(b.n / 4) * .17) % 1;
   lasers.forEach((m, i) => {
@@ -458,7 +464,7 @@ W.update = function (dt, t, agents) {
     v.door.led.material.emissive.copy(col(locked ? '#ff3355' : v.occ.some(Boolean) ? '#ffd23d' : '#6dff8a'));
     v.light.intensity = 1.3 + .25 * Math.sin(t * 1.5 + v.id);
   });
-  if (W.marquee) { for (let i = 0; i < W.marqueeN; i++) { const on = ((i + Math.floor(t * 6)) % 3) === 0; tmpC.setRGB(on ? 3.2 : .9, on ? 2.4 : .6, on ? 1.3 : .3); W.marquee.setColorAt(i, tmpC); } W.marquee.instanceColor.needsUpdate = true; }
+  if (W.marquee) { for (let i = 0; i < W.marqueeN; i++) { const on = SPK ? ((i + Math.floor(t * 6)) % 3) === 0 : true; tmpC.setRGB(on ? 3.2 : .9, on ? 2.4 : .6, on ? 1.3 : .3); W.marquee.setColorAt(i, tmpC); } W.marquee.instanceColor.needsUpdate = true; }
   W.tickers.forEach(f => f(dt, t, b));
 };
 ball.userData.dyn = true; floor.userData.dyn = true;

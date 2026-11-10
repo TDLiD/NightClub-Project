@@ -35,7 +35,7 @@ function pickWaypoint() {
   if (r < .45) return { x: Z.dance.x0 + .8 + Math.random() * (Z.dance.x1 - Z.dance.x0 - 1.6), z: Z.dance.z0 + .8 + Math.random() * (Z.dance.z1 - Z.dance.z0 - 1.6), act: 'dance' };
   if (r < .57) return { x: -8 + Math.random() * 16, z: -15.8 + Math.random() * 2.2, act: 'stage' };
   if (r < .75) return { x: 19.2, z: -12 + Math.random() * 13.5, act: 'bar' };
-  if (r < .9) return { x: -20 + Math.random() * 40, z: 6.2 + Math.random() * 1.5, act: 'walk' };
+  if (r < .9) return { x: -16 + Math.random() * 32, z: (W.corridorY || 10.75) - .6 + Math.random() * 1.2, act: 'walk' };
   const t = U.pick(NC.tables); return { x: t.x + (Math.random() < .5 ? -3.2 : 3.2), z: t.z + (Math.random() - .5) * 2, act: 'idle' };
 }
 /* VIP 출입을 고려한 경로 계획 */
@@ -43,7 +43,7 @@ function planPath(from, to) {
   if (NC.Path) { const r = NC.Path.find(from, to, { exact: true }); if (r) return r; }   // v9: 격자 A* (벽·유리·가구 회피)
   const out = [], a = W.vipAt(from.x, from.z), b = W.vipAt(to.x, to.z);
   if (a >= 0 && a !== b) { const v = W.vip[a]; out.push(v.entry, { x: v.cx, z: v.z0 }, v.front); }
-  if (b >= 0 && a !== b) { const v = W.vip[b]; if (from.z < W.zones.corridor.z0 && a < 0) out.push({ x: U.clamp(from.x, -9.5, 9.5), z: 4 }); out.push(v.front, { x: v.cx, z: v.z0 }, v.entry); }
+  if (b >= 0 && a !== b) { const v = W.vip[b]; if (from.z < W.zones.corridor.z0 && a < 0) out.push({ x: 0, z: (W.corridorY || 10.75) - 1.6 }); out.push(v.front, { x: v.cx, z: v.z0 }, v.entry); }
   if (W.terraceVia) out.push(...W.terraceVia(out.length ? out[out.length - 1] : from, to));
   out.push(to); return out;
 }
@@ -104,7 +104,7 @@ NC.NPC = {
   personas: () => npcs.filter(n => n.role === 'persona'),
   setCrowdEnabled(on) { crowdOn = on; npcs.forEach(n => { if (n.state === 'seated' || n.booked) return; n.enabled = on; n.g.visible = on; n.state = on ? 'wander' : 'off'; }); },
   show(n, on = true) { n.enabled = on; n.g.visible = on; if (on && n.state === 'off') n.state = 'wander'; if (!on) n.state = 'off'; },
-  sit(n, x, z, ry, h) { n.state = 'seated'; n.x = x; n.z = z; NC.seatAvatar(n.g, x, z, ry, h); },
+  sit(n, x, z, ry, h) { n._seatArgs = [x, z, ry, h]; n.state = 'seated'; n.x = x; n.z = z; NC.seatAvatar(n.g, x, z, ry, h); },
   release(n) { const u = n.g.userData; NC.unseatAvatar(n.g); n.state = (crowdOn || !NC.isOnline()) ? 'wander' : 'off'; n.booked = false; n.wp = null; n.pause = 1; u.lookAt = null; u.talk = false; if (n.state === 'off') { n.g.visible = false; n.enabled = false; } },
   init(data) {
     (data.personas || []).forEach(d => spawn(d, 'persona'));

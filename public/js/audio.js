@@ -86,6 +86,7 @@ const A = NC.Audio = {
     trot:   { name: '신나는 트로트', bpm: 136, roots: [55, 73.42, 82.41, 55] },
     lounge: { name: '칠 라운지', bpm: 86, roots: [49, 41.2, 55, 46.25] },
     synth:  { name: '레트로 신스팝', bpm: 110, roots: [55, 43.65, 49, 41.2] },
+    ballad: { name: '블루스 발라드', bpm: 68, roots: [49, 41.2, 43.65, 55] },
   },
   setStyle(id) { const S = this.STYLES[id]; if (!S) return; this.style = id; this.bpm = S.bpm; NC.util.store.set('nc_music', id); if (this.ctx) { this.step = 0; this.next = this.t0 = this.ctx.currentTime + .08; } NC.emit('music:style', id); },
   kick(t, v = 1.1) { const C = this.ctx, o = C.createOscillator(), g = C.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + .12); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + .24); o.connect(g); g.connect(this.musicBus); o.start(t); o.stop(t + .26); },
@@ -122,6 +123,12 @@ const A = NC.Audio = {
         this.tone(root * 4 * [1, 1.5, 2, 3, 2, 1.5, 1.26, 1.5][s % 8], t, .1, 'square', .035, 2800);
         if (s % 2 === 0) this.tone(root * 2, t, .1, 'sawtooth', .28, 500);
         if (b === 0) [1, 1.26, 1.5].forEach(m => this.tone(root * 2 * m, t, 2, 'sawtooth', .025, 1200)); break;
+      case 'ballad':     // v15 블루스 타임: 느린 6/8 느낌 — 부드러운 킥 · 브러시 · 일렉피아노 코드 · 현악 패드 · 서브 베이스
+        if (b === 0 || b === 8) this.kick(t, .55); if (b === 4 || b === 12) this.hit(t, 2200, .3, .08); if (s % 2 === 0) this.hit(t, 6500, .08, .03);
+        if (b === 0) { [1, 1.26, 1.5, 1.89].forEach(m => this.tone(root * 4 * m, t, 3.2, 'sine', .055, 1500)); [1, 1.5, 2].forEach(m => this.tone(root * 2 * m, t, 3.6, 'sawtooth', .014, 900)); }
+        if (b === 8) [1.5, 1.89, 2.24].forEach(m => this.tone(root * 4 * m, t, 2.2, 'sine', .04, 1500));
+        if (b === 0 || b === 10) this.tone(root, t, 1.4, 'sine', .42, 200);
+        if (b === 6 || b === 14) this.tone(root * 8 * [1.5, 1.26, 1.33, 1.12][bar], t, .9, 'triangle', .03, 2400); break;
       default: {         // euro (기본)
         if (s % 4 === 0) this.kick(t);
         if (s % 8 === 4) this.hit(t, 1400, .13, .35);

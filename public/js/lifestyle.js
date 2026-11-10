@@ -29,7 +29,7 @@ $('#cpToggle').onclick = () => { panel.classList.toggle('open'); renderPanel(); 
 $('#cpPhoto').onclick = () => photo();
 $('#cpHelp').onclick = () => NC.ui.modal(`<h3>🍸 나이트 생활 가이드</h3><ul style="text-align:left;line-height:1.7">
   <li>🪑 <b>테이블·VIP 소파·바 의자</b>에 다가가 E → 앉으면 웨이터/바텐더가 주문을 받아요</li><li>🛋 빈 <b>VIP 룸</b>에 들어가면 웨이터가 따라와 안내해요</li>
-  <li>🍹 하단 액션바: 마시기 · 건배 · 옆자리 대화 · 술 한 잔 사기 · 팁</li><li>🚻 <b>화장실</b>(통로 동쪽 끝) · 🚬 <b>흡연실</b>(무대 옆 서쪽 벽) · 🎤 2차 노래방(통로 서쪽 끝)</li>
+  <li>🍹 하단 액션바: 마시기 · 건배 · 옆자리 대화 · 술 한 잔 사기 · 팁</li><li>🚻 <b>화장실</b>(동쪽 화장실 동) · 🚬 <b>흡연실</b>(서쪽 동 북쪽) · 🎤 노래방(서쪽 노래방 동 입구)</li>
   <li>🎵 <b>DJ 부스</b> 앞에서 신청곡 · 🍺 취기가 오르면 물을 드세요</li></ul>`, [['알겠어요', 'ok', true]]);
 NC.on('music:style', renderPanel); NC.on('theme', renderPanel);
 
@@ -97,7 +97,7 @@ function sip() {
   const d = life.drink; if (!d) return NC.ui.toast('마실 게 없어요 · 주문부터 해 보세요');
   Mo.play(P().group, 'drink'); life.sips++; life.tipsy = U.clamp(life.tipsy + d.alc * .45, 0, 5); life.bladder += d.id === 'water' ? .6 : .45;
   if (life.sips >= 3) { life.drink = null; setTimeout(() => { P().group.userData.holdGlass = false; }, 2000); }
-  if (life.bladder >= 3 && !life.warned) { life.warned = true; setTimeout(() => NC.ui.toast('🚻 화장실이 가고 싶어요 — 통로 동쪽 끝에 화장실이 있어요'), 2200); }
+  if (life.bladder >= 3 && !life.warned) { life.warned = true; setTimeout(() => NC.ui.toast('🚻 화장실이 가고 싶어요 — 동쪽 벽 화장실 동(부킹 통로 옆)에 있어요'), 2200); }
   if (life.tipsy >= 4.5) NC.ui.toast('🥴 많이 취했어요… 물을 마시고 쉬어 가세요');
   hudUpdate();
 }

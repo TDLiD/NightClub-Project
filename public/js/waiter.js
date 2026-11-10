@@ -67,7 +67,7 @@ NC.Waiter = { match, rep: () => rep };
 function spawnWaiters() {
   DATA.waiters.forEach((w, k) => {
     const g = NC.Avatar.create({ name: w.title, look: w.look, seed: U.hash(w.id), expr: 'smile', labelColor: '#ffd23d' });
-    const sp = W.spots.waiterStation; const o = { def: w, g, x: w.station ? sp.x : -12, z: w.station ? sp.z : 6.9, home: w.station ? { x: sp.x, z: sp.z } : null, state: 'idle', path: null, t: Math.random() * 10, busy: false };
+    const sp = W.spots.waiterStation; const o = { def: w, g, x: w.station ? sp.x : -12, z: w.station ? sp.z : (W.corridorY || 10.75), home: w.station ? { x: sp.x, z: sp.z } : null, state: 'idle', path: null, t: Math.random() * 10, busy: false };
     g.position.set(o.x, 0, o.z); NC.scene.add(g); waiters.push(o);
   });
 }
@@ -80,7 +80,7 @@ function updateWaiters(dt, cam) {
       if (!p) { o.state = 'idle'; u.moving = false; const f = o.done; o.done = null; f && f(); }
       else { const dx = p.x - o.x, dz = p.z - o.z, d = Math.hypot(dx, dz); if (d < .3) o.path.shift(); else { const s = Math.min(d, o.speed * dt); o.x += dx / d * s; o.z += dz / d * s; NC.collide(o, .35); o.g.rotation.y = U.lerpAngle(o.g.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 8)); u.moving = true; } }
     } else if (!o.busy && !o.home) {                    // 순찰 웨이터: 통로 왕복
-      if (o.state === 'idle') { const tx = o.x < 0 ? 18 : -18; walk(o, [{ x: tx, z: 6.6 + Math.random() * .6 }], () => { o.state = 'wait'; o.wait = 3 + Math.random() * 5; Mo.play(o.g, 'lookAround'); }, 1.6); }
+      if (o.state === 'idle') { const tx = o.x < 0 ? 15.5 : -15.5; walk(o, [{ x: tx, z: (W.corridorY || 10.75) - .3 + Math.random() * .6 }], () => { o.state = 'wait'; o.wait = 3 + Math.random() * 5; Mo.play(o.g, 'lookAround'); }, 1.6); }
       else if (o.state === 'wait') { u.moving = false; o.wait -= dt; if (o.wait < 0) o.state = 'idle'; }
     } else { u.moving = false; if (o.home && !o.busy) { if (Math.hypot(o.home.x - o.x, o.home.z - o.z) > .5) walk(o, [o.home]); else o.g.rotation.y = U.lerpAngle(o.g.rotation.y, 0, dt * 3); } }
     const P = NC.player; if (!o.busy && P.group && Math.hypot(P.x - o.x, P.z - o.z) < 3.5) u.lookAt = P; else if (!o.busy) u.lookAt = null;
@@ -137,7 +137,7 @@ function escort(o, room, n, tier) {
   NC.walkPlayer(NC.NPC.planPath(P, v.seats[1]), () => {
     NC.ui.fade(() => { v.occ[1] = 'me'; NC.sitPlayer({ kind: 'vip', room, s: 1 }, v.seats[1]); if (tier.champagne) v.champ.visible = true; });
     // NPC 호출: 멀리 있으면 통로에서 등장
-    NC.NPC.show(n, true); n.booked = true; if (Math.hypot(n.x - v.cx, n.z - 7) > 18 || NC.isOnline()) { n.x = v.cx + 6; n.z = 6.9; }
+    NC.NPC.show(n, true); n.booked = true; if (Math.hypot(n.x - v.cx, n.z - v.front.z) > 18 || NC.isOnline()) { n.x = v.cx + 4; n.z = W.corridorY || 10.75; }
     NC.NPC.goTo(n, v.seats[2], () => {
       VIP.seatBoth(room, n); VIP.session = { room, npc: n };
       n.aff = U.clamp(n.aff + tier.affBonus + (tier.champagne ? 0 : 0), 0, 100);
