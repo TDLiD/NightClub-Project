@@ -17,7 +17,7 @@ box.innerHTML = `<div class="glHead"><b>👥 손님</b><span id="glCount"></span
   <div id="glOnline"></div><div id="glAI"></div></div>`;
 document.body.appendChild(box);
 const $ = s => box.querySelector(s);
-let filter = 'all', folded = window.innerWidth < 700, follow = null;
+let filter = 'all', folded = window.innerWidth < 700 || window.innerHeight < 500, follow = null;
 const fold = v => { folded = v; box.classList.toggle('folded', v); $('#glFold').textContent = v ? '▸' : '▾'; };
 $('#glFold').onclick = () => fold(!folded); box.querySelector('.glHead b').onclick = () => fold(!folded);
 $('#glFilter').onclick = e => { const b = e.target.closest('button'); if (!b) return; filter = b.dataset.f; $('#glFilter').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); render(true); };

@@ -114,11 +114,11 @@ const KINDS = {
   selfie: { need: ['f', 'f'], script: g => [
     [3, () => { const [a] = g.ns; G_(a, 'aegyo'); say(a, pk(L.selfie), 1.8); g.flash = 1; g.ns.slice(1).forEach(o => G_(o, 'aegyo')); }], [5, () => { G_(g.ns[1], 'laugh'); say(g.ns[1], '나 눈 감았어 다시!!'); }], [6, () => {}]] },
   // ── VIP ──
-  vipParty: { need: ['m', 'f', 'm', 'f'], vip: true, script: g => [
+  vipParty: { need: ['m', 'f', '*'], vip: true, script: g => [
     [2, () => { W.vip[g.vip].champ.visible = true; say(g.ns[0], pk(L.vipParty), 2.4); g.ns.forEach((n, i) => setTimeout(() => G_(n, 'cheers'), i * 200)); }],
     [4, () => { g.ns.forEach((n, i) => { const p = outside(g, n, i); standAt(n, p.x, p.z); n.g.userData.dance = 'stageDance'; n.g.rotation.y = Math.PI; }); say(g.ns[1], '꺄~ 이 노래 좋아!!'); }],
     [10, () => { const n = pk(g.ns); G_(n, 'cheer'); say(n, pk(L.vipParty)); }], [8, () => { g.ns.forEach(sitBack); g.ns.forEach(n => G_(n, 'drink')); }], [10, () => {}]] },
-  vipBrawl: { need: ['m', 'm', 'f', '*'], vip: true, script: g => { const [a, b, c, d] = g.ns; return [
+  vipBrawl: { need: ['m', 'm', 'f'], vip: true, script: g => { const [a, b, c, d] = g.ns; return [
     [3, () => { G_(a, 'cheers'); G_(b, 'cheers'); say(a, '자 형님 한 잔 받으세요~'); }], [3, () => { say(b, '💦 앗… 쏟았다', 1.6); setTimeout(() => { say(a, pk(L.vipBrawlA)); G_(a, 'point'); }, 1200); }],
     [2.4, () => { g.ns.forEach((n, i) => { const p = outside(g, n, i); standAt(n, p.x, p.z); }); faceEach(a, b); }],
     [1.6, () => { G_(a, 'push'); setTimeout(() => G_(b, 'flinch'), 300); say(b, pk(L.vipBrawlB)); }], [1.6, () => { G_(b, 'slap'); setTimeout(() => G_(a, 'flinch'), 350); if (d) { G_(d, 'push'); setTimeout(() => G_(a, 'flinch'), 500); } }],
@@ -138,23 +138,27 @@ function setKind(g, kind) {
 const NAMES_F = ['보라', '하늘', '예슬', '미나', '세라', '다인', '채원', '소율', '가은', '나연', '루나', '제니', '윤아', '슬기', '혜원', '은비'];
 const NAMES_M = ['상철', '동훈', '현우', '준혁', '성민', '태호', '민규', '재원', '우진', '건우', '형준', '대성', '진호', '석진', '영훈', '광수'];
 const TOPS_F = ['#ff5c8a', '#ffd23d', '#9b5cff', '#3de6ff', '#ff8a3d', '#ffffff', '#e0245e', '#7ae6b0'], TOPS_M = ['#2a2a35', '#ffffff', '#3d6aff', '#8a1a2a', '#1a5a3a', '#c0a060', '#5a5a6a'];
-function makeGuests(nF, nM) {    // 자리 채우기용 손님 생성 (npcs.json 의 기본 손님은 플로어를 돌아다니게 남겨 둠)
+function makeGuests(nF, nM, off = 0) {    // 자리 채우기용 손님 생성 (npcs.json 의 기본 손님은 플로어를 돌아다니게 남겨 둠)
   const out = [], hair = ['#1a120c', '#3b2417', '#5a3a22', '#2a1a10', '#8a5a2a', '#c8a070'];
-  for (let i = 0; i < nF + nM; i++) { const f = i < nF, nm = f ? NAMES_F[i % NAMES_F.length] : NAMES_M[(i - nF) % NAMES_M.length];
-    const n = NC.NPC.spawn({ id: `guest_${i}`, name: nm, gender: f ? 'f' : 'm', color: pk(f ? TOPS_F : TOPS_M), hair: pk(hair), trait: pk(['outgoing', 'shy', 'cool']), tag: '🍸 테이블 손님', job: '손님' }, 'crowd'); n.guest = true; out.push(n); }
+  for (let i = 0; i < nF + nM; i++) { const f = i < nF, j = i + off, nm = f ? NAMES_F[j % NAMES_F.length] : NAMES_M[j % NAMES_M.length];
+    const n = NC.NPC.spawn({ id: `guest_${j}`, name: nm, gender: f ? 'f' : 'm', color: pk(f ? TOPS_F : TOPS_M), hair: pk(hair), trait: pk(['outgoing', 'shy', 'cool']), tag: '🍸 테이블 손님', job: '손님' }, 'crowd'); n.guest = true; out.push(n); }
   return out;
 }
 function setupGroups() {
   if (online() || GROUPS.length) return;
   const low = NC.quality && NC.quality.level === 'low', nTables = low ? 8 : 10;
-  makeGuests(low ? 10 : 16, low ? 10 : 16);
+  if (low && !makeGuests.done) {   // 저사양(모바일): 손님을 한 명씩 나눠 만든 뒤 자리 배치 (한꺼번에 만들면 입장 직후 수 초 멈춤)
+    makeGuests.done = 'pending'; let k = 0; const idle = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 250 }) : f => setTimeout(f, 30);
+    const step = () => { if (k < 16) { makeGuests(k < 8 ? 1 : 0, k < 8 ? 0 : 1, k); k++; idle(step); } else { makeGuests.done = true; setupGroups(); } }; idle(step); return; }
+  if (low && makeGuests.done !== true) return;
+  if (!low) makeGuests(16, 16);
   const crowd = (NC.npcs || []).filter(n => n.role === 'crowd' && !n.stay && n.enabled), guests = crowd.filter(n => n.guest), rest = crowd.filter(n => !n.guest);
-  const pool = guests.concat(rest.slice(0, low ? 4 : 6)), F = pool.filter(n => n.gender === 'f'), M = pool.filter(n => n.gender === 'm');
+  const pool = guests.concat(rest.slice(0, 6)), F = pool.filter(n => n.gender === 'f'), M = pool.filter(n => n.gender === 'm');
   const take = gd => (gd === 'f' ? F : gd === 'm' ? M : (F.length > M.length ? F : M)).shift();
   // VIP 2·3번 룸 (VIP 1번은 플레이어 예약용으로 비워 둠)
-  [[1, 'vipParty', ['m', 'f', 'm', 'f']], [2, 'vipBrawl', ['m', 'm', 'f', 'f']]].forEach(([vi, kind, gs]) => { const v = W.vip[vi]; if (!v) return; const ns = gs.map(take).filter(Boolean); if (ns.length < 3) return;
+  [[1, 'vipParty', ['m', 'f', 'm', 'f']], [2, 'vipBrawl', ['m', 'm', 'f', 'f']]].forEach(([vi, kind, gs]) => { const v = W.vip[vi]; if (!v) return; const ns = (low ? gs.slice(0, 3) : gs).map(take).filter(Boolean); if (ns.length < 3) return;
     ns.forEach((n, i) => { n.stay = 'vip'; n.enabled = true; n.g.visible = true; NC.NPC.sit(n, v.seats[i].x, v.seats[i].z, v.seats[i].ry, v.seats[i].h); v.occ[i] = 'npc'; });
-    const g = { vip: vi, ns, kinds: ['vipParty', 'vipBrawl', 'vipBoss'] }; GROUPS.push(g); setKind(g, fits(kind, ns) ? kind : 'vipBoss'); });
+    const g = { vip: vi, ns, kinds: ['vipParty', 'vipBrawl', 'vipBoss'] }; const k2 = fits(kind, ns) ? kind : g.kinds.find(k => fits(k, ns)); if (k2) { GROUPS.push(g); setKind(g, k2); } });
   // 테이블: 앞줄·플로어 옆을 우선, 장면이 겹치지 않게 골고루
   const tOrder = [0, 1, 2, 3, 12, 14, 6, 7, 13, 15, 4, 5, 8, 9, 10, 11].slice(0, nTables), kinds = TABLE_KINDS.slice().sort(() => Math.random() - .5);
   const comp = [['m', 'f'], ['f', 'm', '*'], ['*', '*', '*'], ['m', 'f'], ['f', 'f', 'm'], ['m', 'm', '*'], ['m', 'f', '*'], ['*', '*', '*', '*'], ['m', 'f', 'f'], ['m', 'm', 'f'], ['f', 'f']];
@@ -187,7 +191,7 @@ function tickGroups(dt) {
     g.si = (g.si + 1) % g.steps.length; g.wait = g.steps[g.si][0] * (.85 + Math.random() * .3);
   });
 }
-(function trySetup() { if ((NC.npcs || []).length && NC.player && NC.player.group) setupGroups(); else setTimeout(trySetup, 1500); })();
+(function trySetup() { if ((NC.npcs || []).length && NC.NPC.ready && NC.player && NC.player.group) setupGroups(); else setTimeout(trySetup, 1500); })();
 
 /* ───── ③ 초청 밴드/가수 ───── */
 const ST = W.zones.stage, FRONT = ST.z1;

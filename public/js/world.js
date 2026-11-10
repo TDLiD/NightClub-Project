@@ -564,7 +564,7 @@ W.update = function (dt, t, agents) {
   });
   haze.forEach(h => { h.sp.visible = !OFF; h.p += dt * .12; h.sp.position.set(h.x + Math.sin(h.p) * 1.5, h.y + Math.sin(h.p * 1.3) * .3, h.z + Math.cos(h.p * .8) * 1.2); h.sp.material.rotation += h.r * dt; h.sp.material.opacity = .05 + .02 * Math.sin(h.p * 2) + kick * .01; });
   candles.forEach((c, i) => { const f = .8 + .2 * Math.sin(t * 13 + i * 3) * Math.sin(t * 7.3 + i); c.material.color.setRGB(4 * f, 2.2 * f, .7 * f); c.scale.y = 1.4 + .3 * f; });
-  ledT += dt; if (ledT > 1 / 15) { ledT = 0; drawLED(t, b); }
+  ledT += dt; if (ledT > (Q.level === 'low' ? 1 / 8 : 1 / 15)) { ledT = 0; drawLED(t, b); }
   W.vip.forEach(v => {
     const locked = W.locked(v.id); let want = false;
     for (const a of agents || []) if (Math.abs(a.x - v.cx) < 1.9 && Math.abs(a.z - VIP_Z0) < 2.2 && !(a.me && locked)) { want = true; break; }

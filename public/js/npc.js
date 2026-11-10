@@ -27,7 +27,9 @@ function spawn(def, role) {
     mood: Number.isFinite(+def.mood) ? +def.mood : ((Math.random() * 3 | 0) - 1), aff: def.baseAffinity || 40, history: [], topicHits: {}, recentDeltas: [],
     enabled: true, stuck: 0, path: null, speed: 2.1, greeted: false, rejectedAt: 0, secretsShown: {},
   };
-  g.position.set(n.x, 0, n.z); NC.scene.add(g); npcs.push(n); return n;
+  g.position.set(n.x, 0, n.z); NC.scene.add(g); npcs.push(n);
+  if (!crowdOn && role === 'crowd') { n.enabled = false; g.visible = false; n.state = 'off'; }   // 늦게 생성돼도 온라인 모드 설정을 따름
+  return n;
 }
 
 function pickWaypoint() {
@@ -107,8 +109,14 @@ NC.NPC = {
   sit(n, x, z, ry, h) { n._seatArgs = [x, z, ry, h]; n.state = 'seated'; n.x = x; n.z = z; NC.seatAvatar(n.g, x, z, ry, h); },
   release(n) { const u = n.g.userData; NC.unseatAvatar(n.g); n.state = (crowdOn || !NC.isOnline()) ? 'wander' : 'off'; n.booked = false; n.wp = null; n.pause = 1; u.lookAt = null; u.talk = false; if (n.state === 'off') { n.g.visible = false; n.enabled = false; } },
   init(data) {
-    (data.personas || []).forEach(d => spawn(d, 'persona'));
-    (data.npcs || []).forEach(d => { if (d.enabled !== false) spawn(d, 'crowd'); });
+    // v17: 모바일/저사양은 로그인 화면에서 아바타를 하나도 만들지 않음(아바타 1명 생성 = 수백 ms 작업) →
+    //      입장 버튼을 누른 뒤 한 명씩 '입장'하듯 나눠 생성 → 로그인 화면 입력·버튼 반응이 즉시
+    const list = (data.personas || []).map(d => [d, 'persona']).concat((data.npcs || []).filter(d => d.enabled !== false).map(d => [d, 'crowd']));
+    const lite = (NC.quality && NC.quality.level === 'low') || matchMedia('(pointer:coarse)').matches;
+    if (lite) { NC.NPC.ready = false; let i = 0; const idle = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 250 }) : f => setTimeout(f, 30);
+      const step = () => { if (i < list.length) { spawn(...list[i++]); idle(step); } else NC.NPC.ready = true; };
+      let started = false; const go = () => { if (started) return; started = true; idle(step); }; NC.on && NC.on('start', go); }
+    else { list.forEach(a => spawn(...a)); NC.NPC.ready = true; }
     // 손님에게도 VRM 모델 배정 (npcs.json "crowdModels": [{ "model": "...", "gender": "f", "tint": {...} }], 최대 crowdModelMax 명)
     if (NC.VRMKit && NC.VRMKit.ok && Array.isArray(data.crowdModels) && data.crowdModels.length && !(NC.quality && NC.quality.level === 'low')) {
       const max = data.crowdModelMax || 6; let k = 0;

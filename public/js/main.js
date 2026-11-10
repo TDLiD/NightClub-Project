@@ -119,8 +119,21 @@ const coinEl = $('#coins'); const showCoins = v => { coinEl.textContent = '🪙 
 
 /* ───────── 메인 루프 ───────── */
 const clock = new T.Clock(); let tAcc = 0; const camTarget = new T.Vector3(), camPos = new T.Vector3();
+/* v17 시작(로그인) 화면 동안: 3D 클럽은 배경일 뿐이라 거의 쉬게 함
+ *  · 모바일/저사양: 배경을 처음 두 번만 그리고 멈춤(NPC·조명·LED 계산도 생략) → 입력·로그인 반응이 바로바로
+ *  · PC: 초당 20프레임으로 제한   · 탭이 안 보이면 브라우저가 알아서 멈춤 */
+const startEl = $('#start'), LITE_START = (NC.quality && NC.quality.level === 'low') || matchMedia('(pointer:coarse)').matches;
+let idleAcc = 1;
 function frame() {
-  requestAnimationFrame(frame); const dt = Math.min(clock.getDelta(), .05); tAcc += dt; const t = tAcc;
+  requestAnimationFrame(frame);
+  if (!P.group && startEl && startEl.style.display !== 'none') {
+    const d = clock.getDelta(); idleAcc += d; if (idleAcc < (LITE_START ? 1 : 1 / 20)) return; if (LITE_START && (NC._idleShots = (NC._idleShots || 0) + 1) > 2) return;   // 모바일: 배경은 처음 두 번만 그리고 멈춤(입장 화면이 거의 가림)
+    const dt0 = Math.min(idleAcc, .05); idleAcc = 0; tAcc += dt0;
+    const a = tAcc * .12; camera.position.set(Math.sin(a) * 18, 7.5, -4 + Math.cos(a) * 12); camera.lookAt(0, 2, -9);
+    if (!LITE_START) W.update(dt0, tAcc, []);
+    (NC.render || ((s, c) => NC.renderer.render(s, c)))(NC.scene, camera); return;
+  }
+  const dt = Math.min(clock.getDelta(), .05); tAcc += dt; const t = tAcc;
   const agents = []; if (P.group) agents.push({ x: P.x, z: P.z, me: true });
   (NC.npcs || []).forEach(n => { if (n.g.visible) agents.push(n); }); (NC.Waiters ? NC.Waiters.list : []).forEach(o => agents.push(o)); NC.remotes.forEach(r => agents.push({ x: r.g.position.x, z: r.g.position.z }));
   W.update(dt, t, agents);
