@@ -163,6 +163,45 @@ for (const s of [-1, 1]) {
 const ledCv = document.createElement('canvas'); ledCv.width = 1024; ledCv.height = 320; const ledG = ledCv.getContext('2d'); const ledTex = NC.tex(ledCv);
 const ledMask = (() => { const c = document.createElement('canvas'); c.width = 1024; c.height = 320; const g = c.getContext('2d'); g.fillStyle = 'rgba(0,0,0,.55)'; for (let x = 0; x < 1024; x += 4) g.fillRect(x, 0, 1, 320); for (let y = 0; y < 320; y += 4) g.fillRect(0, y, 1024, 1); return c; })();
 const ledMat = new T.MeshBasicMaterial({ map: ledTex }); ledMat.color.setScalar(1.6);
+/* ── v20 LED 배경 영상: public/music/music/background.mp4 (또는 public/music/background.mp4 · public/video/background.mp4)를
+ *  DJ 뒤 LED 전광판에 꽉 차게(비율 유지·가운데 기준으로 넘치는 부분만 잘라냄) 반복 재생. 소리는 끔(음악은 스테이지 음악이 담당).
+ *  경로 바꾸기: NC.config.ledVideo = 'video/my.mp4' · 늘려서 채우기: NC.config.ledVideoFit = 'stretch' */
+const LV = (() => {
+  const CAND = (NC.config && NC.config.ledVideo) ? [NC.config.ledVideo] : ['music/music/background.mp4', 'music/background.mp4', 'video/background.mp4'];
+  let vid = null, want = U.store.get('nc_ledVideo', true) !== false, st = 'off', started = false;
+  const emit = () => NC.emit && NC.emit('led:video', st);
+  const find = k => k >= CAND.length ? Promise.resolve(null) : fetch(CAND[k], { method: 'HEAD', cache: 'no-store' }).then(r => r.ok && !/text\/html/i.test(r.headers.get('content-type') || '') ? CAND[k] : find(k + 1)).catch(() => find(k + 1));
+  function load() {
+    if (vid) { st = 'loading'; emit(); const p = vid.play(); if (p && p.catch) p.catch(() => {}); return; }
+    st = 'loading'; emit();
+    find(0).then(url => {
+      if (!url) { st = 'missing'; console.warn('[LED] 배경 영상을 찾지 못함:', CAND.join(' · ')); emit(); return; }
+      vid = document.createElement('video'); Object.assign(vid, { muted: true, loop: true, playsInline: true, preload: 'auto', crossOrigin: 'anonymous' });
+      vid.setAttribute('muted', ''); vid.setAttribute('playsinline', ''); vid.setAttribute('webkit-playsinline', '');
+      vid.addEventListener('playing', () => { if (want) { st = 'on'; emit(); } });
+      vid.addEventListener('error', () => { st = 'missing'; emit(); console.warn('[LED] 영상 재생 실패', url, vid.error); });
+      vid.src = url; console.info('[LED] 배경 영상:', url);
+      if (want) { const p = vid.play(); if (p && p.catch) p.catch(() => { st = 'off'; emit(); }); }
+    });
+  }
+  /* 첫 클릭 전엔 자동재생이 막힐 수 있어 클릭/입장 때 한 번 더 재생 시도 */
+  const kick = () => { if (want && vid && vid.paused) { const p = vid.play(); if (p && p.catch) p.catch(() => {}); } };
+  ['pointerdown', 'touchend', 'keydown'].forEach(e => addEventListener(e, kick, { passive: true }));
+  const begin = () => { if (started) return; started = true; if (want) load(); };
+  NC.on && NC.on('start', begin);
+  return {
+    active: () => want && vid && st === 'on' && vid.readyState >= 2 && !vid.paused,
+    el: () => vid, state: () => want ? st : (st === 'missing' ? 'missing' : 'off'),
+    toggle() { if (st === 'missing') { want = true; vid = null; load(); } else { want = !want; if (want) load(); else { if (vid) vid.pause(); st = 'off'; emit(); } } U.store.set('nc_ledVideo', want); started = true; return want; },
+  };
+})();
+W.ledVideo = LV;
+function drawLedVideo(g) {
+  const v = LV.el(), vw = v.videoWidth || 16, vh = v.videoHeight || 9, CW = 1024, CH = 320;
+  if ((NC.config && NC.config.ledVideoFit) === 'stretch') { g.drawImage(v, 0, 0, CW, CH); return; }
+  const k = Math.max(CW / vw, CH / vh), sw = CW / k, sh = CH / k;   // cover: 화면을 꽉 채우고 넘치는 부분만 가운데 기준으로 잘라냄
+  g.drawImage(v, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, CW, CH);
+}
 put(new T.Mesh(new T.PlaneGeometry(19, 5.9), ledMat), 0, 4.3, -ROOM.z + .06);
 put(new T.Mesh(box(19.6, 6.5, .1), MAT.black), 0, 4.3, -ROOM.z + .01);
 const sign = NC.neonSign('추억의 나이트', 13, 2.6); sign.material.color.setScalar(2.2); put(sign, 0, 8.9, -ROOM.z + .08);
@@ -207,6 +246,12 @@ function dancerFig(g, x, y, s, ph, style) {   // 막대 인형 실루엣 댄서 
 }
 function drawLED(t, b) {
   const g = ledG, SPK = TH.sparkle !== false, kick = SPK ? 1 - b.phase : .3;
+  if (LV.active()) {   // v20 배경 영상 재생 중: 영상을 꽉 차게 + 알림 메시지 + LED 픽셀 격자
+    ledMat.color.setScalar(1.05); try { drawLedVideo(g); } catch (e) { }
+    if (W.ledMsg && performance.now() < W.ledMsg.until) { const m = W.ledMsg, k = .5 + .5 * Math.sin(t * 6); g.fillStyle = 'rgba(10,4,20,.72)'; g.fillRect(0, 90, 1024, 140);
+      g.font = '900 78px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = m.color || '#ffd23d'; g.shadowBlur = 20 + 20 * k; g.fillStyle = '#fff'; g.fillText(m.text, 512, 162); g.shadowBlur = 0; g.textAlign = 'left'; }
+    g.globalAlpha = .45; g.drawImage(ledMask, 0, 0); g.globalAlpha = 1; ledTex.needsUpdate = true; return; }
+  ledMat.color.setScalar(1.6);
   ledNext -= 1 / 15; if (ledNext <= 0) { ledNext = 10; let m; do { m = Math.floor(Math.random() * LED_MODES.length); } while (m === ledMode); ledMode = m; ledFade = 0; }
   ledFade = Math.min(1, ledFade + .08);
   g.fillStyle = '#07030f'; g.fillRect(0, 0, 1024, 320);
@@ -588,7 +633,7 @@ W.update = function (dt, t, agents) {
   });
   haze.forEach(h => { h.sp.visible = !OFF; h.p += dt * .12; h.sp.position.set(h.x + Math.sin(h.p) * 1.5, h.y + Math.sin(h.p * 1.3) * .3, h.z + Math.cos(h.p * .8) * 1.2); h.sp.material.rotation += h.r * dt; h.sp.material.opacity = .05 + .02 * Math.sin(h.p * 2) + kick * .01; });
   candles.forEach((c, i) => { const f = .8 + .2 * Math.sin(t * 13 + i * 3) * Math.sin(t * 7.3 + i); c.material.color.setRGB(4 * f, 2.2 * f, .7 * f); c.scale.y = 1.4 + .3 * f; });
-  ledT += dt; if (ledT > (Q.level === 'low' ? 1 / 8 : 1 / 15)) { ledT = 0; drawLED(t, b); }
+  ledT += dt; if (ledT > (Q.level === 'low' ? (LV.active() ? 1 / 12 : 1 / 8) : LV.active() ? 1 / 30 : 1 / 15)) { ledT = 0; drawLED(t, b); }   // 영상 재생 중엔 PC 30fps
   W.vip.forEach(v => {
     const locked = W.locked(v.id); let want = false;
     for (const a of agents || []) if (Math.abs(a.x - v.cx) < 1.9 && Math.abs(a.z - VIP_Z0) < 2.2 && !(a.me && locked)) { want = true; break; }

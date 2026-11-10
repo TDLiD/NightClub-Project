@@ -17,14 +17,34 @@ const life = NC.Life = { tipsy: 0, bladder: 0, drink: null, sips: 0, charm: 0, w
 const panel = document.createElement('div'); panel.id = 'clubPanel'; panel.innerHTML = `
   <button id="cpToggle" title="클럽 설정">🎛</button>
   <div id="cpBody"><button id="cpClose" class="mClose" title="닫기">✕</button><h4>🎨 무대 조명</h4><div id="cpTheme" class="cpGrid"></div><h4>🎵 스테이지 음악</h4><div id="cpMusic" class="cpGrid"></div>
+  <div id="cpCtl"><button id="cpPlay">⏸ 정지</button><span id="cpNow"></span></div>
+  <h4>💿 MP3 곡 선택 <small>(누르면 그 곡만 반복)</small></h4><div id="cpTracks"></div>
+  <h4>📺 LED 전광판</h4><div class="cpGrid"><button id="cpVideo">📺 배경 영상 켜짐</button></div>
   <div class="cpGrid"><button id="cpPhoto">📸 사진 찍기</button><button id="cpHelp">❔ 생활 기능</button></div></div>`;
 document.body.appendChild(panel);
 const $ = s => panel.querySelector(s);
-function renderPanel() {
-  const th = $('#cpTheme'), mu = $('#cpMusic'); th.innerHTML = ''; mu.innerHTML = '';
-  Object.entries(W.THEMES || {}).forEach(([id, t]) => { const b = document.createElement('button'); b.textContent = t.name; b.className = W.themeId === id ? 'on' : ''; b.onclick = () => { W.setTheme(id); renderPanel(); NC.ui.toast('🎨 조명: ' + t.name); }; th.appendChild(b); });
-  const A = NC.Audio; Object.entries(A.STYLES || {}).forEach(([id, m]) => { const b = document.createElement('button'); b.textContent = `${m.name} · ${m.bpm}`; b.className = A.style === id ? 'on' : ''; b.onclick = () => { if (!A.ctx) A.init(); A.setStyle(id); renderPanel(); NC.ui.toast('🎵 음악: ' + m.name); }; mu.appendChild(b); });
+function renderPanel() {   // v20: 버튼은 처음 한 번만 만들고 이후엔 'on' 표시만 바꿈(다시 만들면 누르는 도중 버튼이 바뀌어 클릭이 씹힘)
+  const th = $('#cpTheme'), mu = $('#cpMusic'), tr = $('#cpTracks'), A = NC.Audio, single = A.style === 'mp3' && A.mp3Mode === 'single';
+  if (!th.children.length) Object.entries(W.THEMES || {}).forEach(([id, t]) => { const b = document.createElement('button'); b.textContent = t.name; b.dataset.id = id; b.onclick = () => { W.setTheme(id); NC.ui.toast('🎨 조명: ' + t.name); }; th.appendChild(b); });
+  if (!mu.children.length) Object.entries(A.STYLES || {}).forEach(([id, m]) => { const b = document.createElement('button'); b.textContent = `${m.name} · ${m.bpm}`; b.dataset.id = id;
+    b.onclick = () => { A.wake(); A.setStyle(id); if (id !== 'mp3') NC.ui.toast('🎵 음악: ' + m.name); }; mu.appendChild(b); });
+  if (!tr.children.length) for (let n = 1; n <= (A.MP3_COUNT || 7); n++) { const b = document.createElement('button'); b.textContent = n; b.title = n + '.mp3'; b.dataset.n = n; b.onclick = () => A.playTrack(n); tr.appendChild(b); }
+  [...th.children].forEach(b => b.classList.toggle('on', W.themeId === b.dataset.id));
+  [...mu.children].forEach(b => b.classList.toggle('on', A.style === b.dataset.id && !(b.dataset.id === 'mp3' && single)));
+  [...tr.children].forEach(b => b.classList.toggle('on', single && A.mp3Idx === b.dataset.n - 1));
+  renderCtl();
 }
+/* v20 정지/재생 버튼 + 지금 재생 중 표시 (패널이 열려 있을 때만 1초마다 갱신 — 버튼을 다시 만들지 않아 클릭이 씹히지 않음) */
+function renderCtl() {
+  const A = NC.Audio, pl = $('#cpPlay'), now = $('#cpNow'), v = $('#cpVideo'); if (!pl) return;
+  const stopped = A.paused || !A.ctx || A.ctx.state !== 'running'; pl.textContent = stopped ? '▶ 재생' : '⏸ 정지'; pl.className = stopped ? 'on' : '';
+  now.textContent = A.nowText ? A.nowText() : '';
+  if (v && W.ledVideo) { const st = W.ledVideo.state(); v.textContent = st === 'on' ? '📺 배경 영상 켜짐 (끄기)' : st === 'loading' ? '⏳ 영상 불러오는 중… (끄기)' : st === 'missing' ? '⚠ 영상 파일 없음 (다시 찾기)' : '📺 배경 영상 꺼짐 (켜기)'; v.className = st === 'on' || st === 'loading' ? 'on' : ''; }
+}
+$('#cpPlay').onclick = () => { const A = NC.Audio; A.wake(); if (A.paused || !A.ctx || A.ctx.state !== 'running') A.resume(); else A.stop(); setTimeout(renderCtl, 60); };
+$('#cpVideo').onclick = () => { if (W.ledVideo) W.ledVideo.toggle(); setTimeout(renderCtl, 60); };
+setInterval(() => { if (panel.classList.contains('open')) renderCtl(); }, 1000);
+NC.on('music:state', renderCtl); NC.on('music:track', renderPanel); NC.on('led:video', renderCtl);
 $('#cpToggle').onclick = () => { panel.classList.toggle('open'); renderPanel(); };
 $('#cpClose').onclick = () => panel.classList.remove('open');
 $('#cpPhoto').onclick = () => photo();

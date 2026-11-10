@@ -290,3 +290,12 @@ html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 .prRow{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:7px 0}.prRow b{width:100%;font-size:12.5px;color:#ffd6f0}.modal .prRow button{flex:0 0 auto;min-width:0;padding:7px 10px;font-size:12.5px}.modal .prRow button.on{background:linear-gradient(135deg,#ff3d9a,#7b3dff)}
 @media (max-width:640px){#btnSearch{bottom:252px;width:42px;height:42px;font-size:19px}#fxBanner{font-size:14px;top:126px;white-space:normal;max-width:90vw;text-align:center}#djPanel{bottom:64px}#fsHud{top:126px}}
 @media (max-height:500px) and (orientation:landscape){#btnSearch{bottom:96px;width:38px;height:38px}}
+/* v20 스테이지 음악: 정지/재생 · 지금 재생 중 · MP3 1~7 곡 버튼 */
+#cpCtl{display:flex;flex-direction:column;gap:5px;margin:2px 0 6px}
+#cpPlay{padding:8px 9px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:#3a1f74;color:#fff;cursor:pointer;font-size:13px;font-weight:700}
+#cpPlay.on{background:linear-gradient(135deg,#29d17d,#1f8fff);border:0}
+#cpNow{font-size:11.5px;color:#cfe8ff;line-height:1.35;min-height:15px;word-break:keep-all}
+#cpBody h4 small{font-weight:400;color:#bba7d8;font-size:10.5px}
+#cpTracks{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:6px}
+#cpTracks button{padding:7px 0;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:#2b1758;color:#fff;cursor:pointer;font-size:13px;font-weight:700}
+#cpTracks button.on{background:linear-gradient(135deg,#ff3d9a,#7b3dff);border:0}
