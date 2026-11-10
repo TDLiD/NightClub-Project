@@ -111,7 +111,7 @@ function stop(reason) {
     if (D() && D().cur && D().cur.n === n) return;                                      // 지금 플레이어와 대화 중 → 대화가 끝나면 평소대로
     if (k && k.BL && k.BL.n === n) return;
     if (s.off) { NC.NPC.show(n, false); return; }
-    if (s.state === 'seated' && s.seat) { const [x, z, ry, h] = s.seat; NC.NPC.goTo(n, { x: x + Math.sin(ry) * 1.2, z: z + Math.cos(ry) * 1.2 }, () => NC.NPC.sit(n, x, z, ry, h), 3); return; }
+    if ((s.state === 'seated' || n.stay) && (s.seat || n._seatArgs)) { const [x, z, ry, h] = s.seat || n._seatArgs; NC.NPC.goTo(n, { x: x + Math.sin(ry) * 1.2, z: z + Math.cos(ry) * 1.2 }, () => NC.NPC.sit(n, x, z, ry, h), 3); return; }
     if (s.state === 'blues' || s.state === 'tableDance') { NC.NPC.goTo(n, { x: s.x, z: s.z }, () => { n.x = s.x; n.z = s.z; n.state = s.state; u.dance = s.dance; n.g.rotation.y = s.ry; u.kissK = s.kissK; }, 3); return; }
     n.state = 'wander'; n.pause = 1 + Math.random() * 3; n.wp = null; u.dance = null;
   });

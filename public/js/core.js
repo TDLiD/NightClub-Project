@@ -75,6 +75,10 @@ NC.ui.chatAdd = (who, text, cls) => { const l = $('#chatlog'), d = document.crea
 NC.ui.modal = (html, buttons) => new Promise(res => {
   const m = document.createElement('div'); m.className = 'modal'; m.innerHTML = '<div class="box">' + html + '<div class="row"></div></div>'; const row = m.querySelector('.row');
   buttons.forEach(([label, val, pri]) => { const b = document.createElement('button'); b.textContent = label; if (pri) b.className = 'pri'; b.onclick = () => { res({ val, root: m }); m.remove(); }; row.appendChild(b); });
+  // v16: 모든 팝업 오른쪽 위 ✕ — '취소/닫기' 버튼과 같은 결과(없으면 val=null)
+  const cancel = (buttons.find(([l, v]) => /취소|닫기|아니|나중|그만|안 할|괜찮/.test(l)) || buttons.find(([, v]) => !v) || [null, null])[1];
+  const x = document.createElement('button'); x.className = 'mClose'; x.title = '닫기 (Esc)'; x.textContent = '✕'; x.onclick = () => { res({ val: cancel, root: m }); m.remove(); }; m.querySelector('.box').appendChild(x);
+  m.addEventListener('mousedown', e => { if (e.target === m) x.click(); });
   document.body.appendChild(m);
 });
 NC.ui.fade = fn => { const f = $('#fade'); f.style.opacity = 1; setTimeout(() => { try { fn(); } finally { f.style.opacity = 0; } }, 380); };
@@ -90,9 +94,14 @@ NC.ui.showDlg = o => {
   dlg.querySelector('.say').textContent = o.say || '';
   const box = dlg.querySelector('.opts');
   (o.opts || []).forEach((p, i) => { const b = document.createElement('button'); b.className = 'opt'; b.textContent = (i + 1) + '. ' + p.t; if (p.disabled) b.disabled = true; b.onclick = p.run; box.appendChild(b); });
+  // v16: ✕ 취소 — 선택지 중 '다음에/취소/괜찮아요' 같은 버튼이 있으면 그걸 누른 것과 같게, 없으면 창만 닫고 조작 잠금 해제
+  const x = document.createElement('button'); x.className = 'dClose'; x.textContent = '✕ 취소'; x.title = '닫기 (Esc)';
+  x.onclick = () => { const c = [...box.querySelectorAll('button.opt')].reverse().find(b => /다음에|취소|괜찮|됐어|아니|그만|나갈|닫기|안 할|이따/.test(b.textContent) && !b.disabled); if (c) c.click(); else { NC.ui.hideDlg(); if (NC.player) NC.player.busy = false; if (o.onClose) o.onClose(); } };
+  dlg.appendChild(x);
 };
 NC.ui.hideDlg = () => { dlg.style.display = 'none'; dlg.innerHTML = ''; };
 NC.ui.dlgOpen = () => dlg.style.display === 'block';
+addEventListener('keydown', e => { if (e.key === 'Escape') { const m = [...document.querySelectorAll('.modal .mClose')].pop(); if (m) { m.click(); e.stopImmediatePropagation(); return; } if (NC.ui.dlgOpen()) { const x = dlg.querySelector('.dClose'); if (x) { x.click(); e.stopImmediatePropagation(); return; } } } });
 addEventListener('keydown', e => { if (NC.ui.dlgOpen() && !NC.ui.typing() && /^[1-6]$/.test(e.key)) { const b = dlg.querySelectorAll('button.opt')[+e.key - 1]; if (b && !b.disabled) { b.click(); e.preventDefault(); } } });
 
 /* ── 지갑(가상 재화 🪙 클럽 코인) — 현금 가치 없음, 로컬 저장 ── */

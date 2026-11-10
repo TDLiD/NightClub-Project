@@ -107,6 +107,8 @@ function chips() {
 el.send.onclick = () => send(el.inp.value);
 el.inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { send(el.inp.value); e.preventDefault(); } else if (e.key === 'Escape') { el.inp.blur(); } e.stopPropagation(); });
 el.close.onclick = () => D.close('bye');
+{ const tc = document.getElementById('tCancel'); if (tc) tc.onclick = () => D.close('bye'); }   // v16: 대화창 맨 위 취소 버튼
+addEventListener('keydown', e => { if (e.key === 'Escape' && D.cur && !document.querySelector('.modal') && !NC.ui.dlgOpen()) D.close('bye'); });
 el.tts.onclick = () => { NC.Audio.tts = !NC.Audio.tts; el.tts.textContent = NC.Audio.tts ? '🔊' : '🔈'; el.tts.title = NC.Audio.tts ? 'NPC 음성 켜짐' : 'NPC 음성 꺼짐'; if (!window.speechSynthesis) NC.ui.toast('이 브라우저는 음성 합성을 지원하지 않아요'); };
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let rec = null;
 el.mic.onclick = () => {

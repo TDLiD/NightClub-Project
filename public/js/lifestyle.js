@@ -16,7 +16,7 @@ const life = NC.Life = { tipsy: 0, bladder: 0, drink: null, sips: 0, charm: 0, w
 /* ═════ 1. 우측 클럽 설정 패널 ═════ */
 const panel = document.createElement('div'); panel.id = 'clubPanel'; panel.innerHTML = `
   <button id="cpToggle" title="클럽 설정">🎛</button>
-  <div id="cpBody"><h4>🎨 무대 조명</h4><div id="cpTheme" class="cpGrid"></div><h4>🎵 스테이지 음악</h4><div id="cpMusic" class="cpGrid"></div>
+  <div id="cpBody"><button id="cpClose" class="mClose" title="닫기">✕</button><h4>🎨 무대 조명</h4><div id="cpTheme" class="cpGrid"></div><h4>🎵 스테이지 음악</h4><div id="cpMusic" class="cpGrid"></div>
   <div class="cpGrid"><button id="cpPhoto">📸 사진 찍기</button><button id="cpHelp">❔ 생활 기능</button></div></div>`;
 document.body.appendChild(panel);
 const $ = s => panel.querySelector(s);
@@ -26,6 +26,7 @@ function renderPanel() {
   const A = NC.Audio; Object.entries(A.STYLES || {}).forEach(([id, m]) => { const b = document.createElement('button'); b.textContent = `${m.name} · ${m.bpm}`; b.className = A.style === id ? 'on' : ''; b.onclick = () => { if (!A.ctx) A.init(); A.setStyle(id); renderPanel(); NC.ui.toast('🎵 음악: ' + m.name); }; mu.appendChild(b); });
 }
 $('#cpToggle').onclick = () => { panel.classList.toggle('open'); renderPanel(); };
+$('#cpClose').onclick = () => panel.classList.remove('open');
 $('#cpPhoto').onclick = () => photo();
 $('#cpHelp').onclick = () => NC.ui.modal(`<h3>🍸 나이트 생활 가이드</h3><ul style="text-align:left;line-height:1.7">
   <li>🪑 <b>테이블·VIP 소파·바 의자</b>에 다가가 E → 앉으면 웨이터/바텐더가 주문을 받아요</li><li>🛋 빈 <b>VIP 룸</b>에 들어가면 웨이터가 따라와 안내해요</li>
@@ -75,7 +76,7 @@ function placeFor(ctx) {   // 주문한 소품을 놓을 위치
   const s = P().seat || ctx.seat;
   if (ctx.kind === 'bar') return { x: 20.95, y: 1.29, z: BAR_SEATS[ctx.s ?? (s && s.s) ?? 0].z };
   if (ctx.kind === 'table' && s && s.t != null) { const t = NC.tables[s.t]; return { x: t.x + (Math.random() - .5) * .6, y: .9 + (W.TY || 0), z: t.z + (Math.random() - .5) * .6 }; }
-  if ((ctx.kind === 'vip' || ctx.kind === 'vipEnter') && ctx.room != null) { const v = W.vip[ctx.room]; return { x: v.cx - .9 + Math.random() * 1.2, y: .62, z: 16 + (Math.random() - .5) * .5 }; }
+  if ((ctx.kind === 'vip' || ctx.kind === 'vipEnter') && ctx.room != null) { const v = W.vip[ctx.room]; return { x: v.cx - .9 + Math.random() * 1.2, y: .62 + (v.y || 0), z: (v.table ? v.table.z : 16) + (Math.random() - .5) * .5 }; }
   return null;
 }
 function serve(item, ctx, server) {

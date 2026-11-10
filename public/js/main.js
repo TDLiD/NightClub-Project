@@ -64,7 +64,7 @@ function clickMove(v, r) {
   const inExtra = W.extraZones.some(e => e.test(P.x, P.z));
   if (!inExtra && W.vipAt(to.x, to.z) < 0 && P.z < W.vip[0].z0 && r.direction.z > 0) {        // 앞 유리벽·문·간판을 클릭했는지: 광선이 VIP 정면(z0)을 사람 키 높이로 통과?
     const z0 = W.vip[0].z0, t = (z0 - r.origin.z) / r.direction.z, y = r.origin.y + r.direction.y * t, x = r.origin.x + r.direction.x * t;
-    if (t > 0 && y > -.1 && y < 5.2) { const vv = W.vip.find(q => x > q.x0 && x < q.x1); if (vv) to = { x: vv.cx, z: vv.z0 + 2.2 }; }
+    const vy0 = W.vip[0].y || 0; if (t > 0 && y > vy0 - .1 && y < vy0 + 5.2) { const vv = W.vip.find(q => x > q.x0 && x < q.x1); if (vv) to = { x: vv.entry.x, z: vv.entry.z }; }
   }
   const room = inExtra ? -1 : W.vipAt(to.x, to.z);
   if (room >= 0 && room !== P.room && W.locked(room)) { NC.ui.toast(`🔒 VIP ${room + 1} 룸은 지금 다른 손님이 사용 중이에요`); return; }
@@ -227,6 +227,7 @@ $('#go').onclick = async () => {
 };
 $('#nick').addEventListener('keydown', e => { if (e.key === 'Enter') $('#go').click(); });
 { const qm = document.createElement('div'); qm.id = 'qmenu'; const Lv = [['high', '🎬 고화질 (그림자·블룸·필름)'], ['mid', '✨ 중간 (블룸)'], ['low', '⚡ 저사양 (모바일)']];
+  { const x = document.createElement('button'); x.className = 'qClose'; x.textContent = '✕ 닫기'; x.onclick = () => { qm.style.display = 'none'; }; qm.appendChild(x); }   // v16
   Lv.forEach(([k, t]) => { const b = document.createElement('button'); b.textContent = t; if (NC.quality && NC.quality.level === k) b.className = 'on'; b.onclick = () => NC.setQuality(k); qm.appendChild(b); }); document.body.appendChild(qm);
   $('#btnQuality').onclick = () => { qm.style.display = qm.style.display === 'flex' ? 'none' : 'flex'; }; }
 { const vb = document.getElementById('vrmPick'); if (vb) vb.onclick = async () => { if (!NC.VRMKit || !NC.VRMKit.ok) return NC.ui.toast('이 브라우저에서는 VRM을 쓸 수 없어요'); const f = await NC.VRMKit.pickFile(); if (f) { vb.textContent = '✅ ' + f.name; NC.ui.toast('입장하면 내 캐릭터가 ' + f.name + ' 모델로 바뀌어요'); } }; }

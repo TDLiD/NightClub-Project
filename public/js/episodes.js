@@ -1,4 +1,4 @@
-/* episodes.js — v14 에피소드
+/* episodes.js — v14 에피소드 (v16: ② 테이블·VIP 장면을 대본형으로 확장)
  *  ① 모든 룸 부킹: 테이블·VIP 에 앉아 웨이터에게 「💃 부킹 부탁해요」 → 손님이 내 옆자리로 와서 앉음 (노래방은 karaoke.js)
  *  ② 테이블·VIP 손님 50%: 키스하는 커플 · 건배하는 커플 · 싸우는 커플 · 테이블 위에서 춤추는 손님 · VIP 술자리
  *  ③ 초청 밴드/가수: DJ 앞 무대에 등장해 라이브 → 무대에 올라가면 신청곡·듀엣·팁·기념사진, 팬들이 앞으로 몰려듦
@@ -36,45 +36,155 @@ function bookToSeat(waiter) {
 }
 NC.on && NC.on('dialog:close', n => { if (n && n.bookSeat && !P().seat) { n.bookSeat.mark(null); n.bookSeat = null; NC.NPC.release(n); } });
 
-/* ───── ② 테이블·VIP 손님 (50%) ───── */
+/* ───── ② v16 테이블·VIP 에피소드 — 테이블 50% 이상 · VIP 3개 중 2개 손님 ─────
+ *  손님 그룹마다 '대본(script)'이 돌아간다: [대기 초, 동작] 단계를 순서대로 반복하고, 2~3분마다 다른 장면으로 바뀐다.
+ *  장면: 키스 커플 · 사랑싸움(따귀·물 끼얹기→화해) · 단체 건배 · 일어나 커플 댄스 · 테이블 위 댄스 · 팔씨름 · 술 취해 졸기 · 가위바위보 벌주
+ *        · 장미 고백(성공/차임) · 남자들 몸싸움(친구가 말림→화해 건배) · 셀카
+ *  VIP: 샴페인 파티(일어나 춤) · 단체 패싸움(잔 깨짐→진정→건배) · 사장님 플렉스
+ *  디스코/블루스 타임(party.js)에 플로어로 나가면 대본이 멈췄다가, 돌아와 앉으면 처음부터 다시 시작 */
 const GROUPS = [];
-const LINES = {
-  drink: ['짠~! 🥂', '원샷! 원샷!', '오늘 끝까지 달려~', '여기 한 병 더요!'],
-  fightA: ['너 아까 그 여자 쳐다봤지?!', '나 집에 갈래!', '진짜 실망이야…', '말 돌리지 마!'], fightB: ['아니 그게 아니라…', '자기야 오해야~', '내가 뭘 했다고!', '미안해… 진짜로'],
-  kiss: ['💋', '💕', '…♡'], dance: ['꺄~ 테이블 위가 명당이지!', '다들 소리 질러~!!', '오늘 내가 주인공!'], cheer: ['언니 최고!!', '와아아~👏', '내려와 위험해 ㅋㅋ'],
+const pk = a => a[Math.floor(Math.random() * a.length)];
+const L = {
+  drink: ['짠~! 🥂', '원샷! 원샷!', '오늘 끝까지 달려~', '여기 한 병 더요!', '위하여~!!', '건배! 🍻'],
+  fightA: ['너 아까 그 여자 쳐다봤지?!', '나 집에 갈래!', '진짜 실망이야…', '말 돌리지 마!', '그 문자 누구야?!'], fightB: ['아니 그게 아니라…', '자기야 오해야~', '내가 뭘 했다고!', '미안해… 진짜로'],
+  makeup: ['…한 번만 봐준다', '다음엔 진짜 끝이야 💢', '…알았어 ㅎ 짠 하자'], kiss: ['💋', '💕', '…♡', '(쪽)'],
+  dance: ['꺄~ 테이블 위가 명당이지!', '다들 소리 질러~!!', '오늘 내가 주인공!'], cheer: ['언니 최고!!', '와아아~👏', '내려와 위험해 ㅋㅋ', '한 번 더!!'],
+  arm: ['으라차차!!', '끄으으응…', '아직 안 끝났어!!'], armWin: ['내가 이겼다! 💪', '술 마셔 ㅋㅋ'], armLose: ['아 손목 삐었어…', '한 판 더!!'],
+  sleep: ['Zzz… 💤', '…쿨…', '음냐… 한 잔 더…'], poke: ['야 일어나 ㅋㅋ', '얘 또 잔다 🤣'], wake: ['어?! 나 안 잤어!!', '…여기 어디야?'],
+  rps: ['가위! 바위! 보!!', '안 내면 진다~ 가위바위보!'], rpsLose: ['아 또 나야?! 🍺', '벌주는 원샷이다~'],
+  rose: ['🌹 저… 저랑 사귀어 주세요!', '🌹 첫눈에 반했어요!'], yes: ['…좋아요 💕', '어머 ㅎㅎ 감동이야~'], no: ['…우리 친구 하자 😅', '장미는 고마운데요… ㅎㅎ'], noReact: ['(털썩)', '…괜찮아, 나 원래 이래'],
+  brawl: ['너 지금 뭐라 그랬어?!', '나와 나와!!', '어디서 반말이야!'], stop: ['그만해 그만해!!', '여기서 이러지 마~', '둘 다 앉아!!'], peace: ['…미안하다 친구야', '그래 한 잔 하자 🍻'],
+  selfie: ['📸 찰칵!', '하나 둘 셋 김치~', '이거 인스타 각 ✨'],
+  vipParty: ['샴페인 터뜨려~ 🍾', '오늘은 VIP답게!!', '음악 볼륨 올려~'], vipBrawlA: ['너 이 자식!!', '내 술을 쏟아?!', '사과해!!'], vipBrawlB: ['형님 진정하세요!!', '오빠 그만해!!', '아 왜 나한테 그래!'], vipCrash: ['💥 쨍그랑!', '💥 우당탕!'],
+  boss: ['오늘 내가 쏜다!! 💸', '사장님 최고~!!', '여기 제일 비싼 걸로!'],
 };
-function seatNpc(n, pos, tag) { n.stay = tag; n.state = 'seated'; n.enabled = true; n.g.visible = true; NC.NPC.sit(n, pos.x, pos.z, pos.ry, pos.h); }
+const seatOf = n => n._seatArgs;
+function sitBack(n) { const s = seatOf(n); if (!s) return; NC.NPC.sit(n, s[0], s[1], s[2], s[3]); n.state = 'seated'; n.g.userData.dance = null; n.g.userData.kissK = 0; }
+function standAt(n, x, z, face) { NC.unseatAvatar(n.g, x, z); n.state = 'ep'; n.x = x; n.z = z; const u = n.g.userData; u.dance = null; u.seated = false; if (face) n.g.rotation.y = Math.atan2(face.x - x, face.z - z); }
+const faceEach = (a, b) => { a.g.rotation.y = Math.atan2(b.x - a.x, b.z - a.z); b.g.rotation.y = Math.atan2(a.x - b.x, a.z - b.z); };
+const G_ = (n, name) => Mo.play(n.g, name), say = (n, t, s = 2.2) => B(n.g, t, s);
+// 테이블/룸에서 일어설 자리: 테이블 의자 바깥쪽 또는 VIP 룸 앞쪽 빈 공간
+function outside(g, n, k = 0) {
+  if (g.vip != null) { const v = W.vip[g.vip]; return { x: v.cx - 1.6 + (k % 4) * 1.05, z: v.z0 + .95 + Math.floor(k / 4) * .2 }; }
+  const t = NC.tables[g.t], s = seatOf(n), ax = s ? s[0] - t.x : 1, az = s ? s[1] - t.z : 1, d = Math.hypot(ax, az) || 1; return { x: t.x + ax / d * 2.9, z: t.z + az / d * 2.9 };
+}
+const ctr = g => g.vip != null ? { x: W.vip[g.vip].table.x, z: W.vip[g.vip].table.z } : NC.tables[g.t];
+
+/* 장면 정의: need = 필요한 인원/성별, script(g) = [[대기초, 동작], …] */
+const KINDS = {
+  kiss: { need: ['m', 'f'], script: g => { const [a, b] = g.ns; return [
+    [2, () => { const p = outside(g, a); g.c = p; standAt(a, p.x - .2, p.z); standAt(b, p.x + .2, p.z); [a, b].forEach(n => { n.g.userData.dance = 'blues'; }); a.g.userData.bluesLead = true; b.g.userData.bluesLead = false; g.frame = 'pair'; }],
+    [9, () => say(b, pk(L.kiss), 1.6)], [9, () => say(a, pk(L.kiss), 1.6)], [8, () => { g.frame = null; sitBack(a); sitBack(b); G_(a, 'drink'); }], [6, () => { G_(b, 'shy'); say(b, '…또 춰요? ㅎㅎ'); }]]; } },
+  fight: { need: ['f', 'm'], script: g => { const [f, m] = g.ns; return [
+    [3, () => { say(f, pk(L.fightA), 2.4); G_(f, 'crossArms'); }], [2.6, () => { say(m, pk(L.fightB)); G_(m, 'bow'); }], [3, () => { say(f, pk(L.fightA), 2.4); G_(f, 'headshake'); }],
+    [3, () => { G_(f, 'slap'); setTimeout(() => { G_(m, 'flinch'); say(m, '아야!! 😵', 1.6); }, 380); }], [3, () => { say(f, '💦 촥!! (물 끼얹기)', 2); G_(f, 'push'); setTimeout(() => G_(m, 'flinch'), 300); }],
+    [4, () => { say(m, '…내가 다 잘못했어 🙏', 2.4); G_(m, 'bow'); }], [3, () => { say(f, pk(L.makeup), 2.4); G_(f, 'shy'); }], [3, () => { G_(f, 'cheers'); G_(m, 'cheers'); say(m, '짠… 🥂'); }]]; } },
+  toast: { need: ['*', '*', '*'], script: g => [
+    [3, () => { g.ns.forEach((n, i) => setTimeout(() => G_(n, i % 2 ? 'cheers' : 'drink'), i * 220)); say(g.ns[0], pk(L.drink)); }],
+    [4, () => { const n = pk(g.ns); G_(n, 'laugh'); say(n, pk(['ㅋㅋㅋㅋ 미쳤다', '아 배 아파 ㅋㅋ', '그래서 걔가 뭐래?'])); }],
+    [4, () => { const n = g.ns[g.ns.length - 1]; const p = outside(g, n); standAt(n, p.x, p.z, ctr(g)); G_(n, 'cheer'); say(n, '자 다들 일어나!! 위하여~!!', 2.4); g.ns.forEach(o => o !== n && setTimeout(() => G_(o, 'cheers'), 400)); }],
+    [4, () => { sitBack(g.ns[g.ns.length - 1]); }]] },
+  standDance: { need: ['m', 'f'], script: g => { const [a, b] = g.ns; return [
+    [3, () => { say(b, '이 노래 나와! 나가서 춰요!!', 2); }], [1.5, () => { const p = outside(g, a); standAt(a, p.x - .55, p.z); standAt(b, p.x + .55, p.z); faceEach(a, b); a.g.userData.dance = b.g.userData.dance = 'stageDance'; g.ns.slice(2).forEach(o => G_(o, 'clap')); }],
+    [10, () => { say(a, pk(['오~ 춤 좀 추는데?', '리듬 타 리듬~'])); faceEach(a, b); }], [8, () => { G_(b, 'laugh'); say(b, '아 숨차 ㅋㅋ'); }], [2, () => { sitBack(a); sitBack(b); }], [8, () => {}]]; } },
+  tableDance: { need: ['f', '*'], script: g => { const [f] = g.ns, fr = g.ns.slice(1); return [
+    [2, () => { const t = ctr(g); standAt(f, t.x, t.z); f.g.userData.dance = 'stageDance'; g.frame = 'onTable'; }],
+    [6, () => { say(f, pk(L.dance)); fr.forEach((o, i) => setTimeout(() => { G_(o, 'clap'); say(o, pk(L.cheer), 1.8); }, 500 + i * 400)); }], [8, () => say(f, pk(L.dance))],
+    [8, () => { g.frame = null; sitBack(f); say(f, '헉헉 ㅋㅋ 한 잔 줘!'); fr.forEach(o => G_(o, 'cheers')); }], [8, () => {}]]; } },
+  armWrestle: { need: ['m', 'm', '*'], script: g => { const [a, b] = g.ns, rest = g.ns.slice(2); return [
+    [3, () => { say(a, '팔씨름 한 판? 지는 사람 원샷!', 2.4); }], [2.5, () => { say(b, pk(L.arm)); G_(a, 'flinch'); G_(b, 'flinch'); rest.forEach(o => { G_(o, 'clap'); say(o, '힘내!! 💪', 1.4); }); }],
+    [2.5, () => { say(a, pk(L.arm)); G_(a, 'flinch'); G_(b, 'flinch'); }], [2.5, () => { const w = Math.random() < .5 ? a : b, l = w === a ? b : a; G_(w, 'cheer'); say(w, pk(L.armWin)); setTimeout(() => { G_(l, 'drink'); say(l, pk(L.armLose)); }, 900); }], [8, () => {}]]; } },
+  sleep: { need: ['m', '*'], script: g => { const [z, fr] = g.ns; return [
+    [2, () => { G_(z, 'bow'); say(z, pk(L.sleep), 3); }], [4, () => { G_(z, 'bow'); say(z, pk(L.sleep), 3); }], [3, () => { G_(fr, 'push'); say(fr, pk(L.poke)); }],
+    [1.2, () => { G_(z, 'flinch'); say(z, pk(L.wake), 2); g.ns.slice(1).forEach(o => setTimeout(() => G_(o, 'laugh'), 500)); }], [6, () => { G_(z, 'drink'); }], [5, () => { G_(z, 'bow'); say(z, pk(L.sleep), 3); }]]; } },
+  rps: { need: ['*', '*', '*'], script: g => [
+    [3, () => { say(g.ns[0], pk(L.rps), 2); }], [1.6, () => { const h = ['✊', '✌️', '🖐']; g.ns.forEach(n => { say(n, pk(h), 1.6); G_(n, 'point'); }); }],
+    [2, () => { const l = pk(g.ns); G_(l, 'drink'); say(l, pk(L.rpsLose)); g.ns.forEach(o => o !== l && G_(o, 'laugh')); }], [6, () => {}]] },
+  rose: { need: ['m', 'f', '*'], script: g => { const [m, f] = g.ns, rest = g.ns.slice(2); return [
+    [4, () => { const p = outside(g, f); standAt(m, p.x, p.z, f); G_(m, 'bow'); say(m, pk(L.rose), 2.6); }],
+    [3, () => { if (Math.random() < .55) { G_(f, 'aegyo'); say(f, pk(L.yes)); rest.forEach(o => { G_(o, 'clap'); say(o, '꺄~ 축하해!!', 1.6); }); }
+      else { G_(f, 'headshake'); say(f, pk(L.no)); setTimeout(() => { G_(m, 'flinch'); say(m, pk(L.noReact)); rest.forEach(o => G_(o, 'laugh')); }, 1500); } }],
+    [5, () => sitBack(m)], [10, () => {}]]; } },
+  brawl: { need: ['m', 'm', '*'], script: g => { const [a, b] = g.ns, ref = g.ns[2]; return [
+    [3, () => { say(a, pk(L.brawl)); G_(a, 'point'); }], [2, () => { const p = outside(g, a), q = outside(g, b); standAt(a, p.x, p.z); standAt(b, (p.x + q.x) / 2 + .6, (p.z + q.z) / 2); faceEach(a, b); say(b, pk(L.brawl)); }],
+    [1.8, () => { G_(a, 'push'); setTimeout(() => G_(b, 'flinch'), 300); }], [1.8, () => { G_(b, 'slap'); setTimeout(() => { G_(a, 'flinch'); say(a, '야!!! 😡', 1.4); }, 350); }],
+    [1.6, () => { if (ref) { standAt(ref, (a.x + b.x) / 2, (a.z + b.z) / 2 + .3); G_(ref, 'headshake'); say(ref, pk(L.stop), 2); } }],
+    [3, () => { say(a, pk(L.peace)); G_(a, 'bow'); setTimeout(() => { say(b, pk(L.peace)); G_(b, 'nod'); }, 1200); }],
+    [3, () => { g.ns.forEach(sitBack); g.ns.forEach((n, i) => setTimeout(() => G_(n, 'cheers'), 300 + i * 200)); }], [9, () => {}]]; } },
+  selfie: { need: ['f', 'f'], script: g => [
+    [3, () => { const [a] = g.ns; G_(a, 'aegyo'); say(a, pk(L.selfie), 1.8); g.flash = 1; g.ns.slice(1).forEach(o => G_(o, 'aegyo')); }], [5, () => { G_(g.ns[1], 'laugh'); say(g.ns[1], '나 눈 감았어 다시!!'); }], [6, () => {}]] },
+  // ── VIP ──
+  vipParty: { need: ['m', 'f', 'm', 'f'], vip: true, script: g => [
+    [2, () => { W.vip[g.vip].champ.visible = true; say(g.ns[0], pk(L.vipParty), 2.4); g.ns.forEach((n, i) => setTimeout(() => G_(n, 'cheers'), i * 200)); }],
+    [4, () => { g.ns.forEach((n, i) => { const p = outside(g, n, i); standAt(n, p.x, p.z); n.g.userData.dance = 'stageDance'; n.g.rotation.y = Math.PI; }); say(g.ns[1], '꺄~ 이 노래 좋아!!'); }],
+    [10, () => { const n = pk(g.ns); G_(n, 'cheer'); say(n, pk(L.vipParty)); }], [8, () => { g.ns.forEach(sitBack); g.ns.forEach(n => G_(n, 'drink')); }], [10, () => {}]] },
+  vipBrawl: { need: ['m', 'm', 'f', '*'], vip: true, script: g => { const [a, b, c, d] = g.ns; return [
+    [3, () => { G_(a, 'cheers'); G_(b, 'cheers'); say(a, '자 형님 한 잔 받으세요~'); }], [3, () => { say(b, '💦 앗… 쏟았다', 1.6); setTimeout(() => { say(a, pk(L.vipBrawlA)); G_(a, 'point'); }, 1200); }],
+    [2.4, () => { g.ns.forEach((n, i) => { const p = outside(g, n, i); standAt(n, p.x, p.z); }); faceEach(a, b); }],
+    [1.6, () => { G_(a, 'push'); setTimeout(() => G_(b, 'flinch'), 300); say(b, pk(L.vipBrawlB)); }], [1.6, () => { G_(b, 'slap'); setTimeout(() => G_(a, 'flinch'), 350); if (d) { G_(d, 'push'); setTimeout(() => G_(a, 'flinch'), 500); } }],
+    [1.4, () => { say(c, pk(L.vipBrawlB), 2); G_(c, 'headshake'); B(W.vip[g.vip].champ, pk(L.vipCrash), 1.6); }], [1.8, () => { g.ns.forEach(n => G_(n, 'flinch')); say(d || c, '다들 그만!!! 😱', 2); }],
+    [3, () => { say(a, '…휴, 내가 흥분했다', 2.2); G_(a, 'bow'); }], [3, () => { g.ns.forEach(sitBack); say(b, pk(L.peace)); g.ns.forEach((n, i) => setTimeout(() => G_(n, 'cheers'), i * 250)); }], [12, () => {}]]; } },
+  vipBoss: { need: ['m', 'f', 'f'], vip: true, script: g => { const [boss, ...fs] = g.ns; return [
+    [3, () => { G_(boss, 'cheer'); say(boss, pk(L.boss), 2.4); fs.forEach((f, i) => setTimeout(() => { G_(f, 'clap'); say(f, '사장님 최고~!! 💕', 1.6); }, 600 + i * 300)); }],
+    [6, () => { G_(boss, 'drink'); fs.forEach(f => G_(f, 'cheers')); }], [6, () => { G_(fs[0], 'aegyo'); say(fs[0], '한 병 더 시켜요~ ㅎㅎ'); }], [8, () => {}]]; } },
+};
+const TABLE_KINDS = ['kiss', 'fight', 'toast', 'standDance', 'tableDance', 'armWrestle', 'sleep', 'rps', 'rose', 'brawl', 'selfie'];
+const fits = (kind, ns) => { const need = KINDS[kind].need; if (need.length > ns.length) return false; const pool = ns.slice(); return need.every(gd => { const i = pool.findIndex(n => gd === '*' || n.gender === gd); if (i < 0) return false; pool.splice(i, 1); return true; }); };
+const order = (kind, ns) => { const need = KINDS[kind].need, pool = ns.slice(), out = []; need.forEach(gd => { const i = pool.findIndex(n => gd === '*' || n.gender === gd); out.push(pool.splice(i, 1)[0]); }); return out.concat(pool); };
+function setKind(g, kind) {
+  g.ns.forEach(n => { if (n.state !== 'seated') sitBack(n); }); g.frame = null; if (g.vip != null) W.vip[g.vip].champ.visible = false;
+  g.kind = kind; g.ns = order(kind, g.ns); g.steps = KINDS[kind].script(g); g.si = 0; g.wait = 1.5 + Math.random() * 3; g.reroll = 120 + Math.random() * 80;
+}
+const NAMES_F = ['보라', '하늘', '예슬', '미나', '세라', '다인', '채원', '소율', '가은', '나연', '루나', '제니', '윤아', '슬기', '혜원', '은비'];
+const NAMES_M = ['상철', '동훈', '현우', '준혁', '성민', '태호', '민규', '재원', '우진', '건우', '형준', '대성', '진호', '석진', '영훈', '광수'];
+const TOPS_F = ['#ff5c8a', '#ffd23d', '#9b5cff', '#3de6ff', '#ff8a3d', '#ffffff', '#e0245e', '#7ae6b0'], TOPS_M = ['#2a2a35', '#ffffff', '#3d6aff', '#8a1a2a', '#1a5a3a', '#c0a060', '#5a5a6a'];
+function makeGuests(nF, nM) {    // 자리 채우기용 손님 생성 (npcs.json 의 기본 손님은 플로어를 돌아다니게 남겨 둠)
+  const out = [], hair = ['#1a120c', '#3b2417', '#5a3a22', '#2a1a10', '#8a5a2a', '#c8a070'];
+  for (let i = 0; i < nF + nM; i++) { const f = i < nF, nm = f ? NAMES_F[i % NAMES_F.length] : NAMES_M[(i - nF) % NAMES_M.length];
+    const n = NC.NPC.spawn({ id: `guest_${i}`, name: nm, gender: f ? 'f' : 'm', color: pk(f ? TOPS_F : TOPS_M), hair: pk(hair), trait: pk(['outgoing', 'shy', 'cool']), tag: '🍸 테이블 손님', job: '손님' }, 'crowd'); n.guest = true; out.push(n); }
+  return out;
+}
 function setupGroups() {
   if (online() || GROUPS.length) return;
-  const crowd = (NC.npcs || []).filter(n => n.role === 'crowd' && !n.stay && n.enabled), F = crowd.filter(n => n.gender === 'f'), M = crowd.filter(n => n.gender === 'm');
-  const take = arr => arr.shift();
-  const T_ = NC.tables, TY = W.TY || 0;
-  // 키스하는 커플 (테이블 0 옆에 서서 블루스 + 키스)
-  { const m = take(M), f = take(F); if (m && f) { const t = T_[0], c = { x: t.x + 1.2, z: t.z + 1.2 }; [m, f].forEach(n => { n.stay = 'table'; n.state = 'blues'; n.g.userData.dance = 'blues'; });
-    m.g.userData.bluesLead = true; f.g.userData.bluesLead = false; GROUPS.push({ kind: 'kiss', a: m, b: f, c, t: 0 }); } }
-  // 건배 커플 (테이블 1)
-  { const m = take(M), f = take(F); if (m && f) { seatNpc(m, NC.seatPos(1, 0), 'table'); seatNpc(f, NC.seatPos(1, 1), 'table'); NC.tableOcc[1][0] = NC.tableOcc[1][1] = 'npc'; GROUPS.push({ kind: 'drink', ns: [m, f], t: 2 }); } }
-  // 싸우는 커플 (테이블 3)
-  { const m = take(M), f = take(F); if (m && f) { seatNpc(m, NC.seatPos(3, 0), 'table'); seatNpc(f, NC.seatPos(3, 1), 'table'); NC.tableOcc[3][0] = NC.tableOcc[3][1] = 'npc'; GROUPS.push({ kind: 'fight', a: f, b: m, t: 4 }); } }
-  // 테이블 위 댄서 + 응원 친구 (테이블 4)
-  { const f = take(F), fr = take(F) || take(M); if (f) { const t = T_[4]; f.stay = 'table'; f.state = 'tableDance'; f.x = t.x; f.z = t.z; f.g.position.set(t.x, .82 + TY, t.z); f.g.userData.dance = 'stageDance'; f.g.userData.seated = false;
-    if (fr) { seatNpc(fr, NC.seatPos(4, 0), 'table'); NC.tableOcc[4][0] = 'npc'; } NC.tableOcc[4][1] = 'npc'; GROUPS.push({ kind: 'tableDance', a: f, fr, ty: .82 + TY, t: 1 }); } }
-  // VIP 3번 술자리 (2명)
-  { const v = W.vip[2], m = take(M), f = take(F); if (v && m && f) { [m, f].forEach((n, i) => { seatNpc(n, v.seats[i], 'vip'); v.occ[i] = 'npc'; }); GROUPS.push({ kind: 'vip', ns: [m, f], t: 3 }); } }
-  console.info('[episodes] 테이블·VIP 손님 그룹', GROUPS.length);
+  const low = NC.quality && NC.quality.level === 'low', nTables = low ? 8 : 10;
+  makeGuests(low ? 10 : 16, low ? 10 : 16);
+  const crowd = (NC.npcs || []).filter(n => n.role === 'crowd' && !n.stay && n.enabled), guests = crowd.filter(n => n.guest), rest = crowd.filter(n => !n.guest);
+  const pool = guests.concat(rest.slice(0, low ? 4 : 6)), F = pool.filter(n => n.gender === 'f'), M = pool.filter(n => n.gender === 'm');
+  const take = gd => (gd === 'f' ? F : gd === 'm' ? M : (F.length > M.length ? F : M)).shift();
+  // VIP 2·3번 룸 (VIP 1번은 플레이어 예약용으로 비워 둠)
+  [[1, 'vipParty', ['m', 'f', 'm', 'f']], [2, 'vipBrawl', ['m', 'm', 'f', 'f']]].forEach(([vi, kind, gs]) => { const v = W.vip[vi]; if (!v) return; const ns = gs.map(take).filter(Boolean); if (ns.length < 3) return;
+    ns.forEach((n, i) => { n.stay = 'vip'; n.enabled = true; n.g.visible = true; NC.NPC.sit(n, v.seats[i].x, v.seats[i].z, v.seats[i].ry, v.seats[i].h); v.occ[i] = 'npc'; });
+    const g = { vip: vi, ns, kinds: ['vipParty', 'vipBrawl', 'vipBoss'] }; GROUPS.push(g); setKind(g, fits(kind, ns) ? kind : 'vipBoss'); });
+  // 테이블: 앞줄·플로어 옆을 우선, 장면이 겹치지 않게 골고루
+  const tOrder = [0, 1, 2, 3, 12, 14, 6, 7, 13, 15, 4, 5, 8, 9, 10, 11].slice(0, nTables), kinds = TABLE_KINDS.slice().sort(() => Math.random() - .5);
+  const comp = [['m', 'f'], ['f', 'm', '*'], ['*', '*', '*'], ['m', 'f'], ['f', 'f', 'm'], ['m', 'm', '*'], ['m', 'f', '*'], ['*', '*', '*', '*'], ['m', 'f', 'f'], ['m', 'm', 'f'], ['f', 'f']];
+  tOrder.forEach((ti, k) => {
+    const want = low ? comp[k % comp.length].slice(0, 2) : comp[k % comp.length], ns = want.map(take).filter(Boolean); if (ns.length < 2) return;
+    ns.forEach((n, s) => { n.stay = 'table'; n.enabled = true; n.g.visible = true; const p = NC.seatPos(ti, s); NC.NPC.sit(n, p.x, p.z, p.ry, p.h); NC.tableOcc[ti][s] = 'npc'; });
+    const g = { t: ti, ns, kinds: TABLE_KINDS }; GROUPS.push(g);
+    const first = kinds.find(kd => fits(kd, ns)) || TABLE_KINDS.find(kd => fits(kd, ns)); if (first) { kinds.splice(kinds.indexOf(first), 1); kinds.push(first); setKind(g, first); }
+  });
+  console.info('[episodes] 테이블·VIP 손님 그룹', GROUPS.length, GROUPS.map(g => (g.vip != null ? 'VIP' + (g.vip + 1) : 'T' + (g.t + 1)) + ':' + g.kind).join(' '));
 }
 function tickGroups(dt) {
+  const now = performance.now() / 1000;
   GROUPS.forEach(g => {
-    if ([g.a, g.b, g.fr].concat(g.ns || []).some(n => n && n.party)) return;   // v15: 디스코/블루스 타임에 플로어로 나간 동안 그룹 연출 멈춤
-    g.t -= dt;
-    if (g.kind === 'kiss') { const a = g.a, b = g.b, now = performance.now() / 1000, d = .21 - .06 * Math.max(0, Math.sin(now * .5)), ang = Math.sin(now * .3) * .3;
+    if (!g.kind) return;
+    if (g.ns.some(n => n.party || n.booked || n.state === 'talk')) { g.paused = true; return; }   // 디스코/블루스 타임·플레이어와 대화 중
+    if (g.paused) { if (g.ns.some(n => n.state === 'path' || n.state === 'wander')) return; g.paused = false; setKind(g, g.kind); return; }   // 다 자리로 돌아온 뒤 처음부터
+    // 프레임 연출: 커플 블루스(키스) · 테이블 위 댄서
+    if (g.frame === 'pair') { const [a, b] = g.ns, d = .21 - .06 * Math.max(0, Math.sin(now * .5)), ang = Math.sin(now * .3) * .3 + (g.ph || (g.ph = Math.random() * 6));
       a.x = g.c.x - Math.cos(ang) * d; a.z = g.c.z - Math.sin(ang) * d; b.x = g.c.x + Math.cos(ang) * d; b.z = g.c.z + Math.sin(ang) * d;
-      const ry = Math.atan2(b.x - a.x, b.z - a.z); a.g.rotation.y = ry; b.g.rotation.y = ry + Math.PI; const k = Math.max(0, Math.sin(now * .5)); a.g.userData.kissK = b.g.userData.kissK = k;
-      a.g.position.set(a.x, NC.groundY(a.x, a.z), a.z); b.g.position.set(b.x, NC.groundY(b.x, b.z), b.z); if (g.t <= 0) { g.t = 9; if (k > .5) B(b.g, U.pick(LINES.kiss), 1.6); } }
-    else if (g.kind === 'drink' || g.kind === 'vip') { if (g.t <= 0) { g.t = 6 + Math.random() * 5; g.ns.forEach((n, i) => setTimeout(() => Mo.play(n.g, Math.random() < .5 ? 'cheers' : 'drink'), i * 250)); B(g.ns[0].g, U.pick(LINES.drink)); } }
-    else if (g.kind === 'fight') { if (g.t <= 0) { g.t = 7 + Math.random() * 4; B(g.a.g, U.pick(LINES.fightA), 2.4); Mo.play(g.a.g, Math.random() < .5 ? 'headshake' : 'crossArms');
-      setTimeout(() => { B(g.b.g, U.pick(LINES.fightB), 2.2); Mo.play(g.b.g, 'bow'); }, 2400); } }
-    else if (g.kind === 'tableDance') { const a = g.a; a.g.position.y = g.ty; if (g.t <= 0) { g.t = 8; B(a.g, U.pick(LINES.dance), 2); if (g.fr) { Mo.play(g.fr.g, 'clap'); setTimeout(() => B(g.fr.g, U.pick(LINES.cheer), 1.8), 900); } } }
+      const ry = Math.atan2(b.x - a.x, b.z - a.z); a.g.rotation.y = ry; b.g.rotation.y = ry + Math.PI; a.g.userData.kissK = b.g.userData.kissK = Math.max(0, Math.sin(now * .5));
+      a.g.position.set(a.x, NC.groundY(a.x, a.z), a.z); b.g.position.set(b.x, NC.groundY(b.x, b.z), b.z); }
+    else if (g.frame === 'onTable') { const f = g.ns[0]; f.g.position.y = NC.groundY(f.x, f.z) + .82; }
+    if (g.flash) { g.flash = 0; const t = ctr(g); if (NC.camera && Math.hypot(t.x - P().x, t.z - P().z) < 14) { const L_ = new T.PointLight(0xffffff, 3, 6); L_.position.set(t.x, 2.2 + (g.vip != null ? W.vip[g.vip].y : 0), t.z); NC.scene.add(L_); setTimeout(() => NC.scene.remove(L_), 120); } }
+    // 대본 진행 + 2~3분마다 다른 장면으로
+    g.reroll -= dt; g.wait -= dt;
+    if (g.wait > 0) return;
+    if (g.reroll <= 0 && g.si === 0) { const opts = g.kinds.filter(k => k !== g.kind && fits(k, g.ns)); if (opts.length) { setKind(g, pk(opts)); return; } g.reroll = 120; }
+    const st = g.steps[g.si]; try { st[1](); } catch (e) { console.warn('[episodes]', g.kind, e); }
+    g.si = (g.si + 1) % g.steps.length; g.wait = g.steps[g.si][0] * (.85 + Math.random() * .3);
   });
 }
 (function trySetup() { if ((NC.npcs || []).length && NC.player && NC.player.group) setupGroups(); else setTimeout(trySetup, 1500); })();

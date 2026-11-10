@@ -164,6 +164,7 @@ NC.fx = (() => {
   for (let i = 0; i < MAX; i++) im.setColorAt(i, c.set('#ffffff'));
   let added = false;
   function confetti(x, y, z, n = 40) {
+    if (!NC.fxConfetti) return;   // v16: 공중을 떠다니던 색종이(조명에 따라 검은 조각으로 보임) — 너무 산만해서 기본 끔
     if (!added && NC.scene) { NC.scene.add(im); added = true; }
     for (let i = 0; i < n; i++) { const p = P.length < MAX ? {} : P.shift(); const a = Math.random() * Math.PI * 2, sp = .6 + Math.random() * 1.8;
       Object.assign(p, { x, y, z, vx: Math.cos(a) * sp, vy: 1.5 + Math.random() * 2.2, vz: Math.sin(a) * sp, rx: Math.random() * 6, ry: Math.random() * 6, sx: (Math.random() - .5) * 14, sy: (Math.random() - .5) * 14, life: 2.8 + Math.random() * 1.2, col: PAL[(Math.random() * PAL.length) | 0] }); P.push(p); }

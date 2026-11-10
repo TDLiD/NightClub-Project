@@ -84,7 +84,7 @@ function updateWaiters(dt, cam) {
       else if (o.state === 'wait') { u.moving = false; o.wait -= dt; if (o.wait < 0) o.state = 'idle'; }
     } else { u.moving = false; if (o.home && !o.busy) { if (Math.hypot(o.home.x - o.x, o.home.z - o.z) > .5) walk(o, [o.home]); else o.g.rotation.y = U.lerpAngle(o.g.rotation.y, 0, dt * 3); } }
     const P = NC.player; if (!o.busy && P.group && Math.hypot(P.x - o.x, P.z - o.z) < 3.5) u.lookAt = P; else if (!o.busy) u.lookAt = null;
-    o.g.position.set(o.x, 0, o.z);
+    o.g.position.set(o.x, NC.groundY(o.x, o.z), o.z);
     Mo.update(o.g, dt, { near: cam.position.distanceTo(o.g.position) < 16 }); NC.Avatar.fitLabel(o.g, cam);
   });
 }

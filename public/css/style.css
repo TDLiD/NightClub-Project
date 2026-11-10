@@ -191,3 +191,37 @@ button{font-family:inherit}
 @keyframes pbPulse{50%{box-shadow:0 0 22px rgba(255,61,154,.8)}}
 @media (max-width:900px){#partyBar{top:48px}#partyBar button{height:34px;font-size:12.5px;padding:0 10px}}
 @media (max-width:640px){#partyBar{top:90px}}
+/* v16 좌측 손님 리스트 */
+#guestList{position:fixed;left:12px;top:128px;width:208px;z-index:7;background:rgba(20,8,40,.82);border:1px solid var(--line);border-radius:14px;color:#fff;font-size:12.5px;backdrop-filter:blur(6px);box-shadow:0 4px 18px rgba(0,0,0,.4)}
+#guestList .glHead{display:flex;align-items:center;gap:4px;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.1)}
+#guestList .glHead b{cursor:pointer}#guestList #glCount{opacity:.7;font-size:11.5px;flex:1}
+#guestList #glFold{background:none;border:0;color:#fff;font-size:14px;cursor:pointer;padding:0 4px}
+#guestList #glBody{max-height:calc(100vh - 470px);min-height:140px;overflow-y:auto;padding:6px}
+#guestList.folded #glBody{display:none}
+#glSearch{width:100%;box-sizing:border-box;padding:5px 8px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.3);color:#fff;font-size:12px;margin-bottom:5px}
+#glFilter{display:flex;gap:3px;margin-bottom:4px}#glFilter button{flex:1;padding:3px 0;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-size:11px;cursor:pointer}
+#glFilter button.on{background:linear-gradient(135deg,#ff3d9a,#7b3dff);border-color:transparent}
+.glSec{font-size:11px;opacity:.65;margin:6px 2px 3px}
+.glRow{display:grid;grid-template-columns:20px 1fr;grid-template-rows:auto auto;column-gap:5px;padding:4px 6px;border-radius:9px;cursor:pointer}
+.glRow:hover{background:rgba(255,61,154,.22)}.glRow.go{background:rgba(61,230,255,.22);outline:1px solid rgba(61,230,255,.6)}
+.glRow .dot{grid-row:1/3;align-self:center;width:18px;height:18px;border-radius:50%;font-style:normal;font-size:11px;display:flex;align-items:center;justify-content:center}
+.glRow .dot.f{background:rgba(255,92,170,.35)}.glRow .dot.m{background:rgba(61,150,255,.35)}.glRow .dot.on{background:#3dff8a;box-shadow:0 0 8px #3dff8a}
+.glRow b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.glRow small{opacity:.65;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.glRow.online b{color:#9dffc4}
+@media (max-width:640px){#guestList{top:132px;width:170px}#guestList #glBody{max-height:38vh}}
+/* v16 닫기 버튼 */
+.modal .box{position:relative}
+.mClose{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);color:#fff;font-size:15px;line-height:1;cursor:pointer;z-index:3;padding:0}
+.mClose:hover{background:#ff3d6a}
+#game .gbox{position:relative}
+#dlg{position:fixed}#dlg .dClose{position:absolute;top:8px;right:10px;padding:4px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);color:#fff;font-size:12px;cursor:pointer}
+#dlg .dClose:hover{background:#ff3d6a}
+#cpBody{position:relative}#cpClose{top:4px;right:4px;width:26px;height:26px;font-size:13px}
+#qmenu .qClose{order:99;opacity:.85}
+#tCancel{display:block;width:100%;margin:0 0 8px;padding:8px 10px;border-radius:12px;border:1px solid rgba(255,90,120,.6);background:linear-gradient(90deg,rgba(255,61,106,.35),rgba(123,61,255,.3));color:#fff;font-weight:800;font-size:13.5px;cursor:pointer}
+#tCancel:hover{background:linear-gradient(90deg,#ff3d6a,#7b3dff)}
+.admList{max-height:52vh;overflow:auto;margin:8px 0;font-size:12px}.admList table{width:100%;border-collapse:collapse}.admList th,.admList td{padding:4px 5px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left;white-space:nowrap}
+.admList input{width:72px;padding:3px 5px;border-radius:6px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.3);color:#fff}.admList button{padding:3px 7px;margin-left:2px;border-radius:7px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;cursor:pointer}
+#admBar{display:flex;flex-wrap:wrap;gap:6px}#admBar button{padding:6px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:12.5px}
+.admNote{font-size:11.5px;opacity:.7;line-height:1.5}
+.modal .box:has(#admList){max-width:min(860px,94vw);width:min(860px,94vw)}

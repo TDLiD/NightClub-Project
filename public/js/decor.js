@@ -48,13 +48,13 @@ const artTex = seed => { const cv = document.createElement('canvas'); cv.width =
   const t = new T.CanvasTexture(cv); t.encoding = T.sRGBEncoding; return t; };
 const gold = std('#d8b060', { roughness: .25, metalness: 1 });
 W.vip.forEach((v, i) => {
-  const zb = v.z1 - .06;
-  const fr = new T.Mesh(box(1.9, 1.25, .05), gold); put(clubG, fr, v.cx - 1.6, 2.35, zb - .02);
-  const art = new T.Mesh(new T.PlaneGeometry(1.75, 1.1), new T.MeshStandardMaterial({ map: artTex(i * 7 + 3), roughness: .6 })); put(clubG, art, v.cx - 1.6, 2.35, zb - .05, Math.PI);
-  const fr2 = new T.Mesh(box(1.0, 1.4, .05), gold); put(clubG, fr2, v.cx + 2.3, 2.3, zb - .02);
-  const art2 = new T.Mesh(new T.PlaneGeometry(.88, 1.28), new T.MeshStandardMaterial({ map: artTex(i * 11 + 5), roughness: .6 })); put(clubG, art2, v.cx + 2.3, 2.3, zb - .05, Math.PI);
-  const rug = new T.Mesh(new T.PlaneGeometry(4.2, 2.8), pbr('carpet', { repeat: [3, 2], roughness: 1, color: ['#4a2a6a', '#5a3a1a', '#5a1a3a'][i % 3] })); rug.rotation.x = -Math.PI / 2; put(clubG, rug, v.cx, .012, (v.z0 + v.z1) / 2 + .6);
-  const led = new T.Mesh(box(v.x1 - v.x0 - .6, .025, .025), emi(v.color || '#b07cff', 1.8)); put(clubG, led, v.cx, .05, zb - .5);
+  const zb = v.z1 - .06, vy = v.y || 0;   // v16: VIP 2층
+  const fr = new T.Mesh(box(1.9, 1.25, .05), gold); put(clubG, fr, v.cx - 1.6, 2.35 + vy, zb - .02);
+  const art = new T.Mesh(new T.PlaneGeometry(1.75, 1.1), new T.MeshStandardMaterial({ map: artTex(i * 7 + 3), roughness: .6 })); put(clubG, art, v.cx - 1.6, 2.35 + vy, zb - .05, Math.PI);
+  const fr2 = new T.Mesh(box(1.0, 1.4, .05), gold); put(clubG, fr2, v.cx + 2.3, 2.3 + vy, zb - .02);
+  const art2 = new T.Mesh(new T.PlaneGeometry(.88, 1.28), new T.MeshStandardMaterial({ map: artTex(i * 11 + 5), roughness: .6 })); put(clubG, art2, v.cx + 2.3, 2.3 + vy, zb - .05, Math.PI);
+  const rug = new T.Mesh(new T.PlaneGeometry(4.2, 2.8), pbr('carpet', { repeat: [3, 2], roughness: 1, color: ['#4a2a6a', '#5a3a1a', '#5a1a3a'][i % 3] })); rug.rotation.x = -Math.PI / 2; put(clubG, rug, v.cx, .012 + vy, (v.z0 + v.z1) / 2 + .6);
+  const led = new T.Mesh(box(v.x1 - v.x0 - .6, .025, .025), emi(v.color || '#b07cff', 1.8)); put(clubG, led, v.cx, .05 + vy, zb - .5);
 });
 
 /* ── 노래방 ── */
@@ -94,7 +94,7 @@ if (RR) { const tile = pbr('marble', { repeat: [6, 2], roughness: .25, gen: { a:
 NC.tickers.push(dt => {
   const t = performance.now() / 1000;
   if (clubG.visible) {
-    haze.forEach(sp => { const ph = sp.userData.ph; sp.position.x = sp.userData.x0 + Math.sin(t * .15 + ph) * 1.2; sp.material.opacity = .1 + .06 * Math.sin(t * .4 + ph); });
+    haze.forEach(sp => { sp.visible = !W.stageOff; const ph = sp.userData.ph; sp.position.x = sp.userData.x0 + Math.sin(t * .15 + ph) * 1.2; sp.material.opacity = .1 + .06 * Math.sin(t * .4 + ph); });
     const th = W.THEMES && W.themeId && W.THEMES[W.themeId], gc = th && th.glow ? th.glow[Math.floor(t * .5) % th.glow.length] : '#ff3d9a'; edgeMat.color.set(gc).multiplyScalar(2.2);
     if ((jetT -= dt) <= 0) { jetT = 38 + Math.random() * 25; if (NC.player && NC.player.zone === 'stage' || Math.random() < .5) fireCO2(); }
     jets.forEach(j => { if (j.t > 0) j.t -= dt; j.plume.forEach((sp, k) => { const e = 1.6 - j.t, a = j.t > 0 ? Math.min(1, j.t * 2) : 0, hgt = (e * 3.2 + k * .38) % 3.4; sp.position.y = SY + .6 + hgt; sp.position.x = j.x + Math.sin(k * 2.1 + t) * .08 * hgt; const sc = .3 + hgt * .45; sp.scale.set(sc, sc, 1); sp.material.opacity = a * .55 * (1 - hgt / 3.4); }); });

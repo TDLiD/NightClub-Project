@@ -11,7 +11,7 @@ let DATA = null;
 const box = $('#game');
 const G = NC.Games = { active: null };
 
-function open(html) { box.innerHTML = `<div class="gbox">${html}</div>`; box.style.display = 'flex'; $('#talk').style.visibility = 'hidden'; }
+function open(html) { box.innerHTML = `<div class="gbox"><button class="mClose" title="게임 그만하기">✕</button>${html}</div>`; box.querySelector('.mClose').onclick = () => close(); box.style.display = 'flex'; $('#talk').style.visibility = 'hidden'; }
 function close() { box.style.display = 'none'; box.innerHTML = ''; G.active = null; $('#talk').style.visibility = ''; NC.Dialog.renderHead(); NC.Dialog.chips(); }
 function reward(n, coins, aff, why) { if (coins) NC.Wallet.add(coins, why); if (aff) { n.aff = U.clamp(n.aff + aff, 0, 100); NC.Dialog.floatDelta(aff); } NC.Dialog.sys(`🎮 ${why}: 호감도 ${aff >= 0 ? '+' : ''}${aff} · 🪙+${coins}`); }
 

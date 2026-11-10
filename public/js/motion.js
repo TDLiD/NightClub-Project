@@ -311,6 +311,6 @@ function update(a, dt, opt = {}) {
 
 NC.Motion = { update, play, trigger, TRIGGERS, EMOTION_TRIGGER, GEST: Object.keys(GEST), BASE: Object.keys(BASE) };
 // 기존 API 호환
-NC.seatAvatar = (a, x, z, ry, h = .5) => { a.position.set(x, 0, z); a.rotation.y = ry; const u = a.userData; u.seated = true; u.moving = false; u.dance = null; u.seatH = h; };
-NC.unseatAvatar = (a, x, z) => { const u = a.userData; u.seated = false; u.talk = false; if (x != null) a.position.set(x, 0, z); };
+NC.seatAvatar = (a, x, z, ry, h = .5) => { a.position.set(x, NC.groundY ? NC.groundY(x, z) : 0, z); a.rotation.y = ry; const u = a.userData; u.seated = true; u.moving = false; u.dance = null; u.seatH = h; };
+NC.unseatAvatar = (a, x, z) => { const u = a.userData; u.seated = false; u.talk = false; if (x != null) a.position.set(x, NC.groundY ? NC.groundY(x, z) : 0, z); };
 })();
