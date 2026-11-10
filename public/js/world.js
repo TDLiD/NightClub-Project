@@ -183,6 +183,7 @@ const THEMES = W.THEMES = {
   white:   { name: '화이트 스포트라이트 (반짝임 없음)', h0: .1, h1: .12, sat: .08, lit: .34, spots: ['#ffffff', '#fff6ea', '#ffffff', '#f4f0ff', '#ffffff', '#fff6ea'], laser: false, beam: .55, speed: 0, led: [40, 40], ledSat: 10, ledDim: .8, text: 'NOSTALGIA · SPOTLIGHT', haze: ['#f0f0f8', '#e8e8f0', '#ffffff'], fog: '#1e1c24', glow: ['#ffffff', '#f0ecff'], sparkle: false, spotK: 1.15, keyK: 1.6 },
 };
 let TH = THEMES.neon;
+W.ledMessage = (text, sec = 8, color) => { W.ledMsg = { text, until: performance.now() + sec * 1000, color }; };
 W.setTheme = id => { const th = THEMES[id]; if (!th) return; TH = th; W.themeId = id; U.store.set('nc_theme', id);
   spots.forEach((sp, i) => { const c = col(th.spots[i % th.spots.length]); if (sp.L) sp.L.color.copy(c); sp.beam.material.uniforms.color.value.copy(c); sp.head.children[1] && sp.head.children[1].material && sp.head.children[1].material.color.copy(c).multiplyScalar(6); });
   haze.forEach((h, i) => h.sp.material.color.copy(col(th.haze[i % 3]))); S.fog.color.copy(col(th.fog)); glows[0].color.copy(col(th.glow[0])); glows[1].color.copy(col(th.glow[1]));
@@ -262,6 +263,10 @@ function drawLED(t, b) {
       break; }
   }
   g.restore();
+  if (W.ledMsg && performance.now() < W.ledMsg.until) {   // v18 전광판 알림(샴페인 쇼·DJ 테이크오버 등): 영상 위에 크게
+    const m = W.ledMsg, k = .5 + .5 * Math.sin(t * 6); g.fillStyle = `rgba(10,4,20,${.72})`; g.fillRect(0, 90, 1024, 140);
+    g.font = '900 78px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = m.color || '#ffd23d'; g.shadowBlur = 20 + 20 * k; g.fillStyle = '#fff';
+    g.fillText(m.text, 512, 162); g.shadowBlur = 0; g.textAlign = 'left'; g.drawImage(ledMask, 0, 0); ledTex.needsUpdate = true; return; }
   if (ledMode === 0 || ledMode === 3) { g.font = '900 64px Arial'; g.textAlign = 'center'; g.fillStyle = '#fff'; g.shadowColor = '#ff3d9a'; g.shadowBlur = 26;
     g.globalAlpha = dimK; g.fillText(b.n % 16 < 8 ? TH.text : 'DJ NOSTALGIA ♪ ' + Math.round(b.bpm) + ' BPM', 512 + Math.sin(t) * 40, 80); g.shadowBlur = 0; g.globalAlpha = 1; }
   g.textAlign = 'left';
@@ -379,7 +384,7 @@ for (let i = tblStart; i < S.children.length; i++) S.children[i].position.y += T
 /* ═════ ④ v15 ㄷ자 외곽 동(棟) + VIP 앞 웨이터·부킹 통로 ═════
  *  서쪽 동: 노래방(룸 1~4호 · 메인 입구) + 흡연실 · 동쪽 동: 바(북쪽) + 화장실(남쪽) + 창고 · 남쪽: VIP 룸 3개
  *  각 동은 높이 4.6m 매스 + 대리석 파사드(원목 웨인스코팅 · 금색 몰딩 · 상단 네온) */
-const WING = W.wing = { west: -17.85, east: 17.85, z0: -ROOM.z, z1: 9.5 };   // v16: 남쪽 끝을 9.5로 줄여 부킹 통로가 양쪽 벽(2층 계단 입구)까지 이어짐
+const WING = W.wing = { west: -17.85, east: 17.85, z0: -ROOM.z, z1: 9.5 }, WING_H = 4.6;   // v16: 남쪽 끝을 9.5로 줄여 부킹 통로가 양쪽 벽(2층 계단 입구)까지 이어짐
 let corridorLight = null, kdoorLight = null;
 { const CZ = 10.75, WH = 4.6;
   const carpet = put(new T.Mesh(new T.PlaneGeometry(ROOM.x * 2, 2.2), MAT.carpet), 0, .012, CZ); carpet.rotation.x = -Math.PI / 2; carpet.receiveShadow = !!Q.shadows;
@@ -524,6 +529,23 @@ const vipFloorY = (x, z) => { if (z < BAL_Z || z > ROOM.z) return -1; const ax =
 W.vipFloorY = vipFloorY;
 NC.groundY = (x, z) => { const vy = vipFloorY(x, z); if (vy >= 0) return vy; if (Math.abs(x) <= Z.dj.x1 && z <= Z.dj.z1 && z >= -ROOM.z) return Z.dj.y; if (x < stg.x0 || x > stg.x1 || z < -ROOM.z || z > ROOM.z) return 0; if (z <= stg.z1) return .5; if (z < stg.z1 + .9 && Math.abs(x) < 3) return .5 * (1 - (z - stg.z1) / .9); return 0; };
 W.locked = i => (NC.roomLockedForMe ? NC.roomLockedForMe(i) : false);
+/* v18 카메라 벽 회피: 플레이어(t)→카메라(p) 사이에 벽(서쪽·동쪽 동, VIP 2층 아래 매스, 바깥 벽)이 있으면 카메라를 그 앞까지 당김
+ *  → 무대 쪽을 바라봐도 뒤쪽 벽이 화면을 가리지 않고 홀 전경이 보임 */
+W.camHull = (x, y, z, up) => {
+  if (Math.abs(x) > ROOM.x - .6 || z < -ROOM.z + .4 || z > ROOM.z - .4 || y > ROOM.h - .4 || y < .3) return false;
+  if (y < WING_H + .3) { if (x < WING.west + .15 && z < WING.z1 + .15) return false; if (x > WING.east - .15 && ((z > 2.75 && z < WING.z1 + .15) || z < -14.05)) return false; }
+  if (!up && z > BAL_Z - .25 && y < VY + 4.8) return false;          // 1층에서는 VIP 라운지 매스·2층 룸 안으로 카메라가 들어가지 않게
+  if (up && z > VIP_Z0 - .1 && W.vipAt(x, z) < 0 && y < VY + 4.6) return false;
+  return true;
+};
+W.clampCam = (t, p, up) => {
+  const N = 28; let ok = 0; for (let i = 1; i <= N; i++) { const k = i / N; if (!W.camHull(t.x + (p.x - t.x) * k, t.y + (p.y - t.y) * k, t.z + (p.z - t.z) * k, up)) break; ok = k; }
+  if (ok >= 1) return;
+  // 막혔으면 위에서 내려다보지 않고, 낮게 깔아 플레이어 바로 뒤로 당김 → 플레이어 너머로 무대·홀 전경이 앞에 펼쳐짐
+  const hx = p.x - t.x, hz = p.z - t.z; let ok2 = 0;
+  for (let i = 1; i <= N; i++) { const k = i / N, y = t.y + .8 + 1.4 * k; if (!W.camHull(t.x + hx * k, y, t.z + hz * k, up)) break; ok2 = k; }
+  const k = Math.max(ok2 - .04, .14); p.set(t.x + hx * k, t.y + .8 + 1.4 * k, t.z + hz * k);
+};
 function collideRects(p, r, rects) {
   for (const [x0, z0, x1, z1] of rects) {
     const cx = Math.max(x0, Math.min(p.x, x1)), cz = Math.max(z0, Math.min(p.z, z1)), dx = p.x - cx, dz = p.z - cz, d2 = dx * dx + dz * dz;
@@ -546,7 +568,7 @@ W.tickers = [];
 W.update = function (dt, t, agents) {
   const b = NC.Audio ? NC.Audio.beat() : { phase: (t * 118 / 60) % 1, n: Math.floor(t * 118 / 60), bpm: 118 };
   const SPK = TH.sparkle !== false, kick = SPK ? 1 - b.phase : .35;   // v15: 반짝임 없는 테마 = 비트 펄스·반사점·깜빡임 정지
-  speckPts.visible = SPK; ballSpot.intensity = SPK ? 1.2 : 0; if (SPK) { ball.rotation.y += dt * .5; updateSpecks(ball.rotation.y); }
+  speckPts.visible = SPK; if (!(W.spotBorrowed && W.spotBorrowed())) ballSpot.intensity = SPK ? 1.2 : 0;   // v18: features.js 가 스팟을 빌린 동안은 건드리지 않음 if (SPK) { ball.rotation.y += dt * .5; updateSpecks(ball.rotation.y); }
   const sp = TH.speed, spK = TH.spotK ?? 1, OFF = !!TH.nostage;
   spots.forEach(s => { const a = t * .55 * sp + s.k * 1.6; s.tg.position.set(Math.cos(a) * 7, 0, -8 + Math.sin(a * 1.3) * 5.5);
     const dx = s.tg.position.x - s.pos.x, dy = s.tg.position.y - s.pos.y, dz = s.tg.position.z - s.pos.z;
@@ -554,7 +576,9 @@ W.update = function (dt, t, agents) {
     if (s.L) s.L.intensity = (SPK ? 2.2 + Math.sin(t * 3 * sp + s.k) * .5 + kick * .5 * sp : 2.1) * spK; s.beam.visible = !OFF && TH.beam > 0; s.beam.material.uniforms.time.value = t; s.beam.material.uniforms.intensity.value = ((s.L ? .26 : .2) + kick * .1 * sp) * TH.beam; });
   glows[0].intensity = OFF ? 0 : SPK ? 1.1 + Math.sin(t * 4) * .4 : 1; glows[1].intensity = OFF ? 0 : SPK ? 1.1 + Math.cos(t * 4) * .4 : 1;
   for (let i = 0, k = 0; i < TX; i++) for (let j = 0; j < TZ; j++, k++) { const f = (t * .1 * sp + (i + j) * .045) % 1, h = (TH.h0 + (TH.h1 - TH.h0) * (TH.h1 - TH.h0 >= .99 ? f : .5 + .5 * Math.sin(f * 6.283))) % 1, v = SPK ? .35 + .4 * Math.max(0, Math.sin(t * 2 * sp + (i * 2 + j * 3) * .6)) + kick * .25 * sp * ((i + j + b.n) % 2) : .5 + .08 * Math.sin(t * .3 + (i + j) * .25); tmpC.setHSL(h, TH.sat, v * TH.lit); tiles.setColorAt(k, tmpC); }
+  if (W.djHue != null) for (let i = 0, k = 0; i < TX; i++) for (let j = 0; j < TZ; j++, k++) { const w = W.djWave ? Math.sin(t * 4 + i * .7 - j * .5) : 0; tiles.setColorAt(k, tmpC.setHSL((W.djHue + w * .08 + 1) % 1, .95, .38 + .2 * Math.max(0, w) + kick * .12)); }   // v18 DJ 테이크오버: 플레이어가 고른 색 파형
   tiles.instanceColor.needsUpdate = true;
+  if (W.djHue != null) spots.forEach((s, i) => { if (s.L) s.L.color.setHSL((W.djHue + i * .04 + (W.djWave ? Math.sin(t * 2 + i) * .06 : 0) + 1) % 1, 1, .55); });
   const pattern = Math.floor(b.n / 8) % 4, laserOn = TH.laser && pattern !== 3; const hue = (Math.floor(b.n / 4) * .17) % 1;
   lasers.forEach((m, i) => {
     m.visible = laserOn; if (!laserOn) return;

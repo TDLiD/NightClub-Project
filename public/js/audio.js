@@ -63,9 +63,9 @@ const A = NC.Audio = {
     const z = ZONE_FX[key] || ZONE_FX.tables;
     const dStage = Math.hypot(pos.x - STAGE_SPK.x, pos.z - STAGE_SPK.z), near = Math.max(0, 1 - dStage / 22);
     const tc = .25;
-    this.zoneLP.frequency.setTargetAtTime(z.lp, now, tc); this.zoneGain.gain.setTargetAtTime(z.gain, now, tc);
+    this.zoneLP.frequency.setTargetAtTime(this.djLP ? Math.min(z.lp, this.djLP) : z.lp, now, this.djLP ? .05 : tc);   // v18 DJ 필터 this.zoneGain.gain.setTargetAtTime(z.gain, now, tc);
     this.wet.gain.setTargetAtTime(z.wet, now, tc); this.bleedGain.gain.setTargetAtTime(z.bleed, now, tc);
-    this.bassShelf.gain.setTargetAtTime(z.bass + near * 5, now, tc);
+    this.bassShelf.gain.setTargetAtTime(z.bass + near * 5 + (this.djBass || 0), now, tc);
     this.duck.gain.setTargetAtTime(this.ducking > 0 || this.voiceDuck ? .55 : 1, now, .12);
   },
   speaking(on) { this.ducking = Math.max(0, this.ducking + (on ? 1 : -1)); },

@@ -48,7 +48,7 @@ const edgeSpot = () => { const F = W.zones.dance, side = Math.random(); return s
 /* ── 누가 나오나: 대화·부킹·노래방·플레이어와 부르스 중인 손님만 제외 ── */
 function eligible() {
   const k = K(), busy = new Set([D() && D().cur && D().cur.n, k && k.BL && k.BL.n].concat((k && k.guests) || []).filter(Boolean));
-  return (NC.npcs || []).filter(n => !busy.has(n) && !n.booked && n.state !== 'talk' && (n.role === 'crowd' || n.role === 'persona'));
+  return (NC.npcs || []).filter(n => !busy.has(n) && !n.booked && n.state !== 'talk' && n.state !== 'escort' && (n.role === 'crowd' || n.role === 'persona'));
 }
 
 function start(mode) {

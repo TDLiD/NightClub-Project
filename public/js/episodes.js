@@ -113,6 +113,13 @@ const KINDS = {
     [3, () => { g.ns.forEach(sitBack); g.ns.forEach((n, i) => setTimeout(() => G_(n, 'cheers'), 300 + i * 200)); }], [9, () => {}]]; } },
   selfie: { need: ['f', 'f'], script: g => [
     [3, () => { const [a] = g.ns; G_(a, 'aegyo'); say(a, pk(L.selfie), 1.8); g.flash = 1; g.ns.slice(1).forEach(o => G_(o, 'aegyo')); }], [5, () => { G_(g.ns[1], 'laugh'); say(g.ns[1], '나 눈 감았어 다시!!'); }], [6, () => {}]] },
+  cheersStand: { need: ['m', 'f'], script: g => { const [a, b] = g.ns; return [   // v18 커플이 일어나 마주 보고 건배
+    [2.5, () => { const p = outside(g, a); standAt(a, p.x - .4, p.z); standAt(b, p.x + .4, p.z); faceEach(a, b); say(a, '우리 일어나서 건배하자!'); }],
+    [2, () => { G_(a, 'cheers'); G_(b, 'cheers'); say(b, pk(L.drink)); }], [2.5, () => { G_(a, 'drink'); G_(b, 'drink'); }], [2.5, () => { G_(b, 'laugh'); G_(a, 'cheer'); say(a, '한 잔 더~!!'); }],
+    [3, () => { sitBack(a); sitBack(b); }], [7, () => {}]]; } },
+  tableDuo: { need: ['*', '*'], script: g => { const [a, b] = g.ns; return [   // v18 둘이 테이블 위로 올라가 춤
+    [2.5, () => { const t = ctr(g); standAt(a, t.x - .35, t.z); standAt(b, t.x + .35, t.z); faceEach(a, b); a.g.userData.dance = b.g.userData.dance = 'stageDance'; g.frame = 'onTable2'; say(a, '올라와 올라와~!! 🔥', 2); }],
+    [7, () => { say(b, pk(L.dance)); faceEach(a, b); }], [7, () => { G_(a, 'cheer'); }], [3, () => { g.frame = null; sitBack(a); sitBack(b); say(b, '헉헉 ㅋㅋ 다리 후들'); }], [8, () => {}]]; } },
   // ── VIP ──
   vipParty: { need: ['m', 'f', '*'], vip: true, script: g => [
     [2, () => { W.vip[g.vip].champ.visible = true; say(g.ns[0], pk(L.vipParty), 2.4); g.ns.forEach((n, i) => setTimeout(() => G_(n, 'cheers'), i * 200)); }],
@@ -128,12 +135,16 @@ const KINDS = {
     [3, () => { G_(boss, 'cheer'); say(boss, pk(L.boss), 2.4); fs.forEach((f, i) => setTimeout(() => { G_(f, 'clap'); say(f, '사장님 최고~!! 💕', 1.6); }, 600 + i * 300)); }],
     [6, () => { G_(boss, 'drink'); fs.forEach(f => G_(f, 'cheers')); }], [6, () => { G_(fs[0], 'aegyo'); say(fs[0], '한 병 더 시켜요~ ㅎㅎ'); }], [8, () => {}]]; } },
 };
-const TABLE_KINDS = ['kiss', 'fight', 'toast', 'standDance', 'tableDance', 'armWrestle', 'sleep', 'rps', 'rose', 'brawl', 'selfie'];
+const TABLE_KINDS = ['kiss', 'fight', 'toast', 'standDance', 'tableDance', 'armWrestle', 'sleep', 'rps', 'rose', 'brawl', 'selfie', 'cheersStand', 'tableDuo'];
+const SEATED_ONLY = ['armWrestle', 'sleep', 'rps', 'selfie', 'fight'];   // 앉아서만 하는 장면 → 끝에 '일어나 춤' 막간을 붙여 늘 움직임이 보이게
 const fits = (kind, ns) => { const need = KINDS[kind].need; if (need.length > ns.length) return false; const pool = ns.slice(); return need.every(gd => { const i = pool.findIndex(n => gd === '*' || n.gender === gd); if (i < 0) return false; pool.splice(i, 1); return true; }); };
 const order = (kind, ns) => { const need = KINDS[kind].need, pool = ns.slice(), out = []; need.forEach(gd => { const i = pool.findIndex(n => gd === '*' || n.gender === gd); out.push(pool.splice(i, 1)[0]); }); return out.concat(pool); };
 function setKind(g, kind) {
   g.ns.forEach(n => { if (n.state !== 'seated') sitBack(n); }); g.frame = null; if (g.vip != null) W.vip[g.vip].champ.visible = false;
-  g.kind = kind; g.ns = order(kind, g.ns); g.steps = KINDS[kind].script(g); g.si = 0; g.wait = 1.5 + Math.random() * 3; g.reroll = 120 + Math.random() * 80;
+  g.kind = kind; g.ns = order(kind, g.ns); g.steps = KINDS[kind].script(g); g.si = 0; g.wait = 1 + Math.random() * 2; g.reroll = 90 + Math.random() * 60;
+  if (g.vip == null && SEATED_ONLY.includes(kind) && g.ns.length >= 2) { const [a, b] = g.ns; g.steps = g.steps.concat([
+    [2, () => { const p = outside(g, a); standAt(a, p.x - .5, p.z); standAt(b, p.x + .5, p.z); faceEach(a, b); a.g.userData.dance = b.g.userData.dance = pk(['stageDance', 'groove']); say(b, pk(['이 노래 좋다! 잠깐 춰요~', '일어나 일어나 🕺'])); }],
+    [8, () => { faceEach(a, b); G_(a, 'cheer'); }], [3, () => { sitBack(a); sitBack(b); }]]); }
 }
 const NAMES_F = ['보라', '하늘', '예슬', '미나', '세라', '다인', '채원', '소율', '가은', '나연', '루나', '제니', '윤아', '슬기', '혜원', '은비'];
 const NAMES_M = ['상철', '동훈', '현우', '준혁', '성민', '태호', '민규', '재원', '우진', '건우', '형준', '대성', '진호', '석진', '영훈', '광수'];
@@ -170,7 +181,50 @@ function setupGroups() {
   });
   console.info('[episodes] 테이블·VIP 손님 그룹', GROUPS.length, GROUPS.map(g => (g.vip != null ? 'VIP' + (g.vip + 1) : 'T' + (g.t + 1)) + ':' + g.kind).join(' '));
 }
+/* ───── v18 웨이터 부킹 에스코트: 웨이터가 부킹녀 손을 잡고 테이블 사이로 데려가 남자 손님 테이블에 앉힘 ───── */
+const ESC = { g: null, girl: null, path: null, phase: 'idle', t: 25, seat: null, stay: 0 };
+function escWaiter() {
+  if (ESC.g) return ESC.g;
+  ESC.g = NC.Avatar.create({ name: '웨이터 「번개」', look: { gender: 'm', top: 'vest', topColor: '#121018', bottom: 'pants', bottomColor: '#121018', hairStyle: 'slick', hairColor: '#17110f', shoes: 'boots' }, seed: 4242, labelColor: '#ffd23d' });
+  ESC.g.visible = false; NC.scene.add(ESC.g); return ESC.g;
+}
+function escStart() {
+  const girls = (NC.npcs || []).filter(n => n.gender === 'f' && n.role === 'crowd' && !n.guest && avail(n) && n.state === 'wander' && !n.party);
+  const tgt = GROUPS.filter(g => g.t != null && g.ns.some(n => n.gender === 'm') && NC.tableOcc[g.t].some(o => !o) && !g.ns.some(n => n.party));
+  if (!girls.length || !tgt.length) return false;
+  const girl = pk(girls), gr = pk(tgt), si = NC.tableOcc[gr.t].findIndex(o => !o); if (si < 0) return false;
+  const w = escWaiter(), st = W.spots.waiterStation || { x: -10, z: 10.2 };
+  w.position.set(st.x, 0, st.z); w.visible = true; NC.tableOcc[gr.t][si] = 'npc';
+  Object.assign(ESC, { girl, grp: gr, seat: { t: gr.t, s: si }, phase: 'toGirl', path: NC.Path ? NC.Path.find({ x: st.x, z: st.z }, { x: girl.x, z: girl.z }) : [{ x: girl.x, z: girl.z }] });
+  girl.state = 'escort'; girl.stay = 'escort'; girl.g.userData.dance = null; return true;
+}
+function escStep(dt, speed) {
+  const w = ESC.g, p = ESC.path && ESC.path[0]; if (!p) return true;
+  const dx = p.x - w.position.x, dz = p.z - w.position.z, d = Math.hypot(dx, dz);
+  if (d < .3) { ESC.path.shift(); return !ESC.path.length; }
+  const k = Math.min(1, speed * dt / d); w.position.x += dx * k; w.position.z += dz * k; w.position.y = NC.groundY(w.position.x, w.position.z);
+  w.rotation.y = U.lerpAngle(w.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 8)); w.userData.moving = true; return false;
+}
+function tickEscort(dt) {
+  const w = ESC.g;
+  if (ESC.phase === 'idle') { ESC.t -= dt; if (ESC.t <= 0) { ESC.t = 40 + Math.random() * 25; if (!online() && P() && P().group && GROUPS.length) escStart(); } }
+  else if (ESC.phase === 'toGirl') { const girl = ESC.girl; if (Math.hypot(girl.x - w.position.x, girl.z - w.position.z) < 1.1 || escStep(dt, 2.2)) {
+      ESC.phase = 'greet'; ESC.stay = 2.2; w.userData.moving = false; girl.g.rotation.y = Math.atan2(w.position.x - girl.x, w.position.z - girl.z); Mo.play(w, 'bow'); B(w, pk(['손님~ 좋은 자리 있어요! 저 따라오세요 😉', '이쪽 테이블에서 찾으세요~ 🤵']), 2.2); setTimeout(() => B(girl.g, pk(['어머 진짜요? ㅎㅎ', '…잘생겼어요? ㅋㅋ']), 1.8), 1200); } }
+  else if (ESC.phase === 'greet') { ESC.stay -= dt; if (ESC.stay <= 0) { const sp = NC.standPos(ESC.seat.t, ESC.seat.s); ESC.path = NC.Path ? NC.Path.find({ x: w.position.x, z: w.position.z }, sp) || [sp] : [sp]; ESC.phase = 'lead'; B(w, '손 꼭 잡으세요~ 🤝', 1.6); } }
+  else if (ESC.phase === 'lead') {   // 손 잡고 걷기: 부킹녀가 웨이터 오른쪽 뒤에서 나란히
+    const done = escStep(dt, 1.5), girl = ESC.girl, ry = w.rotation.y, ox = Math.cos(ry) * .48 - Math.sin(ry) * .28, oz = -Math.sin(ry) * .48 - Math.cos(ry) * .28;
+    girl.x = w.position.x + ox; girl.z = w.position.z + oz; girl.g.position.set(girl.x, NC.groundY(girl.x, girl.z), girl.z); girl.g.rotation.y = ry; girl.g.userData.moving = true; girl.g.userData.lookAt = null;
+    if (done) { ESC.phase = 'seat'; w.userData.moving = false; girl.g.userData.moving = false; const pos = NC.seatPos(ESC.seat.t, ESC.seat.s); NC.NPC.sit(girl, pos.x, pos.z, pos.ry, pos.h); girl.state = 'seated';
+      const man = ESC.grp.ns.find(n => n.gender === 'm'); Mo.play(w, 'point'); B(w, '자 이분이에요~ 즐거운 시간 되세요! 🍾', 2.2); if (man) setTimeout(() => { Mo.play(man.g, 'wave'); B(man.g, pk(['오~ 반가워요! 😍', '여기 앉으세요~ 한 잔 하실래요?']), 2); }, 1400);
+      setTimeout(() => { Mo.play(girl.g, 'shy'); B(girl.g, pk(['안녕하세요 ㅎㅎ', '…반가워요 💕']), 1.8); }, 2600); ESC.stay = 30 + Math.random() * 20; ESC.path = NC.Path ? NC.Path.find({ x: w.position.x, z: w.position.z }, W.spots.waiterStation || { x: -10, z: 10.2 }) : null; } }
+  else if (ESC.phase === 'seat') { if (ESC.path && ESC.path.length) escStep(dt, 2.2); else if (w) { w.visible = false; w.userData.moving = false; }
+    ESC.stay -= dt; const girl = ESC.girl; if (ESC.stay > 0 && Math.random() < dt / 9) { Mo.play(girl.g, pk(['cheers', 'laugh', 'drink'])); }
+    if (ESC.stay <= 0) { NC.tableOcc[ESC.seat.t][ESC.seat.s] = null; girl.stay = false; NC.NPC.release(girl); B(girl.g, pk(['저 친구한테 가 볼게요~ 👋', '즐거웠어요! 😘']), 1.8); ESC.phase = 'idle'; if (w) w.visible = false; } }
+  if (w && w.visible) { Mo.update(w, dt, { near: true, speed: 1 }); NC.Avatar.fitLabel(w, NC.camera); }
+}
+NC.Episodes_escort = ESC;
 function tickGroups(dt) {
+  try { tickEscort(dt); } catch (e) { console.warn('[escort]', e); ESC.phase = 'idle'; }
   const now = performance.now() / 1000;
   GROUPS.forEach(g => {
     if (!g.kind) return;
@@ -182,13 +236,14 @@ function tickGroups(dt) {
       const ry = Math.atan2(b.x - a.x, b.z - a.z); a.g.rotation.y = ry; b.g.rotation.y = ry + Math.PI; a.g.userData.kissK = b.g.userData.kissK = Math.max(0, Math.sin(now * .5));
       a.g.position.set(a.x, NC.groundY(a.x, a.z), a.z); b.g.position.set(b.x, NC.groundY(b.x, b.z), b.z); }
     else if (g.frame === 'onTable') { const f = g.ns[0]; f.g.position.y = NC.groundY(f.x, f.z) + .82; }
+    else if (g.frame === 'onTable2') { g.ns.slice(0, 2).forEach(f => { f.g.position.y = NC.groundY(f.x, f.z) + .82; }); }
     if (g.flash) { g.flash = 0; const t = ctr(g); if (NC.camera && Math.hypot(t.x - P().x, t.z - P().z) < 14) { const L_ = new T.PointLight(0xffffff, 3, 6); L_.position.set(t.x, 2.2 + (g.vip != null ? W.vip[g.vip].y : 0), t.z); NC.scene.add(L_); setTimeout(() => NC.scene.remove(L_), 120); } }
     // 대본 진행 + 2~3분마다 다른 장면으로
     g.reroll -= dt; g.wait -= dt;
     if (g.wait > 0) return;
     if (g.reroll <= 0 && g.si === 0) { const opts = g.kinds.filter(k => k !== g.kind && fits(k, g.ns)); if (opts.length) { setKind(g, pk(opts)); return; } g.reroll = 120; }
     const st = g.steps[g.si]; try { st[1](); } catch (e) { console.warn('[episodes]', g.kind, e); }
-    g.si = (g.si + 1) % g.steps.length; g.wait = g.steps[g.si][0] * (.85 + Math.random() * .3);
+    g.si = (g.si + 1) % g.steps.length; g.wait = g.steps[g.si][0] * (.6 + Math.random() * .25);   // v18: 템포를 빠르게
   });
 }
 (function trySetup() { if ((NC.npcs || []).length && NC.NPC.ready && NC.player && NC.player.group) setupGroups(); else setTimeout(trySetup, 1500); })();

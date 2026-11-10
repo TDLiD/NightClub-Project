@@ -6,7 +6,7 @@ const T = NC.THREE, U = NC.util, W = NC.world, Mo = NC.Motion, $ = NC.$, camera 
 
 /* ───────── 플레이어 ───────── */
 const P = NC.player = { group: null, x: 0, z: -1, ry: Math.PI, target: null, autoPath: null, onAuto: null, autoStuck: 0, seat: null, busy: false, speed: 5, zone: 'corridor', room: -1, stageT: 0, stageCoins: 0, danceUntil: 0, y: 0 };
-const cam = { yaw: 0, pitch: .9, dist: 11 };
+const cam = NC.cam = { yaw: 0, pitch: .9, dist: 11 };
 const keys = {}, joy = { x: 0, y: 0 };
 
 NC.sitPlayer = (info, pos) => { P.seat = info; P.target = null; P.autoPath = null; NC.seatAvatar(P.group, pos.x, pos.z, pos.ry, pos.h); P.x = pos.x; P.z = pos.z; P.ry = pos.ry; NC.emit('seat', info); };
@@ -44,7 +44,15 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { keys[(e.key || '').toLowerCase()] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-addEventListener('wheel', e => { if (e.target === NC.canvas) cam.dist = U.clamp(cam.dist + e.deltaY * .01, 5, 18); }, { passive: true });
+addEventListener('wheel', e => { if (e.target === NC.canvas) cam.dist = U.clamp(cam.dist + e.deltaY * .01, 3, 18); }, { passive: true });
+/* v18 오른쪽 아래 ＋/－ 화면 확대·축소 (카메라 거리 3~18m) + 왼쪽 위 버전 표기 */
+{ const z = document.createElement('div'); z.id = 'zoomBar'; z.innerHTML = '<button id="zIn" title="확대">＋</button><span id="zVal"></span><button id="zOut" title="축소">－</button>'; document.body.appendChild(z);
+  const show = () => { $('#zVal').textContent = Math.round((18 - cam.dist) / 15 * 100) + '%'; };
+  const step = d => { cam.dist = U.clamp(cam.dist + d, 3, 18); show(); };
+  const hold = (el, d) => { let t = null; const go = () => { step(d); t = setTimeout(go, 120); }; el.addEventListener('pointerdown', e => { e.preventDefault(); step(d); t = setTimeout(go, 380); }); ['pointerup', 'pointerleave', 'pointercancel'].forEach(k => el.addEventListener(k, () => clearTimeout(t))); };
+  hold($('#zIn'), -1.2); hold($('#zOut'), 1.2); show(); addEventListener('wheel', show, { passive: true });
+  addEventListener('keydown', e => { if (NC.ui.typing()) return; if (e.key === '+' || e.key === '=') step(-1.2); else if (e.key === '-' || e.key === '_') step(1.2); });
+  const ver = document.createElement('span'); ver.id = 'verTag'; ver.textContent = NC.VERSION || ''; ver.title = '패키지 버전'; const tt = $('#title'); if (tt) tt.appendChild(ver); }
 const ray = new T.Raycaster(), plane = new T.Plane(new T.Vector3(0, 1, 0), 0), pt = { down: false, moved: 0, id: null, x: 0, y: 0 };
 NC.canvas.addEventListener('pointerdown', e => { pt.down = true; pt.moved = 0; pt.id = e.pointerId; pt.x = e.clientX; pt.y = e.clientY; });
 addEventListener('pointermove', e => { if (!pt.down || e.pointerId !== pt.id) return; const dx = e.clientX - pt.x, dy = e.clientY - pt.y; pt.moved += Math.abs(dx) + Math.abs(dy); pt.x = e.clientX; pt.y = e.clientY; cam.yaw -= dx * .006; cam.pitch = U.clamp(cam.pitch + dy * .003, .35, 1.3); });
@@ -149,7 +157,7 @@ function frame() {
       else if (P.autoPath) { const p = P.autoPath[0]; if (!p) { const f = P.onAuto; P.autoPath = null; P.onAuto = null; f && f(); } else { const dx = p.x - P.x, dz = p.z - P.z, d = Math.hypot(dx, dz); if (d < .35 || P.autoStuck > 1.2) { if (P.autoStuck > 1.2 && NC.Path && !P.replanned) { const last = P.autoPath[P.autoPath.length - 1], np = NC.Path.find(P, last); P.replanned = true; if (np) P.autoPath = np; else P.autoPath.shift(); } else P.autoPath.shift(); P.autoStuck = 0; if (!P.autoPath.length) P.replanned = false; } else { mx = dx / d; mz = dz / d; moving = true; sp = P.autoSpeed || 4.2; } } }
       else if (P.target && !P.busy) { const dx = P.target.x - P.x, dz = P.target.z - P.z, d = Math.hypot(dx, dz); if (d < .25) P.target = null; else { mx = dx / d; mz = dz / d; moving = true; } }
       if (moving) { const px = P.x, pz = P.z; P.x += mx * sp * dt; P.z += mz * sp * dt; NC.collide(P, .4); const moved = Math.hypot(P.x - px, P.z - pz); if (moved < sp * dt * .25) { P.autoStuck += dt; if (P.target) P.target = null; } P.ry = U.lerpAngle(P.ry, Math.atan2(mx, mz), Math.min(1, dt * 12)); P.group.rotation.y = P.ry; }
-      P.y += (NC.groundY(P.x, P.z) - P.y) * Math.min(1, dt * 12);
+      const gy = NC.groundOverride ? NC.groundOverride(P.x, P.z) : null; P.y += ((gy != null ? gy : NC.groundY(P.x, P.z)) - P.y) * Math.min(1, dt * 12);   // v18: 테이블 위 등 임시 바닥
       P.group.position.set(P.x, P.y, P.z); P.group.userData.moving = moving;
     }
     if (NC.Dialog.cur && P.seat) P.group.userData.talk = true; else if (P.seat) P.group.userData.talk = false;
@@ -160,7 +168,8 @@ function frame() {
     if (f) { camTarget.set(f.tx, f.ty, f.tz); camPos.set(f.cx, f.cy, f.cz);
       if (innerWidth > 800) { let dx = f.tx - f.cx, dz = f.tz - f.cz; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; camTarget.x += -dz * .95; camTarget.z += dx * .95; camPos.x += -dz * .95; camPos.z += dx * .95; } }   // 오른쪽 대화 패널을 피해 인물을 왼쪽에 배치
     else { const tx = P.group.position.x, tz = P.group.position.z, ty = 1.4 + P.y, inner = P.room >= 0 || P.zone === 'karaoke', dist = ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? Math.min(cam.dist, 4.2) : P.room >= 0 ? Math.min(cam.dist, 8) : cam.dist;
-      camTarget.set(tx, ty, tz); camPos.set(tx + Math.sin(cam.yaw) * Math.cos(cam.pitch) * dist, ty + Math.sin(cam.pitch) * dist, tz + Math.cos(cam.yaw) * Math.cos(cam.pitch) * dist); camPos.y = Math.min(camPos.y, ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? 2.75 : W.ROOM.h - .5); void inner; }
+      camTarget.set(tx, ty, tz); camPos.set(tx + Math.sin(cam.yaw) * Math.cos(cam.pitch) * dist, ty + Math.sin(cam.pitch) * dist, tz + Math.cos(cam.yaw) * Math.cos(cam.pitch) * dist); camPos.y = Math.min(camPos.y, ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? 2.75 : W.ROOM.h - .5); void inner;
+      if (W.clampCam && !W.extraZones.some(e => e.test(P.x, P.z))) W.clampCam(camTarget, camPos, P.y > 3); }
     camera.position.lerp(camPos, Math.min(1, dt * (f ? 3 : 6))); NC._look = NC._look || camTarget.clone(); NC._look.lerp(camTarget, Math.min(1, dt * 6)); camera.lookAt(NC._look);
     const doorOpen = P.room >= 0 ? W.vip[P.room].door.open : 0;
     NC.Audio.update(P, Math.atan2(camera.position.x - P.x, camera.position.z - P.z), P.zone, doorOpen);

@@ -198,6 +198,17 @@ const BASE = {
     else { p.shL = [-1.24, -.04, -.05]; p.elL = [-1.08, 0, 0]; p.shR = [-1.29, -.01, .1]; p.elR = [-.94, 0, 0]; }                  // 손: 상대 어깨 위 (IK)
     BLUES_ACT(p, u);
   },
+  crouch(p, t, u) {   // v18 바닥 수색: 쪼그려 앉아 휴대폰 플래시를 비추며 두리번
+    const s = Math.sin(t * 1.4 + u.seed * 5);
+    p.hipsY = .44 / u.figScale; p.legL = [-1.75, 0, -.28]; p.legR = [-1.75, 0, .28]; p.knL = [2.25, 0, 0]; p.knR = [2.25, 0, 0];
+    p.torso = [.5, .12 * s, 0]; p.head = [.1, .45 * s, 0]; p.shR = [-1.25, .1 * s, .15]; p.elR = [-.45, 0, 0]; p.shL = [-.35, 0, -.3]; p.elL = [-1.0, 0, 0];
+  },
+  djMix(p, t, u, b) {  // v18 DJ 믹싱: 박자에 고개 끄덕 + 양손 번갈아 데크/페이더 조작
+    const ph = b ? b.phase : (t * 2) % 1, nod = Math.sin(ph * Math.PI * 2), a = Math.sin(t * 3.1), c = Math.sin(t * 2.3 + 1);
+    p.hipsY = u.hipH - .03 - .02 * Math.abs(nod); p.knL = [.12 + .06 * Math.abs(nod), 0, 0]; p.knR = [.12 + .06 * Math.abs(nod), 0, 0]; p.torso = [.16, .08 * a, 0]; p.head = [.18 + .14 * nod, .2 * c, 0];
+    p.shL = [-1.0 + .15 * a, 0, -.28]; p.elL = [-1.1 + .3 * c, 0, 0]; p.shR = [-1.0 - .15 * c, 0, .28]; p.elR = [-1.1 - .3 * a, 0, 0];
+    if ((Math.floor(t / 4) % 3) === 2) { p.shR = [-2.6, 0, .3]; p.elR = [-.2, 0, 0]; }   // 가끔 한 손을 번쩍
+  },
   sit(p, t, u) {
     const s = Math.sin(t * 1.5 + u.seed * 7);
     p.hipsY = (u.seatH + .03) / u.figScale; p.legL = [-1.5, 0, -.06]; p.legR = [-1.5, 0, .06]; p.knL = [1.45, 0, 0]; p.knR = [1.45, 0, 0];

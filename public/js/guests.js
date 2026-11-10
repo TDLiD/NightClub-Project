@@ -11,7 +11,7 @@ const W = NC.world, U = NC.util, P = () => NC.player;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const box = document.createElement('div'); box.id = 'guestList'; box.style.display = 'none';
-box.innerHTML = `<div class="glHead"><b>👥 손님</b><span id="glCount"></span><button id="glFold" title="접기/펴기">▾</button></div>
+box.innerHTML = `<div class="glHead"><b>👥 손님</b><span id="glCount"></span><button id="glFold" title="접기/펴기">▾</button><button id="glClose" title="닫기">✕</button></div>
   <div id="glBody"><input id="glSearch" placeholder="🔍 이름 검색" autocomplete="off">
   <div id="glFilter"><button data-f="all" class="on">전체</button><button data-f="f">♀ 여성</button><button data-f="m">♂ 남성</button><button data-f="dance">💃 춤</button></div>
   <div id="glOnline"></div><div id="glAI"></div></div>`;
@@ -23,7 +23,11 @@ $('#glFold').onclick = () => fold(!folded); box.querySelector('.glHead b').oncli
 $('#glFilter').onclick = e => { const b = e.target.closest('button'); if (!b) return; filter = b.dataset.f; $('#glFilter').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); render(true); };
 $('#glSearch').oninput = () => render(true);
 $('#glSearch').addEventListener('keydown', e => e.stopPropagation());   // 검색창 타이핑이 WASD 이동으로 새지 않게
-NC.on && NC.on('start', () => { box.style.display = ''; fold(folded); render(); });
+// v18 리스트 창 닫기/열기: ✕ 로 완전히 닫고, 왼쪽 가장자리 👥 탭으로 다시 열기 (상태 저장)
+const tab = document.createElement('button'); tab.id = 'glTab'; tab.title = '손님 리스트 열기'; tab.textContent = '👥'; tab.style.display = 'none'; document.body.appendChild(tab);
+const setOpen = v => { U.store.set('nc_glOpen', v); box.style.display = v ? '' : 'none'; tab.style.display = v ? 'none' : ''; if (v) { fold(false); render(true); } };
+$('#glClose').onclick = () => setOpen(false); tab.onclick = () => setOpen(true);
+NC.on && NC.on('start', () => { const v = U.store.get('nc_glOpen', true); if (v) { box.style.display = ''; fold(folded); render(); } else { tab.style.display = ''; } });
 
 const ACT = n => {
   if (n.party) return n.g.userData.dance === 'blues' ? '💕 블루스' : '🪩 디스코';

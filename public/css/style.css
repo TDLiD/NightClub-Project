@@ -261,3 +261,32 @@ html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
   #start{align-items:flex-start}#start .card{max-width:min(720px,96vw)}
   .modal .box{max-height:94vh}
 }
+/* v18 버전 표기 · 줌 · 로그아웃 · 손님 리스트 탭 · 관리자 표 */
+#verTag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0;color:#fff;background:rgba(155,92,255,.45);border:1px solid rgba(255,255,255,.25);vertical-align:middle}
+#zoomBar{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(84px,calc(env(safe-area-inset-bottom) + 70px));z-index:9;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(20,8,40,.75);border:1px solid var(--line);border-radius:14px;padding:5px}
+#zoomBar button{width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:#2c1758;color:#fff;font-size:20px;font-weight:800;cursor:pointer;touch-action:none}
+#zoomBar button:active{transform:scale(.92)}#zVal{font-size:10.5px;color:#ffd6f0}
+#btnLogout .lbl{font-size:13px;font-weight:700}
+#glClose{background:none;border:0;color:#fff;font-size:13px;cursor:pointer;padding:0 4px;opacity:.8}#glClose:hover{color:#ff6b8a}
+#glTab{position:fixed;left:0;top:132px;z-index:7;width:34px;height:44px;border-radius:0 12px 12px 0;border:1px solid var(--line);border-left:0;background:rgba(20,8,40,.85);color:#fff;font-size:17px;cursor:pointer}
+.admList td input{width:100%;min-width:70px;box-sizing:border-box}.admList td input.num{min-width:58px;width:64px}.admList td.pw{display:flex;gap:2px;align-items:center}.admList td.pw input{min-width:80px}
+.admList select{padding:3px;border-radius:6px;background:rgba(0,0,0,.3);color:#fff;border:1px solid rgba(255,255,255,.25)}.admList td.act{white-space:nowrap}.admList tr.saved td{background:rgba(61,255,138,.18)}
+#admQ{flex:1;min-width:160px;padding:6px 9px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:#fff}.admCnt{font-size:11px;opacity:.6;margin-top:4px}
+.modal .box:has(#admList){max-width:min(1060px,96vw);width:min(1060px,96vw)}
+@media (max-width:640px){#btnLogout .lbl{display:none}#zoomBar{bottom:130px}#zoomBar button{width:34px;height:34px}#verTag{font-size:10px;padding:0 5px}}
+@media (max-height:500px) and (orientation:landscape){#zoomBar{bottom:50px;flex-direction:row}#zoomBar button{width:30px;height:30px;font-size:16px}}
+/* v18 신규 기능 UI */
+#fxBanner{position:fixed;left:50%;top:58px;transform:translate(-50%,-30px);opacity:0;z-index:30;pointer-events:none;padding:10px 22px;border-radius:24px;background:rgba(14,6,30,.9);border:2px solid var(--c,#ffd23d);color:#fff;font-weight:900;font-size:17px;box-shadow:0 0 26px var(--c,#ffd23d);white-space:nowrap;transition:all .35s}
+#fxBanner.on{opacity:1;transform:translate(-50%,0)}
+#djPanel{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);width:min(420px,94vw);z-index:16;background:rgba(14,8,32,.94);border:1px solid rgba(61,230,255,.6);border-radius:16px;padding:12px 14px;color:#fff;box-shadow:0 0 26px rgba(61,230,255,.35);box-sizing:border-box}
+#djPanel .djh{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;position:relative}#djPanel .djh .mClose{position:static}
+#djPanel label{display:block;font-size:12.5px;margin:6px 0}#djPanel label span{float:right;opacity:.85;min-width:20px;height:14px;border-radius:4px;padding:0 4px}#djPanel input[type=range]{width:100%}
+#djPanel .djrow{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}#djPanel .djrow button{flex:1;min-width:30%;padding:7px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:#2c1758;color:#fff;font-size:12px;cursor:pointer}
+#djPanel .djrow button.on{background:linear-gradient(135deg,#3de6ff,#7b3dff)}#djPanel .djn{font-size:11px;opacity:.6;margin:6px 0 0}
+#btnSearch{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(206px,calc(env(safe-area-inset-bottom) + 192px));z-index:9;width:48px;height:48px;border-radius:14px;border:1px solid var(--line);background:rgba(20,8,40,.8);font-size:22px;cursor:pointer}
+#btnSearch.on{background:linear-gradient(135deg,#fff6c8,#ffb800);box-shadow:0 0 18px #ffd23d}
+#fsHud{position:fixed;left:50%;top:96px;transform:translateX(-50%);z-index:12;background:rgba(14,6,30,.88);border:1px solid #ffd23d;border-radius:14px;padding:8px 16px;color:#fff;font-size:13px;text-align:center;line-height:1.6}
+#fsHud span{font-weight:800;color:#ffd23d}
+.prRow{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:7px 0}.prRow b{width:100%;font-size:12.5px;color:#ffd6f0}.modal .prRow button{flex:0 0 auto;min-width:0;padding:7px 10px;font-size:12.5px}.modal .prRow button.on{background:linear-gradient(135deg,#ff3d9a,#7b3dff)}
+@media (max-width:640px){#btnSearch{bottom:252px;width:42px;height:42px;font-size:19px}#fxBanner{font-size:14px;top:126px;white-space:normal;max-width:90vw;text-align:center}#djPanel{bottom:64px}#fsHud{top:126px}}
+@media (max-height:500px) and (orientation:landscape){#btnSearch{bottom:96px;width:38px;height:38px}}

@@ -267,29 +267,38 @@ function adminUi() {
 }
 async function adminPanel() {
   if (!NC.account || NC.account.role !== 'admin') return;
-  const p = NC.ui.modal(`<h3>👑 관리자 패널</h3><div id="admBar"><button id="admRe">🔄 새로고침</button><button id="admFix">🪙 코인 항목 없는 회원 일괄 추가</button><button id="admDisco">🪩 디스코 타임</button><button id="admBlues">💕 블루스 타임</button></div>
-    <div id="admList" class="admList">불러오는 중…</div><p class="admNote">비밀번호는 표시하지 않아요 · 코인을 고친 뒤 💾 를 누르세요<br>⚠ 지금 DB 규칙은 누구나 읽고 쓸 수 있는 상태예요. 운영 전에 Firebase Auth + 보안 규칙을 꼭 적용하세요.</p>`, [['닫기', 0]]);
-  const box = document.getElementById('admList');
-  const load = async () => {
-    box.textContent = '불러오는 중…';
-    try { const all = await req('users.json') || {}; const rows = Object.entries(all).filter(([, u]) => u && u.id);
-      box.innerHTML = `<table><tr><th>아이디</th><th>닉네임</th><th>성별</th><th>코인</th><th>역할</th><th>가입</th><th></th></tr>${rows.map(([uid, u]) => `<tr data-uid="${esc(uid)}"><td>${esc(u.id)}</td><td>${esc(u.nickname || '')}</td><td>${esc(u.gender || '')}</td>
-        <td><input type="number" min="0" value="${typeof u.coins === 'number' ? u.coins : ''}" placeholder="없음"></td><td>${u.role === 'admin' ? '👑 admin' : esc(u.role || 'user')}</td><td>${esc(String(u.createdAt || '').slice(0, 10))}</td><td><button class="admSave">💾</button><button class="admAdd">+100</button></td></tr>`).join('')}</table>`;
-      const miss = rows.filter(([, u]) => typeof u.coins !== 'number').length; document.getElementById('admFix').textContent = `🪙 코인 항목 없는 회원 일괄 추가 (${miss}명)`; document.getElementById('admFix').disabled = !miss;
-    } catch (e) { box.textContent = '불러오기 실패: ' + e.message; }
-  };
+  const p = NC.ui.modal(`<h3>👑 관리자 패널 — 회원 관리</h3><div id="admBar"><input id="admQ" placeholder="🔍 아이디·닉네임·이메일 검색" autocomplete="off"><button id="admRe">🔄 새로고침</button><button id="admFix">🪙 코인 항목 일괄 추가</button><button id="admDisco">🪩 디스코</button><button id="admBlues">💕 블루스</button></div>
+    <div id="admList" class="admList">불러오는 중…</div><p class="admNote">칸을 고친 뒤 그 줄의 💾 를 누르면 저장돼요 · 아이디·이메일·닉네임은 다른 회원과 겹치면 저장되지 않아요 · 👁 를 누르면 비밀번호가 보여요<br>⚠ DB 규칙이 공개 상태라 누구나 이 데이터에 접근할 수 있어요. 운영 전에 Firebase Auth + 보안 규칙(비밀번호 해시)을 꼭 적용하세요.</p>`, [['닫기', 0]]);
+  const box = document.getElementById('admList'); let all = {};
+  const row = (uid, u) => `<tr data-uid="${esc(uid)}"><td><input data-k="id" value="${esc(u.id || '')}"></td><td class="pw"><input data-k="password" type="password" value="${esc(u.password || '')}"><button class="admEye" title="보기">👁</button></td>
+    <td><input data-k="email" value="${esc(u.email || '')}"></td><td><input data-k="nickname" value="${esc(u.nickname || '')}"></td><td><input data-k="coins" type="number" min="0" value="${typeof u.coins === 'number' ? u.coins : ''}" placeholder="없음" class="num"></td>
+    <td><select data-k="role"><option value="user"${u.role !== 'admin' ? ' selected' : ''}>user</option><option value="admin"${u.role === 'admin' ? ' selected' : ''}>👑 admin</option></select></td><td>${esc(String(u.createdAt || '').slice(0, 10))}</td><td class="act"><button class="admSave">💾</button><button class="admAdd">+100</button></td></tr>`;
+  const render = () => { const q = (document.getElementById('admQ').value || '').trim().toLowerCase(), rows = Object.entries(all).filter(([, u]) => u && u.id && (!q || [u.id, u.nickname, u.email].some(v => String(v || '').toLowerCase().includes(q))));
+    box.innerHTML = `<table><tr><th>아이디</th><th>비밀번호</th><th>이메일</th><th>닉네임</th><th>코인</th><th>역할</th><th>가입</th><th></th></tr>${rows.map(([uid, u]) => row(uid, u)).join('')}</table><div class="admCnt">회원 ${rows.length}명</div>`;
+    const miss = Object.values(all).filter(u => u && u.id && typeof u.coins !== 'number').length; const fx = document.getElementById('admFix'); fx.textContent = `🪙 코인 항목 일괄 추가 (${miss}명)`; fx.disabled = !miss; };
+  const load = async () => { box.textContent = '불러오는 중…'; try { all = await req('users.json') || {}; render(); } catch (e) { box.textContent = '불러오기 실패: ' + e.message; } };
   box.addEventListener('click', async e => {
-    const tr = e.target.closest('tr[data-uid]'); if (!tr) return; const inp = tr.querySelector('input'), uid = tr.dataset.uid;
-    if (e.target.classList.contains('admAdd')) inp.value = (+inp.value || 0) + 100;
-    if (e.target.classList.contains('admSave') || e.target.classList.contains('admAdd')) {
-      const v = Math.max(0, Math.floor(+inp.value || 0));
-      try { await req(`users/${uid}/coins.json`, { method: 'PUT', body: JSON.stringify(v) }); NC.ui.toast(`💾 ${tr.children[0].textContent} 코인 = ${v}`);
-        if (NC.account && uid === NC.account.uid) { applying = true; U.store.set('nc_coins', v); NC.emit('coins', v, 0); applying = false; } } catch (er) { NC.ui.toast('저장 실패: ' + er.message); }
-    }
+    const tr = e.target.closest('tr[data-uid]'); if (!tr) return; const uid = tr.dataset.uid, get = k => tr.querySelector(`[data-k="${k}"]`);
+    if (e.target.classList.contains('admEye')) { const i = get('password'); i.type = i.type === 'password' ? 'text' : 'password'; return; }
+    if (e.target.classList.contains('admAdd')) get('coins').value = (+get('coins').value || 0) + 100;
+    if (!e.target.classList.contains('admSave') && !e.target.classList.contains('admAdd')) return;
+    const o0 = all[uid] || {}, ch = k => String(v[k]) !== String(o0[k] == null ? '' : o0[k]);   // 바뀐 칸만 형식 검사(기존 데이터가 규칙과 달라도 다른 칸은 저장 가능)
+    const v = { id: get('id').value.trim(), password: get('password').value, email: get('email').value.trim(), nickname: get('nickname').value.trim(), coins: Math.max(0, Math.floor(+get('coins').value || 0)), role: get('role').value };
+    if (ch('id') && !RX.id.test(v.id)) return NC.ui.toast('아이디 형식이 올바르지 않아요 (영문 시작 4~16자)');
+    if (ch('password') && v.password.length < 4) return NC.ui.toast('비밀번호를 4자 이상 입력해 주세요');
+    if (ch('email') && !RX.email.test(v.email)) return NC.ui.toast('이메일 형식이 올바르지 않아요');
+    if (ch('nickname') && !RX.nick.test(v.nickname)) return NC.ui.toast('닉네임 형식이 올바르지 않아요 (2~10자)');
+    const dup = ['id', 'email', 'nickname'].find(k => Object.entries(all).some(([u2, o]) => u2 !== uid && o && String(o[k] || '').toLowerCase() === String(v[k]).toLowerCase()));
+    if (dup) return NC.ui.toast(`다른 회원과 ${({ id: '아이디', email: '이메일', nickname: '닉네임' })[dup]}가 겹쳐요`);
+    try { await req(`users/${uid}.json`, { method: 'PATCH', body: JSON.stringify(v) }); all[uid] = Object.assign({}, all[uid], v); tr.classList.add('saved'); setTimeout(() => tr.classList.remove('saved'), 900); NC.ui.toast(`💾 ${v.id} 저장 완료`);
+      if (NC.account && uid === NC.account.uid) { Object.assign(NC.account, { id: v.id, nickname: v.nickname, email: v.email, role: v.role }); setSession(NC.account); applying = true; U.store.set('nc_coins', v.coins); NC.emit('coins', v.coins, 0); applying = false; adminUi(); }
+    } catch (er) { NC.ui.toast('저장 실패: ' + er.message); }
   });
+  document.getElementById('admQ').addEventListener('input', render); document.getElementById('admQ').addEventListener('keydown', e => e.stopPropagation());
+  box.addEventListener('keydown', e => e.stopPropagation());
   document.getElementById('admRe').onclick = load;
   document.getElementById('admFix').onclick = async () => {
-    try { const all = await req('users.json') || {}; const miss = Object.entries(all).filter(([, u]) => u && u.id && typeof u.coins !== 'number');
+    try { const miss = Object.entries(all).filter(([, u]) => u && u.id && typeof u.coins !== 'number');
       await Promise.all(miss.map(([uid]) => req(`users/${uid}/coins.json`, { method: 'PUT', body: JSON.stringify(DEFAULT_COINS) }))); NC.ui.toast(`🪙 ${miss.length}명에게 코인 항목(${DEFAULT_COINS}) 추가`); load();
     } catch (er) { NC.ui.toast('일괄 추가 실패: ' + er.message); }
   };
@@ -297,6 +306,14 @@ async function adminPanel() {
   document.getElementById('admBlues').onclick = () => NC.Party && NC.Party.start('blues');
   load(); await p;
 }
+/* v18 상단 🚪 로그아웃 버튼 (설정 메뉴 밖, 로그인했을 때만) */
+function logoutUi() {
+  const tb = document.getElementById('topbtns'); if (!tb) return; let b = document.getElementById('btnLogout');
+  if (!b) { b = document.createElement('button'); b.id = 'btnLogout'; b.className = 'ibtn'; b.title = '로그아웃'; b.innerHTML = '🚪<span class="lbl"> 로그아웃</span>'; tb.appendChild(b);
+    b.onclick = () => NC.ui.modal('<h3>🚪 로그아웃할까요?</h3><p style="font-size:13px">처음 입장 화면으로 돌아가요.</p>', [['로그아웃', 'ok', true], ['취소', 0]]).then(r => { if (r.val !== 'ok') return; restoreGuestCoins(); setSession(null); location.reload(); }); }
+  b.style.display = NC.account ? '' : 'none';
+}
+NC.on && NC.on('start', logoutUi);
 if (NC.account) setTimeout(syncAccount, 300);
 NC.on && NC.on('start', adminUi);
 NC.Auth = { changeCharacter, findBy, getSession, logout: () => setSession(null), DB, syncAccount, adminPanel };

@@ -90,7 +90,7 @@ function update(n, dt) {
     else if (stepToward(n, tgt.x, tgt.z, dt) || n.stuck > 1.2) { n.path.shift(); n.stuck = 0; }
   } else if (n.state === 'talk') { u.moving = false; u.dance = null; u.lookAt = P; const yw = Math.atan2(P.x - n.x, P.z - n.z); n.g.rotation.y = U.lerpAngle(n.g.rotation.y, yw, Math.min(1, dt * 5)); }
   else if (n.state === 'seated') { u.moving = false; }
-  else { u.moving = false; }
+  else if (n.state !== 'escort') { u.moving = false; }   // escort: 웨이터에게 손잡혀 걷는 중(episodes.js 가 위치·걷기 상태를 줌)
   if (n.state !== 'seated') n.g.position.set(n.x, NC.groundY(n.x, n.z), n.z);
 }
 
