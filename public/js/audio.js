@@ -78,7 +78,7 @@ const A = NC.Audio = {
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .008); g.gain.exponentialRampToValueAtTime(.0008, t + dur); o.connect(fl); fl.connect(g); g.connect(bus || this.musicBus); o.start(t); o.stop(t + dur + .02); },
   hit(t, hp, dur, vol, bus) { const C = this.ctx, s = C.createBufferSource(), g = C.createGain(), f = C.createBiquadFilter(); s.buffer = this.noise; f.type = 'highpass'; f.frequency.value = hp; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); s.connect(f); f.connect(g); g.connect(bus || this.musicBus); s.start(t); s.stop(t + dur + .02); },
   /* ── 스테이지 음악 스타일 (우측 패널 · DJ 신청곡으로 변경) ── */
-  style: 'euro',
+  style: 'mp3',   // v19: 처음 접속하면 🎲 랜덤 유로 댄스(MP3)로 시작 (사용자가 고른 음악은 nc_music 에 저장돼 그것이 우선)
   STYLES: {
     euro:   { name: '90s 유로댄스', bpm: 128, roots: [55, 43.65, 65.41, 49] },
     disco:  { name: '디스코 펑크', bpm: 116, roots: [55, 61.74, 49, 41.2] },
@@ -90,7 +90,7 @@ const A = NC.Audio = {
     ballad: { name: '블루스 발라드', bpm: 68, roots: [49, 41.2, 43.65, 55] },
     mp3:    { name: '🎲 랜덤 유로 댄스', bpm: 128, roots: [55, 49, 43.65, 41.2], mp3: true },   // v19: public/music/1~6.mp3 를 랜덤 재생
   },
-  setStyle(id) { const S = this.STYLES[id]; if (!S) return; this.style = id; this.bpm = S.bpm; NC.util.store.set('nc_music', id); if (this.ctx) { this.step = 0; this.next = this.t0 = this.ctx.currentTime + .08; if (S.mp3) this.mp3Start(); else this.mp3Stop(); } NC.emit('music:style', id); },
+  setStyle(id, noSave) { const S = this.STYLES[id]; if (!S) return; this.style = id; this.bpm = S.bpm; if (!noSave) NC.util.store.set('nc_music', id); if (this.ctx) { this.step = 0; this.next = this.t0 = this.ctx.currentTime + .08; if (S.mp3) this.mp3Start(); else this.mp3Stop(); } NC.emit('music:style', id); },
   /* ── v19 랜덤 유로 댄스(MP3): public/music/1.mp3 ~ 6.mp3 를 겹치지 않게 랜덤 연속 재생 ──
    *  같은 음악 버스로 흘려서 구역별 소리(VIP 먹먹함·노래방 차단·DJ 필터)와 음소거 버튼이 그대로 적용됨
    *  목록 바꾸기: NC.config.mp3List = ['music/a.mp3', …] (config.js) */
@@ -101,7 +101,7 @@ const A = NC.Audio = {
       try { this.mp3Src = C.createMediaElementSource(el); this.mp3Src.connect(this.musicBus); } catch (e) { console.warn('[audio] MP3 연결 실패', e); }
       el.addEventListener('ended', () => this.mp3Next());
       el.addEventListener('playing', () => { this.next = this.t0 = C.currentTime + .05; this.step = 0; this.mp3Err = 0; });   // 곡 시작에 박자 시계를 맞춤
-      el.addEventListener('error', () => { this.mp3Err = (this.mp3Err || 0) + 1; if (this.mp3Err >= this.mp3List().length) { this.mp3Err = 0; NC.ui && NC.ui.toast('🎵 MP3 파일을 찾지 못했어요 — public/music 폴더에 1~6.mp3 를 넣어 주세요. 기본 음악으로 돌아가요'); this.setStyle('euro'); } else this.mp3Next(); }); }
+      el.addEventListener('error', () => { this.mp3Err = (this.mp3Err || 0) + 1; if (this.mp3Err >= this.mp3List().length) { this.mp3Err = 0; NC.ui && NC.ui.toast('🎵 MP3 파일을 찾지 못했어요 — public/music 폴더에 1~6.mp3 를 넣어 주세요. 기본 음악으로 돌아가요'); this.setStyle('euro', true); } else this.mp3Next(); }); }
     this.mp3Next();
   },
   mp3Next() {
