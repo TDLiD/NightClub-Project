@@ -1,14 +1,16 @@
-/* audio.js — Web Audio 신스 디스코 + 공간 음향(Spatial Audio) + 구역별 사운드 댐핑 + 효과음 + TTS
+/* audio.js — v21 배경 음악 = public/music/1.mp3 ~ 7.mp3 만 재생
  *
- * 신호 흐름
- *   [신스] → musicBus ─┬→ panner(HRTF, 스테이지 스피커 위치) → bassShelf ─┐
- *                     └→ bleedLP(350Hz) → bleedGain ────────────────────┴→ zoneLP → zoneGain ─┬→ duck → master → comp → out
- *                                                                                           └→ reverb(wet) ┘
- *   [WebRTC 음성/NPC] → voiceBus → master          [효과음] → sfxBus → master
+ *  · 신스 음악(유로댄스·디스코·하우스 등 7종), 효과음(건배·코인·문·박수 등), NPC TTS 음성, 노래방/밴드/블루스 반주는 모두 삭제.
+ *  · 소리가 나는 것은 MP3 배경 음악과 (켰을 때만) 근거리 음성 채팅뿐.
  *
- *  · 스테이지에 가까울수록: panner 거리감쇠↓ + bassShelf 저음 부스트↑ (쿵쿵)
- *  · VIP 룸 안: zoneLP 520Hz, zoneGain 0.3 (벽 너머로 웅웅거리는 저음만), 리버브↓ → 대화가 또렷
- *  · 도어가 열리면 댐핑이 절반 풀림 · 누군가 말하면(음성 감지/TTS) 음악 덕킹 -5dB
+ *  신호 흐름
+ *    [MP3] → mp3Gain → musicBus ─┬→ panner(스테이지 스피커 위치) → bassShelf ─┐
+ *                                └→ bleedLP → bleedGain ─────────────────────┴→ zoneLP → zoneGain → musicVol → duck → master → comp → out
+ *    [음성 채팅] → voiceBus → master
+ *
+ *  · VIP 룸·화장실·노래방 안에서는 벽 너머처럼 먹먹하게(구역별 로우패스) — 기존 공간감 유지
+ *  · 파일 위치는 자동으로 찾음: public/music/N.mp3 → 없으면 public/music/music/N.mp3
+ *  · 박자 시계(beat)는 128BPM 으로 계속 돌아 조명·LED·NPC 춤은 그대로 박자를 탐
  */
 (() => {
 'use strict';
@@ -24,19 +26,20 @@ const ZONE_FX = {      // lp(Hz) · gain · wet(리버브) · bass(dB) · bleed
   vipOpen: { lp: 1800, gain: .5, wet: .06, bass: 0, bleed: .5 },
   karaoke: { lp: 260, gain: .1, wet: .02, bass: -6, bleed: .6 },
   restroom: { lp: 320, gain: .14, wet: .25, bass: -4, bleed: .5 },
-  smoke: { lp: 480, gain: .2, wet: .05, bass: -2, bleed: .5 },   // 2차 노래방: 클럽 음악은 먼 벽 너머로만
+  smoke: { lp: 480, gain: .2, wet: .05, bass: -2, bleed: .5 },
 };
 const STAGE_SPK = { x: 0, y: 2.6, z: -17.6 };
+const VOL = .5;          // 배경 음악 기본 볼륨
 
 const A = NC.Audio = {
   ctx: null, on: true, bpm: 128, step: 0, next: 0, t0: 0, zone: 'tables', ducking: 0, ZONE_FX,
   init() {
-    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    if (this.ctx) { this.wake(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     const C = this.ctx = new AC();
     const g = v => { const n = C.createGain(); n.gain.value = v; return n; }, f = (type, fr) => { const n = C.createBiquadFilter(); n.type = type; n.frequency.value = fr; return n; };
     this.master = g(.9); const comp = C.createDynamicsCompressor(); this.master.connect(comp); comp.connect(C.destination);
-    this.musicVol = g(.34); this.duck = g(1); this.musicVol.connect(this.duck); this.duck.connect(this.master);
+    this.musicVol = g(this.on ? VOL : 0); this.duck = g(1); this.musicVol.connect(this.duck); this.duck.connect(this.master);
     this.musicBus = g(1);
     this.panner = C.createPanner(); Object.assign(this.panner, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 7, rolloffFactor: 1.1, maxDistance: 60 });
     this.setPos(this.panner, STAGE_SPK.x, STAGE_SPK.y, STAGE_SPK.z);
@@ -46,189 +49,93 @@ const A = NC.Audio = {
     this.musicBus.connect(this.bleedLP); this.bleedLP.connect(this.bleedGain); this.bleedGain.connect(this.zoneLP);
     this.zoneLP.connect(this.zoneGain); this.zoneGain.connect(this.musicVol);
     this.reverb = C.createConvolver(); this.reverb.buffer = this.impulse(2.2); this.wet = g(.12); this.zoneLP.connect(this.reverb); this.reverb.connect(this.wet); this.wet.connect(this.musicVol);
-    this.voiceBus = g(1); this.voiceBus.connect(this.master);
-    this.sfxBus = g(.5); this.sfxBus.connect(this.master);
+    this.voiceBus = g(1); this.voiceBus.connect(this.master);          // 근거리 음성 채팅(사용자가 켰을 때만)
+    this.sfxBus = g(0);                                                // 효과음 삭제: 어디에도 연결되지 않은 무음 노드(옛 코드 호환용)
+    this.silent = this.sfxBus;
     const n = C.sampleRate * .5, buf = C.createBuffer(1, n, C.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; this.noise = buf;
-    { const sv = NC.util.store.get('nc_music', ''); if (this.STYLES[sv]) { this.style = sv; this.bpm = this.STYLES[sv].bpm; } }
-    this.next = this.t0 = C.currentTime + .1; this.timer = setInterval(() => this.sched(), 25);
-    if ((this.STYLES[this.style] || {}).mp3) this.mp3Start();
+    this.next = this.t0 = C.currentTime + .1; this.timer = setInterval(() => this.sched(), 50);
     C.addEventListener && C.addEventListener('statechange', () => NC.emit('music:state'));
+    this.mp3Start();
   },
-  /* 브라우저가 오디오를 멈춰 둔 상태(suspended/interrupted)면 다시 깨움 — 모든 음악 버튼에서 호출 */
-  wake() { if (!this.ctx) this.init(); else if (this.ctx.state !== 'running') { const p = this.ctx.resume(); if (p && p.catch) p.catch(() => {}); } },
+  wake() { if (!this.ctx) return this.init(); if (this.ctx.state !== 'running') { const p = this.ctx.resume(); if (p && p.catch) p.catch(() => {}); } },
   impulse(sec) { const C = this.ctx, n = C.sampleRate * sec, b = C.createBuffer(2, n, C.sampleRate); for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6); } return b; },
   setPos(node, x, y, z) { if (node.positionX) { node.positionX.value = x; node.positionY.value = y; node.positionZ.value = z; } else node.setPosition(x, y, z); },
-  /* 매 프레임: 청취자(플레이어 귀) 위치·방향과 현재 구역으로 공간음/댐핑 갱신 */
+  /* 매 프레임: 청취자 위치·방향과 현재 구역으로 공간음/댐핑 갱신 */
   update(pos, yaw, zoneName, doorOpen) {
     const C = this.ctx; if (!C) return; const L = C.listener, fx = -Math.sin(yaw), fz = -Math.cos(yaw), now = C.currentTime;
     if (L.positionX) { L.positionX.value = pos.x; L.positionY.value = 1.6; L.positionZ.value = pos.z; L.forwardX.value = fx; L.forwardY.value = 0; L.forwardZ.value = fz; L.upX.value = 0; L.upY.value = 1; L.upZ.value = 0; }
     else { L.setPosition(pos.x, 1.6, pos.z); L.setOrientation(fx, 0, fz, 0, 1, 0); }
     const key = zoneName === 'vip' && doorOpen > .5 ? 'vipOpen' : zoneName; this.zone = zoneName;
-    const z = ZONE_FX[key] || ZONE_FX.tables;
-    const dStage = Math.hypot(pos.x - STAGE_SPK.x, pos.z - STAGE_SPK.z), near = Math.max(0, 1 - dStage / 22);
-    const tc = .25;
-    this.zoneLP.frequency.setTargetAtTime(this.djLP ? Math.min(z.lp, this.djLP) : z.lp, now, this.djLP ? .05 : tc);   // v18 DJ 필터
+    const z = ZONE_FX[key] || ZONE_FX.tables, near = Math.max(0, 1 - Math.hypot(pos.x - STAGE_SPK.x, pos.z - STAGE_SPK.z) / 22), tc = .25;
+    this.zoneLP.frequency.setTargetAtTime(this.djLP ? Math.min(z.lp, this.djLP) : z.lp, now, this.djLP ? .05 : tc);   // DJ 테이크오버 필터
     this.zoneGain.gain.setTargetAtTime(z.gain, now, tc);
     this.wet.gain.setTargetAtTime(z.wet, now, tc); this.bleedGain.gain.setTargetAtTime(z.bleed, now, tc);
     this.bassShelf.gain.setTargetAtTime(z.bass + near * 5 + (this.djBass || 0), now, tc);
-    this.duck.gain.setTargetAtTime(this.ducking > 0 || this.voiceDuck ? .55 : 1, now, .12);
+    this.duck.gain.setTargetAtTime(this.ducking > 0 || this.voiceDuck ? .55 : 1, now, .12);   // 음성 채팅으로 누가 말하면 음악을 살짝 줄임
   },
   speaking(on) { this.ducking = Math.max(0, this.ducking + (on ? 1 : -1)); },
+  /* 박자 시계 (조명·LED·NPC 춤·리듬 게임용) — 소리는 내지 않음 */
   beat() { if (!this.ctx) { const b = performance.now() / 1000 * this.bpm / 60; return { phase: b % 1, n: Math.floor(b), bpm: this.bpm, time: performance.now() / 1000 }; } const b = Math.max(0, this.ctx.currentTime - this.t0) * this.bpm / 60; return { phase: b % 1, n: Math.floor(b), bpm: this.bpm, time: this.ctx.currentTime }; },
   beatTime(n) { return this.t0 + n * 60 / this.bpm; },
-  /* ── 신스 디스코 (16스텝 x 4마디 루프) ── */
-  sched() { const C = this.ctx; while (this.next < C.currentTime + .15) { this.play(this.step, this.next); if (this.step % 64 === 0) { const d = (this.next - C.currentTime) * 1000; setTimeout(() => NC.emit('music:drop'), Math.max(0, d)); } this.next += 60 / this.bpm / 4; this.step = (this.step + 1) % 64; } },
-  tone(f, t, dur, type, vol, lp, bus) { const C = this.ctx, o = C.createOscillator(), g = C.createGain(), fl = C.createBiquadFilter(); o.type = type; o.frequency.value = f; fl.type = 'lowpass'; fl.frequency.value = lp || 1800;
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .008); g.gain.exponentialRampToValueAtTime(.0008, t + dur); o.connect(fl); fl.connect(g); g.connect(bus || this.musicBus); o.start(t); o.stop(t + dur + .02); },
-  hit(t, hp, dur, vol, bus) { const C = this.ctx, s = C.createBufferSource(), g = C.createGain(), f = C.createBiquadFilter(); s.buffer = this.noise; f.type = 'highpass'; f.frequency.value = hp; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); s.connect(f); f.connect(g); g.connect(bus || this.musicBus); s.start(t); s.stop(t + dur + .02); },
-  /* ── 스테이지 음악 스타일 (우측 패널 · DJ 신청곡으로 변경) ── */
-  style: 'mp3',   // v19: 처음 접속하면 🎲 랜덤 유로 댄스(MP3)로 시작 (사용자가 고른 음악은 nc_music 에 저장돼 그것이 우선)
-  STYLES: {
-    euro:   { name: '90s 유로댄스', bpm: 128, roots: [55, 43.65, 65.41, 49] },
-    disco:  { name: '디스코 펑크', bpm: 116, roots: [55, 61.74, 49, 41.2] },
-    house:  { name: '딥 하우스', bpm: 122, roots: [43.65, 43.65, 49, 38.89] },
-    hiphop: { name: '올드스쿨 힙합', bpm: 92, roots: [41.2, 41.2, 49, 36.71] },
-    trot:   { name: '신나는 트로트', bpm: 136, roots: [55, 73.42, 82.41, 55] },
-    lounge: { name: '칠 라운지', bpm: 86, roots: [49, 41.2, 55, 46.25] },
-    synth:  { name: '레트로 신스팝', bpm: 110, roots: [55, 43.65, 49, 41.2] },
-    ballad: { name: '블루스 발라드', bpm: 68, roots: [49, 41.2, 43.65, 55] },
-    mp3:    { name: '🎲 랜덤 유로 댄스', bpm: 128, roots: [55, 49, 43.65, 41.2], mp3: true },   // v20: public/music/1~7.mp3 를 랜덤 연속 재생
-  },
-  setStyle(id, noSave) { const S = this.STYLES[id]; if (!S) return; this.style = id; this.bpm = S.bpm; this.paused = false; if (!noSave) NC.util.store.set('nc_music', id);
-    if (this.ctx) { this.wake(); this.step = 0; this.next = this.t0 = this.ctx.currentTime + .08; if (S.mp3) { this.mp3Mode = 'random'; this.mp3Start(); } else this.mp3Stop(); }
-    NC.emit('music:style', id); NC.emit('music:state'); },
-  /* ── v20 정지/재생 (🎵 스테이지 음악 하단 버튼) ── 정지해도 박자 시계는 계속 돌아 조명은 계속 움직임 */
-  paused: false,
-  stop() { this.paused = true; if (this.mp3El) this.mp3El.pause(); NC.emit('music:state'); },
-  resume() { this.wake(); this.paused = false; if (this.ctx) this.next = Math.max(this.next, this.ctx.currentTime + .05);
-    if ((this.STYLES[this.style] || {}).mp3) { const el = this.mp3El; if (el && el.src && !el.ended && el.currentTime > 0) { const p = el.play(); if (p && p.catch) p.catch(() => this.mp3Next()); } else this.mp3Start(); }
-    NC.emit('music:state'); },
-  togglePlay() { if (this.paused) this.resume(); else this.stop(); return !this.paused; },
-  /* ── MP3: 랜덤 연속 재생 + 1~7번 곡 개별 재생 ──
-   *  파일 위치는 자동으로 찾음: public/music/N.mp3 → 없으면 public/music/music/N.mp3
-   *  목록 바꾸기: NC.config.mp3List = ['music/a.mp3', …] (config.js) */
+  sched() { const C = this.ctx; while (this.next < C.currentTime + .15) { if (this.step % 64 === 0) { const d = (this.next - C.currentTime) * 1000; setTimeout(() => NC.emit('music:drop'), Math.max(0, d)); } this.next += 60 / this.bpm / 4; this.step = (this.step + 1) % 64; } },
+
+  /* ── 배경 음악: 1~7.mp3 ── */
+  style: 'mp3',
+  STYLES: { mp3: { name: '🎲 랜덤 연속 재생 (1~7)', bpm: 128, mp3: true } },
+  setStyle() { this.userMusic(); this.mp3Mode = 'random'; this.mp3Start(); NC.emit('music:style', 'mp3'); },   // 옛 코드 호환: 어떤 스타일을 요청해도 MP3 랜덤 재생
+  paused: false, mp3Mode: 'random', mp3Idx: -1,
   MP3_COUNT: 7, MP3_DIRS: ['music/', 'music/music/'],
-  mp3Mode: 'random', mp3Idx: -1,
   mp3List() { if (NC.config && NC.config.mp3List) return NC.config.mp3List; const d = this.mp3Dir || this.MP3_DIRS[0]; return Array.from({ length: this.MP3_COUNT }, (_, i) => `${d}${i + 1}.mp3`); },
-  /* 어느 폴더에 MP3 가 있는지 한 번만 확인(HEAD 요청) */
   mp3Probe() {
     if (this._probe) return this._probe; if (NC.config && NC.config.mp3List) return (this._probe = Promise.resolve());
     const tryDir = k => k >= this.MP3_DIRS.length ? Promise.resolve(null) : fetch(this.MP3_DIRS[k] + '1.mp3', { method: 'HEAD', cache: 'no-store' }).then(r => r.ok && !/text\/html/i.test(r.headers.get('content-type') || '') ? this.MP3_DIRS[k] : tryDir(k + 1)).catch(() => tryDir(k + 1));
-    return (this._probe = tryDir(0).then(d => { this.mp3Dir = d || this.MP3_DIRS[0]; this.mp3Found = !!d; if (!d) console.warn('[audio] MP3 를 찾지 못함 — public/music/1.mp3 또는 public/music/music/1.mp3'); else console.info('[audio] MP3 폴더:', d); }));
+    return (this._probe = tryDir(0).then(d => { this.mp3Dir = d || this.MP3_DIRS[0]; if (d) console.info('[audio] MP3 폴더:', d); else console.warn('[audio] MP3 를 찾지 못함 — public/music/1.mp3 ~ 7.mp3'); }));
   },
   mp3Ensure() {
     if (this.mp3El) return this.mp3El; const C = this.ctx, el = this.mp3El = new Audio(); el.preload = 'auto';
-    if (C) try { this.mp3Src = C.createMediaElementSource(el); this.mp3Gain = C.createGain(); this.mp3Gain.gain.value = .42; this.mp3Src.connect(this.mp3Gain); this.mp3Gain.connect(this.musicBus); } catch (e) { console.warn('[audio] MP3 연결 실패 — 공간음 없이 바로 재생', e); }
-    el.addEventListener('ended', () => { if (this.mp3Mode === 'random') this.mp3Next(); });   // 개별 곡은 loop=true 라 ended 가 안 옴
-    el.addEventListener('playing', () => { if (C) { this.next = this.t0 = C.currentTime + .05; this.step = 0; } this.mp3Err = 0; NC.emit('music:state'); });
+    try { this.mp3Src = C.createMediaElementSource(el); this.mp3Gain = C.createGain(); this.mp3Gain.gain.value = 1; this.mp3Src.connect(this.mp3Gain); this.mp3Gain.connect(this.musicBus); } catch (e) { console.warn('[audio] MP3 연결 실패', e); }
+    el.addEventListener('ended', () => { if (this.mp3Mode === 'random') this.mp3Play(-1); });   // 개별 곡은 loop=true
+    el.addEventListener('playing', () => { this.next = this.t0 = C.currentTime + .05; this.step = 0; this.mp3Err = 0; NC.emit('music:state'); });
     el.addEventListener('pause', () => NC.emit('music:state'));
     el.addEventListener('error', () => {
-      if (!(this.STYLES[this.style] || {}).mp3 || !el.getAttribute('src')) return; const L = this.mp3List(), n = this.mp3Idx + 1;
-      if (this.mp3Mode === 'single') { NC.ui && NC.ui.toast(`🎵 ${n}번 곡(${L[this.mp3Idx]})을 찾지 못했어요 — 랜덤 재생으로 바꿔요`); this.mp3Mode = 'random'; el.loop = false; this.mp3Err = 1; return this.mp3Next(); }
+      if (!el.getAttribute('src')) return; const L = this.mp3List();
+      if (this.mp3Mode === 'single') { NC.ui && NC.ui.toast(`🎵 ${this.mp3Idx + 1}.mp3 를 찾지 못했어요 — 랜덤 재생으로 바꿔요`); this.mp3Mode = 'random'; el.loop = false; }
       this.mp3Err = (this.mp3Err || 0) + 1;
-      if (this.mp3Err >= L.length) { this.mp3Err = 0; NC.ui && NC.ui.toast('🎵 MP3 파일을 찾지 못했어요 — public/music 폴더에 1~7.mp3 를 넣어 주세요. 90s 유로댄스로 바꿔요'); this.setStyle('euro', true); }
-      else this.mp3Next(); });
+      if (this.mp3Err >= L.length) { this.mp3Err = 0; this.paused = true; NC.emit('music:state'); NC.ui && NC.ui.toast('🎵 MP3 파일을 찾지 못했어요 — public/music 폴더에 1.mp3 ~ 7.mp3 를 넣어 주세요'); }
+      else this.mp3Play(-1); });
     return el;
   },
-  mp3Start() { if (!this.ctx) return; this.paused = false; this.mp3Ensure(); this.mp3Probe().then(() => { if ((this.STYLES[this.style] || {}).mp3 && !this.paused) this.mp3Play(this.mp3Mode === 'single' ? this.mp3Idx : -1); }); },
+  mp3Start() { if (!this.ctx) return; this.paused = false; this.mp3Ensure(); this.mp3Probe().then(() => { if (!this.paused) this.mp3Play(this.mp3Mode === 'single' ? this.mp3Idx : -1); }); },
   mp3Next() { this.mp3Play(-1); },
-  /* idx: 0부터(-1 이면 랜덤, 직전 곡과 겹치지 않게) */
+  /* idx: 0부터(-1 이면 랜덤 — 직전 곡과 겹치지 않게) */
   mp3Play(idx) {
-    const el = this.mp3El; if (!el || !(this.STYLES[this.style] || {}).mp3) return; const L = this.mp3List(); let i = idx;
+    const el = this.mp3El; if (!el) return; const L = this.mp3List(); let i = idx;
     if (i < 0 || i >= L.length) { do { i = Math.floor(Math.random() * L.length); } while (L.length > 1 && i === this.mp3Idx); }
     this.mp3Idx = i; el.loop = this.mp3Mode === 'single'; el.src = L[i]; this.wake();
     const p = el.play(); if (p && p.catch) p.catch(e => { if (e && e.name === 'NotAllowedError') NC.ui && NC.ui.toast('🔇 브라우저가 소리를 막았어요 — 화면을 한 번 클릭한 뒤 ▶ 재생을 눌러 주세요'); });
-    NC.ui && NC.ui.toast(this.mp3Mode === 'single' ? `🎵 ${i + 1}번 곡 재생 (반복)` : `🎲 랜덤 유로 댄스 — ${i + 1}번 곡`); NC.emit('music:track', i + 1); NC.emit('music:state');
+    NC.ui && NC.ui.toast(this.mp3Mode === 'single' ? `🎵 ${i + 1}번 곡 재생 (반복)` : `🎲 랜덤 재생 — ${i + 1}번 곡`); NC.emit('music:track', i + 1); NC.emit('music:state');
   },
-  /* 1~7번 곡 개별 재생 버튼 */
-  playTrack(n) { this.wake(); if (!this.ctx) return; const S = this.STYLES.mp3; this.style = 'mp3'; this.bpm = S.bpm; this.paused = false; NC.util.store.set('nc_music', 'mp3');
-    this.mp3Mode = 'single'; this.mp3Idx = n - 1; this.mp3Ensure(); this.mp3Probe().then(() => this.mp3Play(n - 1)); NC.emit('music:style', 'mp3'); },
-  mp3Stop() { if (this.mp3El) { this.mp3El.pause(); try { this.mp3El.currentTime = 0; } catch (e) { } } },   // src 를 비우면 error 이벤트가 나서 일시정지만
-  /* 패널 표시용 현재 상태 */
+  /* 사용자가 음악 버튼을 누르면 정상 볼륨으로 되돌림 */
+  userMusic() { this.wake(); NC.emit('music:user'); if (this.musicVol && this.ctx) { this.musicVol.gain.cancelScheduledValues(this.ctx.currentTime); this.musicVol.gain.setValueAtTime(this.on ? VOL : 0, this.ctx.currentTime); } },
+  playRandom() { this.userMusic(); if (!this.ctx) return; this.mp3Mode = 'random'; this.mp3Start(); NC.emit('music:style', 'mp3'); },
+  playTrack(n) { this.userMusic(); if (!this.ctx) return; this.paused = false; this.mp3Mode = 'single'; this.mp3Idx = n - 1; this.mp3Ensure(); this.mp3Probe().then(() => this.mp3Play(n - 1)); NC.emit('music:style', 'mp3'); },
+  stop() { this.paused = true; if (this.mp3El) this.mp3El.pause(); NC.emit('music:state'); },
+  resume() { this.userMusic(); if (!this.ctx) return; this.paused = false; const el = this.mp3El;
+    if (el && el.src && !el.ended && el.currentTime > 0) { const p = el.play(); if (p && p.catch) p.catch(() => this.mp3Play(-1)); } else this.mp3Start(); NC.emit('music:state'); },
+  togglePlay() { if (this.paused) this.resume(); else this.stop(); return !this.paused; },
+  mp3Stop() { this.stop(); },
   nowText() {
     if (!this.ctx) return '🔈 입장하면 음악이 시작돼요'; if (this.ctx.state !== 'running') return '🔇 브라우저가 소리를 멈췄어요 — ▶ 재생을 눌러 주세요';
-    const S = this.STYLES[this.style] || {}; if (this.paused) return '⏸ 정지됨 — ' + (S.name || '');
-    if (!S.mp3) return '▶ 재생 중: ' + S.name + ' · ' + S.bpm + 'BPM';
-    const el = this.mp3El, n = this.mp3Idx + 1, f = x => isFinite(x) ? `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}` : '--:--';
+    if (this.paused) return '⏸ 정지됨'; const el = this.mp3El, n = this.mp3Idx + 1, f = x => isFinite(x) ? `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}` : '--:--';
     if (!el || n < 1) return '⏳ MP3 불러오는 중…'; if (el.readyState < 2 && !el.paused) return `⏳ ${n}번 곡 불러오는 중…`;
     return `▶ ${this.mp3Mode === 'single' ? n + '번 곡 반복' : '랜덤 · ' + n + '번 곡'} ${f(el.currentTime)} / ${f(el.duration)}`;
   },
-  kick(t, v = 1.1) { const C = this.ctx, o = C.createOscillator(), g = C.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + .12); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + .24); o.connect(g); g.connect(this.musicBus); o.start(t); o.stop(t + .26); },
-  play(s, t) {
-    const S = this.STYLES[this.style] || this.STYLES.euro, bar = Math.floor(s / 16) % 4, root = S.roots[bar], b = s % 16;
-    if (S.mp3 || this.paused) return;   // 정지 중이거나 MP3 재생 중에는 신스 연주를 쉼(박자 시계·드롭 이벤트는 그대로 → 조명이 계속 박자를 탐)
-    switch (this.style) {
-      case 'disco':      // 4온더플로어 + 오픈 하이햇 + 옥타브 베이스 + 스트링 스탭
-        if (s % 4 === 0) this.kick(t, 1); if (s % 8 === 4) this.hit(t, 1500, .14, .32); if (s % 4 === 2) this.hit(t, 6500, .16, .2); else this.hit(t, 9000, .02, .05);
-        if (s % 2 === 0) this.tone(root * (s % 4 === 0 ? 1 : 2), t, .12, 'sawtooth', .3, 700);
-        if (b === 2 || b === 10) [2, 2.52, 3].forEach(m => this.tone(root * 4 * m, t, .22, 'sawtooth', .045, 2200));
-        if (b % 4 === 3) this.tone(root * 8 * [1, 1.5, 1.33, 1.2][bar], t, .08, 'square', .03, 3000); break;
-      case 'house':      // 킥 + 오프비트 오르간 코드 + 셰이커
-        if (s % 4 === 0) this.kick(t, 1.05); if (s % 8 === 4) this.hit(t, 1200, .1, .25); this.hit(t, 8000, .025, s % 2 ? .06 : .03);
-        if (s % 4 === 2) [1, 1.19, 1.5, 1.78].forEach(m => this.tone(root * 4 * m, t, .14, 'square', .03, 1800));
-        if (b === 0 || b === 7 || b === 10) this.tone(root * 2, t, .2, 'sine', .45, 300); break;
-      case 'hiphop':     // 붐뱁: 스윙 킥·스네어, 로즈 코드
-        if (b === 0 || b === 7 || b === 10) this.kick(t, 1.2); if (b === 4 || b === 12) { this.hit(t, 1100, .18, .42); this.hit(t, 3000, .08, .15); }
-        if (s % 2 === 0) this.hit(t + (s % 4 === 2 ? .03 : 0), 7500, .03, .09);
-        if (b === 0 || b === 8) [1, 1.19, 1.5, 1.89].forEach(m => this.tone(root * 4 * m, t, .9, 'triangle', .04, 1400));
-        if (b === 0 || b === 10) this.tone(root, t, .4, 'sine', .5, 250); break;
-      case 'trot':       // 쿵짝(뽕짝): 1·3 베이스, 2·4 스탭
-        if (s % 8 === 0) { this.kick(t, 1); this.tone(root, t, .22, 'triangle', .5, 700); }
-        if (s % 8 === 4) { this.hit(t, 1600, .1, .3); this.tone(root * 1.5, t, .22, 'triangle', .45, 700); [2, 2.52, 3].forEach(m => this.tone(root * 2 * m, t, .1, 'square', .05, 2400)); }
-        if (s % 2 === 0) this.hit(t, 8000, .03, .06);
-        if (s % 4 === 0) this.tone(root * 4 * [1, 1.12, 1.26, 1.5, 1.68, 1.5, 1.26, 1.12][(s / 4) % 8], t, .2, 'square', .05, 2600); break;
-      case 'lounge':     // 브러시 드럼 + 일렉피아노 + 서브 베이스
-        if (b === 0 || b === 10) this.kick(t, .6); if (b === 4 || b === 12) this.hit(t, 2500, .22, .1); if (s % 2 === 0) this.hit(t, 6000, .06, .04);
-        if (b === 0) [1, 1.26, 1.5, 1.89].forEach(m => this.tone(root * 4 * m, t, 1.8, 'sine', .05, 1600));
-        if (b === 8) [1.5, 1.89, 2.24].forEach(m => this.tone(root * 4 * m, t, 1.2, 'sine', .035, 1600));
-        if (b === 0 || b === 6) this.tone(root, t, .8, 'sine', .45, 220); break;
-      case 'synth':      // 80s 신스팝: 게이트 스네어 + 아르페지오 + 패드
-        if (s % 4 === 0) this.kick(t, 1); if (s % 8 === 4) { this.hit(t, 900, .25, .38); this.hit(t, 2500, .3, .12); }
-        if (s % 2 === 1) this.hit(t, 8000, .03, .05);
-        this.tone(root * 4 * [1, 1.5, 2, 3, 2, 1.5, 1.26, 1.5][s % 8], t, .1, 'square', .035, 2800);
-        if (s % 2 === 0) this.tone(root * 2, t, .1, 'sawtooth', .28, 500);
-        if (b === 0) [1, 1.26, 1.5].forEach(m => this.tone(root * 2 * m, t, 2, 'sawtooth', .025, 1200)); break;
-      case 'ballad':     // v15 블루스 타임: 느린 6/8 느낌 — 부드러운 킥 · 브러시 · 일렉피아노 코드 · 현악 패드 · 서브 베이스
-        if (b === 0 || b === 8) this.kick(t, .55); if (b === 4 || b === 12) this.hit(t, 2200, .3, .08); if (s % 2 === 0) this.hit(t, 6500, .08, .03);
-        if (b === 0) { [1, 1.26, 1.5, 1.89].forEach(m => this.tone(root * 4 * m, t, 3.2, 'sine', .055, 1500)); [1, 1.5, 2].forEach(m => this.tone(root * 2 * m, t, 3.6, 'sawtooth', .014, 900)); }
-        if (b === 8) [1.5, 1.89, 2.24].forEach(m => this.tone(root * 4 * m, t, 2.2, 'sine', .04, 1500));
-        if (b === 0 || b === 10) this.tone(root, t, 1.4, 'sine', .42, 200);
-        if (b === 6 || b === 14) this.tone(root * 8 * [1.5, 1.26, 1.33, 1.12][bar], t, .9, 'triangle', .03, 2400); break;
-      default: {         // euro (기본)
-        if (s % 4 === 0) this.kick(t);
-        if (s % 8 === 4) this.hit(t, 1400, .13, .35);
-        if (s % 4 === 2) this.hit(t, 7000, .06, .22); else if (s % 2 === 1) this.hit(t, 8500, .03, .07);
-        if (s % 4 === 2) this.tone(root * 2, t, .2, 'sawtooth', .28, 600);
-        if (s % 4 === 0) this.tone(root, t, .16, 'sine', .4, 400);
-        const arp = [1, 1.5, 2, 1.5, 2.5, 2, 1.5, 1][s % 8]; if (s % 2 === 0) this.tone(root * 4 * arp, t, .12, 'square', .045, 2500);
-        if (s % 16 === 6 || s % 16 === 14) [1, 1.2, 1.5].forEach(m => this.tone(root * 4 * m, t, .3, 'sawtooth', .05, 1500)); }
-    }
-  },
-  /* ── 효과음 (공간 처리 없이 바로 들림) ── */
-  sfx(name) {
-    const C = this.ctx; if (!C) return; const t = C.currentTime, b = this.sfxBus;
-    const P = { clink: () => { [2637, 3520, 4186].forEach((f, i) => this.tone(f, t + i * .015, .5, 'sine', .18, 9000, b)); },
-      coin: () => { this.tone(988, t, .08, 'square', .12, 6000, b); this.tone(1319, t + .08, .25, 'square', .12, 6000, b); },
-      tick: () => this.tone(1800, t, .03, 'square', .08, 5000, b),
-      win: () => [523, 659, 784, 1047].forEach((f, i) => this.tone(f, t + i * .09, .25, 'triangle', .2, 6000, b)),
-      lose: () => [392, 330, 262].forEach((f, i) => this.tone(f, t + i * .12, .3, 'triangle', .18, 3000, b)),
-      door: () => this.hit(t, 400, .5, .15, b),
-      hit: () => this.tone(1320, t, .09, 'triangle', .22, 8000, b),
-      miss: () => this.tone(180, t, .12, 'sawtooth', .12, 800, b),
-      pop: () => { this.tone(660, t, .06, 'sine', .2, 5000, b); this.tone(990, t + .05, .1, 'sine', .15, 5000, b); },
-      slap: () => { this.hit(t, 2600, .07, .4, b); this.tone(320, t, .06, 'triangle', .2, 2000, b); },
-      heart: () => [784, 988].forEach((f, i) => this.tone(f, t + i * .1, .2, 'sine', .16, 5000, b)) };
-    (P[name] || P.pop)();
-  },
-  toggle() { if (!this.ctx) this.init(); this.on = !this.on; if (this.musicVol) this.musicVol.gain.value = this.on ? .34 : 0; return this.on; },
-  /* ── NPC 음성 (브라우저 TTS) — 공간 처리는 불가하므로 말하는 동안 음악을 덕킹 ── */
+  /* 🔊 버튼: 배경 음악 음소거/해제 */
+  toggle() { if (!this.ctx) this.init(); this.on = !this.on; if (this.musicVol && this.ctx) { this.musicVol.gain.cancelScheduledValues(this.ctx.currentTime); this.musicVol.gain.setValueAtTime(this.on ? VOL : 0, this.ctx.currentTime); } return this.on; },
+
+  /* ── 삭제된 소리: 다른 파일의 호출이 오류 없이 지나가도록 빈 함수만 남김 ── */
+  sfx() {}, tone() {}, hit() {}, kick() {},
   tts: false,
-  speak(text, voice = {}, onEnd) {
-    if (!this.tts || !window.speechSynthesis) { onEnd && onEnd(); return 0; }
-    const u = new SpeechSynthesisUtterance(text.replace(/[\u{1F300}-\u{1FAFF}☀-➿]/gu, '')); u.lang = 'ko-KR'; u.pitch = voice.pitch || 1; u.rate = voice.rate || 1.05;
-    const vs = speechSynthesis.getVoices().filter(v => /ko/i.test(v.lang)); if (vs.length) u.voice = vs[(voice.index || 0) % vs.length];
-    this.speaking(true); u.onend = u.onerror = () => { this.speaking(false); onEnd && onEnd(); };
-    speechSynthesis.cancel(); speechSynthesis.speak(u); return text.length * .11;
-  },
+  speak(text, voice, onEnd) { onEnd && onEnd(); return 0; },   // NPC TTS 음성 삭제
 };
 })();

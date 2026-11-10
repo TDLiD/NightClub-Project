@@ -1,5 +1,5 @@
 /* lifestyle.js — 나이트클럽 생활 기능 (v8)
- *  ■ 우측 🎛 클럽 설정 패널: 무대 조명 테마 6종 · 스테이지 음악 7종 · 📸 사진 찍기
+ *  ■ 우측 🎛 클럽 설정 패널: 무대 조명 테마 · 스테이지 음악(1~7.mp3) · 📸 사진 찍기
  *  ■ 서비스: 테이블/VIP 에 앉으면 웨이터가 다가와 주문 받음 · 빈 VIP 룸에 들어가면 웨이터가 따라 들어와 안내
  *  ■ BAR: 바 의자 6석 · 바텐더 주문(칵테일·맥주·무알콜·물) · 바에 앉아 있는 손님에게 말 걸기 / 술 한 잔 사기
  *  ■ 생활 상태: 🍺 취기(마실수록↑, 시간이 지나면↓, 4 이상이면 술 대신 물) · 🚻 화장실 신호 · ✨ 매무새(첫인상 보너스)
@@ -16,21 +16,19 @@ const life = NC.Life = { tipsy: 0, bladder: 0, drink: null, sips: 0, charm: 0, w
 /* ═════ 1. 우측 클럽 설정 패널 ═════ */
 const panel = document.createElement('div'); panel.id = 'clubPanel'; panel.innerHTML = `
   <button id="cpToggle" title="클럽 설정">🎛</button>
-  <div id="cpBody"><button id="cpClose" class="mClose" title="닫기">✕</button><h4>🎨 무대 조명</h4><div id="cpTheme" class="cpGrid"></div><h4>🎵 스테이지 음악</h4><div id="cpMusic" class="cpGrid"></div>
+  <div id="cpBody"><button id="cpClose" class="mClose" title="닫기">✕</button><h4>🎨 무대 조명</h4><div id="cpTheme" class="cpGrid"></div><h4>🎵 스테이지 음악 <small>(1~7.mp3)</small></h4><div class="cpGrid"><button id="cpRandom">🎲 랜덤 연속 재생</button></div>
   <div id="cpCtl"><button id="cpPlay">⏸ 정지</button><span id="cpNow"></span></div>
-  <h4>💿 MP3 곡 선택 <small>(누르면 그 곡만 반복)</small></h4><div id="cpTracks"></div>
+  <h4>💿 곡 선택 <small>(누르면 그 곡만 반복)</small></h4><div id="cpTracks"></div>
   <h4>📺 LED 전광판</h4><div class="cpGrid"><button id="cpVideo">📺 배경 영상 켜짐</button></div>
   <div class="cpGrid"><button id="cpPhoto">📸 사진 찍기</button><button id="cpHelp">❔ 생활 기능</button></div></div>`;
 document.body.appendChild(panel);
 const $ = s => panel.querySelector(s);
 function renderPanel() {   // v20: 버튼은 처음 한 번만 만들고 이후엔 'on' 표시만 바꿈(다시 만들면 누르는 도중 버튼이 바뀌어 클릭이 씹힘)
-  const th = $('#cpTheme'), mu = $('#cpMusic'), tr = $('#cpTracks'), A = NC.Audio, single = A.style === 'mp3' && A.mp3Mode === 'single';
+  const th = $('#cpTheme'), tr = $('#cpTracks'), A = NC.Audio, single = A.mp3Mode === 'single';
   if (!th.children.length) Object.entries(W.THEMES || {}).forEach(([id, t]) => { const b = document.createElement('button'); b.textContent = t.name; b.dataset.id = id; b.onclick = () => { W.setTheme(id); NC.ui.toast('🎨 조명: ' + t.name); }; th.appendChild(b); });
-  if (!mu.children.length) Object.entries(A.STYLES || {}).forEach(([id, m]) => { const b = document.createElement('button'); b.textContent = `${m.name} · ${m.bpm}`; b.dataset.id = id;
-    b.onclick = () => { A.wake(); A.setStyle(id); if (id !== 'mp3') NC.ui.toast('🎵 음악: ' + m.name); }; mu.appendChild(b); });
   if (!tr.children.length) for (let n = 1; n <= (A.MP3_COUNT || 7); n++) { const b = document.createElement('button'); b.textContent = n; b.title = n + '.mp3'; b.dataset.n = n; b.onclick = () => A.playTrack(n); tr.appendChild(b); }
   [...th.children].forEach(b => b.classList.toggle('on', W.themeId === b.dataset.id));
-  [...mu.children].forEach(b => b.classList.toggle('on', A.style === b.dataset.id && !(b.dataset.id === 'mp3' && single)));
+  $('#cpRandom').classList.toggle('on', !single && !A.paused);
   [...tr.children].forEach(b => b.classList.toggle('on', single && A.mp3Idx === b.dataset.n - 1));
   renderCtl();
 }
@@ -42,6 +40,7 @@ function renderCtl() {
   if (v && W.ledVideo) { const st = W.ledVideo.state(); v.textContent = st === 'on' ? '📺 배경 영상 켜짐 (끄기)' : st === 'loading' ? '⏳ 영상 불러오는 중… (끄기)' : st === 'missing' ? '⚠ 영상 파일 없음 (다시 찾기)' : '📺 배경 영상 꺼짐 (켜기)'; v.className = st === 'on' || st === 'loading' ? 'on' : ''; }
 }
 $('#cpPlay').onclick = () => { const A = NC.Audio; A.wake(); if (A.paused || !A.ctx || A.ctx.state !== 'running') A.resume(); else A.stop(); setTimeout(renderCtl, 60); };
+$('#cpRandom').onclick = () => NC.Audio.playRandom();
 $('#cpVideo').onclick = () => { if (W.ledVideo) W.ledVideo.toggle(); setTimeout(renderCtl, 60); };
 setInterval(() => { if (panel.classList.contains('open')) renderCtl(); }, 1000);
 NC.on('music:state', renderCtl); NC.on('music:track', renderPanel); NC.on('led:video', renderCtl);
@@ -56,7 +55,7 @@ NC.on('music:style', renderPanel); NC.on('theme', renderPanel);
 
 function photo() {
   const R = NC.renderer; (NC.render || ((s, c) => R.render(s, c)))(NC.scene, NC.camera);
-  try { const url = R.domElement.toDataURL('image/jpeg', .92), a = document.createElement('a'); a.href = url; a.download = `추억의나이트_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.jpg`; a.click(); NC.ui.toast('📸 찰칵! 사진이 저장됐어요'); NC.Audio.sfx('pop'); }
+  try { const url = R.domElement.toDataURL('image/jpeg', .92), a = document.createElement('a'); a.href = url; a.download = `추억의나이트_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.jpg`; a.click(); NC.ui.toast('📸 찰칵! 사진이 저장됐어요'); }
   catch (e) { NC.ui.toast('사진을 저장할 수 없어요'); }
 }
 
@@ -103,14 +102,12 @@ function serve(item, ctx, server) {
   if (item.alc > 0 && life.tipsy >= 4) { NC.ui.chatAdd(server, '손님, 오늘은 조금 많이 드신 것 같아요. 시원한 물 한 잔 드릴게요 💧'); item = MENU.bar.find(m => m.id === 'water'); }
   if (item.price && NC.goldenFree && NC.goldenFree()) NC.ui.toast('🔔 골든벨 ALL PAY — 무료!');
   else if (item.price && !NC.Wallet.spend(item.price)) { NC.ui.toast(`🪙 코인이 부족해요 (${item.price} 필요)`); return false; }
-  if (item.price) NC.Audio.sfx('coin');
   setTimeout(() => {
     const at = placeFor(ctx);
     if (item.prop === 'champ' && ctx.room != null) W.vip[ctx.room].champ.visible = true;
     else if (item.prop && at) prop(item.prop, at.x, at.y, at.z);
     if (at && ctx.kind === 'bar') prop('glass', at.x, at.y, at.z);
-    life.drink = item; life.sips = 0; P().group.userData.holdGlass = true; NC.Audio.sfx('clink');
-    NC.ui.toast(`${item.icon} ${item.name} 나왔습니다!${item.alc > 0 ? '' : ''}`); hudUpdate();
+    life.drink = item; life.sips = 0; P().group.userData.holdGlass = true;     NC.ui.toast(`${item.icon} ${item.name} 나왔습니다!${item.alc > 0 ? '' : ''}`); hudUpdate();
   }, 900);
   return true;
 }
@@ -149,7 +146,7 @@ function dispatchWaiter(to, ctx, greet) {
   NC.Waiters.walk(o, route, () => {
     o.g.userData.lookAt = P(); Mo.play(o.g, 'bow');
     const items = MENU[ctx.kind === 'vipEnter' ? 'vip' : ctx.kind] || MENU.table;
-    const extra = [{ t: '💃 부킹 부탁해요', run: () => { NC.ui.hideDlg(); P().busy = false; if (P().seat && NC.Episodes && NC.Episodes.bookToSeat(o)) back(); else { o.busy = false; NC.Waiters.runTree(o); } } }, /* v14: 테이블·VIP 자리로 부킹 */ { t: '🧾 팁 드릴게요 (🪙5)', run: () => { if (NC.Wallet.spend(5)) { NC.Audio.sfx('coin'); NC.ui.chatAdd(o.def.title, '감사합니다! 오늘 서비스 확실히 챙겨 드릴게요 😄'); } back(); } }];
+    const extra = [{ t: '💃 부킹 부탁해요', run: () => { NC.ui.hideDlg(); P().busy = false; if (P().seat && NC.Episodes && NC.Episodes.bookToSeat(o)) back(); else { o.busy = false; NC.Waiters.runTree(o); } } }, /* v14: 테이블·VIP 자리로 부킹 */ { t: '🧾 팁 드릴게요 (🪙5)', run: () => { if (NC.Wallet.spend(5)) { NC.ui.chatAdd(o.def.title, '감사합니다! 오늘 서비스 확실히 챙겨 드릴게요 😄'); } back(); } }];
     if (ctx.kind === 'vipEnter') extra.unshift({ t: '🛋 소파에 앉을게요', run: () => { const v = W.vip[ctx.room], i = v.occ.findIndex(x => !x); if (i >= 0) NC.ui.fade(() => { v.occ[i] = 'me'; NC.sitPlayer({ kind: 'vip', room: ctx.room, s: i }, v.seats[i]); }); back(); } });
     menuDlg(o.def.title, '🤵 서비스', greet, items, ctx, extra, () => { if (o.busy) setTimeout(back, 600); });
   }, 3.0);
@@ -197,7 +194,7 @@ function initBarGuests() {
 }
 function buyDrinkFor(n) {
   const p = P(); if (!NC.Wallet.spend(10)) return NC.ui.toast('🪙 코인이 부족해요 (10 필요)');
-  NC.Audio.sfx('coin'); const bt = NC.Bartender; if (bt) Mo.play(bt, 'point');
+  const bt = NC.Bartender; if (bt) Mo.play(bt, 'point');
   n.tipsy = n.tipsy || 0;
   setTimeout(() => {
     let line, d;
@@ -225,8 +222,9 @@ NC.interactProviders.push(() => {
 });
 function djRequest() {
   const A = NC.Audio, p = P(); p.busy = true;
-  NC.ui.showDlg({ name: 'DJ 노스탤지어', tag: '🎧 DJ 부스', say: '신청곡 받습니다! 어떤 분위기로 갈까요? 🎶 (신청곡 🪙2)', opts: Object.entries(A.STYLES).map(([id, m]) => ({ t: `${m.name} · ${m.bpm}BPM${A.style === id ? ' (재생 중)' : ''}`, run: () => { NC.ui.hideDlg(); p.busy = false; if (!NC.Wallet.spend(2)) return NC.ui.toast('코인이 부족해요'); if (!A.ctx) A.init(); A.setStyle(id); NC.DJ && Mo.play(NC.DJ, 'cheer'); NC.ui.chatAdd('DJ 노스탤지어', `🎧 신청곡 들어갑니다~ ${m.name}! 다 같이 손 머리 위로!`); renderPanel(); } }))
-    .concat([{ t: '💵 DJ 팁 (🪙5)', run: () => { NC.ui.hideDlg(); p.busy = false; if (NC.Wallet.spend(5)) { NC.Audio.sfx('coin'); NC.DJ && Mo.play(NC.DJ, 'bow'); NC.ui.chatAdd('DJ 노스탤지어', '감사합니다! 다음 곡은 당신을 위해 🔥'); } } }, { t: '그냥 구경할게요', run: () => { NC.ui.hideDlg(); p.busy = false; } }]) });
+  const req = (label, fn) => ({ t: label, run: () => { NC.ui.hideDlg(); p.busy = false; if (!NC.Wallet.spend(2)) return NC.ui.toast('코인이 부족해요'); fn(); NC.DJ && Mo.play(NC.DJ, 'cheer'); NC.ui.chatAdd('DJ 노스탤지어', `🎧 신청곡 들어갑니다~ ${label.replace(/ \(.*\)$/, '')}! 다 같이 손 머리 위로!`); renderPanel(); } });
+  NC.ui.showDlg({ name: 'DJ 노스탤지어', tag: '🎧 DJ 부스', say: '신청곡 받습니다! 몇 번 곡 틀어 드릴까요? 🎶 (신청곡 🪙2)', opts: [req('🎲 랜덤 연속 재생', () => A.playRandom())].concat([1, 2, 3, 4, 5, 6, 7].map(n => req(`🎵 ${n}번 곡${A.mp3Mode === 'single' && A.mp3Idx === n - 1 ? ' (재생 중)' : ''}`, () => A.playTrack(n))))
+    .concat([{ t: '💵 DJ 팁 (🪙5)', run: () => { NC.ui.hideDlg(); p.busy = false; if (NC.Wallet.spend(5)) { NC.DJ && Mo.play(NC.DJ, 'bow'); NC.ui.chatAdd('DJ 노스탤지어', '감사합니다! 다음 곡은 당신을 위해 🔥'); } } }, { t: '그냥 구경할게요', run: () => { NC.ui.hideDlg(); p.busy = false; } }]) });
 }
 
 /* ═════ 7. 앉아 있을 때 하단 액션바 ═════ */
@@ -253,5 +251,5 @@ NC.tickers.push(dt => {
   vipWatch(); seatBar(); hudUpdate();
 });
 NC.on('stand', () => { clearTimeout(seatTimer); });
-console.info('[life] 생활 기능: 조명 테마 ' + Object.keys(W.THEMES || {}).length + ' · 음악 ' + Object.keys(NC.Audio.STYLES || {}).length + ' · 바 의자 6 · 바 손님 2');
+console.info('[life] 생활 기능: 조명 테마 ' + Object.keys(W.THEMES || {}).length + ' · 음악 MP3 1~7 · 바 의자 6 · 바 손님 2');
 })();

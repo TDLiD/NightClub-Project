@@ -37,14 +37,14 @@ function roulette(n) {
   const spin = () => new Promise(res => {
     spinning = true; const start = ang, target = ang + Math.PI * 2 * (4 + Math.random() * 2), t0 = performance.now(), dur = 3200; let lastIdx = -1;
     const step = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3); ang = start + (target - start) * e; draw();
-      const idx = ((Math.floor(((-ang % (2 * Math.PI)) + 4 * Math.PI) % (2 * Math.PI) / (2 * Math.PI / N))) % N); if (idx !== lastIdx) { lastIdx = idx; NC.Audio.sfx('tick'); }
+      const idx = ((Math.floor(((-ang % (2 * Math.PI)) + 4 * Math.PI) % (2 * Math.PI) / (2 * Math.PI / N))) % N); if (idx !== lastIdx) { lastIdx = idx; }
       if (k < 1) requestAnimationFrame(step); else { spinning = false; res(secs[idx]); } };
     requestAnimationFrame(step);
   });
   const finishRound = () => { round++; if (round > R.rounds) { const aff = Math.round(DATA.rewards.roulette.aff + total); reward(n, DATA.rewards.roulette.coins, aff, '진실게임 완료'); Mo.trigger(n.g, 'game:win'); msg.textContent = '게임 끝! 서로 좀 더 알게 됐네요 💗'; btn.textContent = '닫기'; btn.onclick = close; inp.style.display = 'none'; return; } turnInfo(); btn.disabled = false; btn.textContent = round % 2 ? '돌리기!' : `${n.name} 차례 ▶`; inp.style.display = 'none'; };
   btn.onclick = async () => {
     if (spinning) return; btn.disabled = true; const s = await spin(); const mine = round % 2 === 1;
-    if (s.type === 'pass') { msg.textContent = `🍀 패스권! ${mine ? n.name + '님' : '나'}의 차례가 그냥 넘어가요.`; NC.Audio.sfx('pop'); return setTimeout(finishRound, 1200); }
+    if (s.type === 'pass') { msg.textContent = `🍀 패스권! ${mine ? n.name + '님' : '나'}의 차례가 그냥 넘어가요.`; return setTimeout(finishRound, 1200); }
     if (s.type === 'penalty') { const who = mine ? n.g : NC.player.group; Mo.play(who, s.motion); msg.textContent = mine ? `${n.name}: ${R.penaltyLines[s.motion]}` : `벌칙은 나에게! ${R.penaltyLines[s.motion]}`; if (mine) NC.Dialog.npcSay(R.penaltyLines[s.motion], 'laugh'); total += 1; return setTimeout(finishRound, 2000); }
     if (mine) { const a = (n.persona && n.persona.truths && n.persona.truths[s.label]) || U.pick(AF.linesFor(n, 'question')); msg.innerHTML = `<b>[${U.esc(s.label)}]</b> 질문! → <b>${U.esc(n.name)}</b>: ${U.esc(a)}`; NC.Dialog.npcSay(a, 'shy'); Mo.play(n.g, 'shy'); total += 1; setTimeout(finishRound, 2200); }
     else { const q = U.pick(R.asks[s.label] || ['아무 얘기나 해 줘요!']); msg.innerHTML = `<b>[${U.esc(s.label)}]</b> ${U.esc(n.name)}: “${U.esc(q)}”`; NC.Dialog.npcSay(q, 'smile'); inp.style.display = ''; inp.value = ''; inp.focus(); btn.disabled = false; btn.textContent = '대답하기';
@@ -66,8 +66,7 @@ function balance(n) {
     $('#bgA').disabled = $('#bgB').disabled = true; const ok = np === mine; if (ok) same++;
     const R = DATA.rewards.balance; n.aff = U.clamp(n.aff + (ok ? R.affPerMatch : R.affPerMiss), 0, 100); NC.Dialog.floatDelta(ok ? R.affPerMatch : R.affPerMiss);
     const line = U.pick(ok ? B.same : B.diff); $('#bgRes').innerHTML = `나: <b>${U.esc(q[mine])}</b> · ${U.esc(n.name)}: <b>${U.esc(q[np])}</b><br>${U.esc(line)}`;
-    NC.Dialog.npcSay(line, ok ? 'laugh' : 'wink'); Mo.trigger(n.g, ok ? 'affinity:bigUp' : 'talk:think'); NC.Audio.sfx(ok ? 'hit' : 'miss');
-    setTimeout(() => { i++; if (i < qs.length) show(); else { const pct = Math.round(same / qs.length * 100); $('#bgQ').textContent = `싱크로율 ${pct}% ${pct >= 80 ? '💞 천생연분?!' : pct >= 40 ? '😊 꽤 잘 맞네요' : '😅 정반대의 매력'}`; $('#bgRes').textContent = ''; reward(n, same * R.coinsPerMatch, 0, `밸런스 게임 ${same}/${qs.length} 일치`); if (pct >= 60) Mo.trigger(n.g, 'game:win'); $('#bgX').textContent = '닫기'; } }, 1700);
+    NC.Dialog.npcSay(line, ok ? 'laugh' : 'wink'); Mo.trigger(n.g, ok ? 'affinity:bigUp' : 'talk:think');     setTimeout(() => { i++; if (i < qs.length) show(); else { const pct = Math.round(same / qs.length * 100); $('#bgQ').textContent = `싱크로율 ${pct}% ${pct >= 80 ? '💞 천생연분?!' : pct >= 40 ? '😊 꽤 잘 맞네요' : '😅 정반대의 매력'}`; $('#bgRes').textContent = ''; reward(n, same * R.coinsPerMatch, 0, `밸런스 게임 ${same}/${qs.length} 일치`); if (pct >= 60) Mo.trigger(n.g, 'game:win'); $('#bgX').textContent = '닫기'; } }, 1700);
   };
   $('#bgA').onclick = () => pick('a'); $('#bgB').onclick = () => pick('b'); $('#bgX').onclick = close; show();
 }
@@ -83,8 +82,8 @@ function dance(n) {
   const cv = $('#dg'), g = cv.getContext('2d'), HIT = 350, SPEED = 260;
   const P = NC.player, pu = P.group.userData, nu = n.g.userData, prev = [pu.dance, nu.dance]; pu.dance = 'stageDance'; nu.dance = 'stageDance'; const wasSeated = [pu.seated, nu.seated]; pu.seated = nu.seated = false;   // 앉아 있었다면 잠깐 일어나서 춤
   const press = lane => { const now = A.ctx.currentTime; let best = null, bd = 1e9; for (const no of notes) if (!no.hit && no.lane === lane) { const d = Math.abs(no.t - now) * 1000; if (d < bd) { bd = d; best = no; } }
-    if (best && bd <= Dd.window.good) { best.hit = bd <= Dd.window.perfect ? 'P' : 'G'; score += best.hit === 'P' ? 2 : 1; combo++; maxCombo = Math.max(maxCombo, combo); judge = best.hit === 'P' ? 'PERFECT!' : 'GOOD'; A.sfx('hit'); }
-    else { combo = 0; judge = 'MISS'; A.sfx('miss'); } judgeT = 30; };
+    if (best && bd <= Dd.window.good) { best.hit = bd <= Dd.window.perfect ? 'P' : 'G'; score += best.hit === 'P' ? 2 : 1; combo++; maxCombo = Math.max(maxCombo, combo); judge = best.hit === 'P' ? 'PERFECT!' : 'GOOD'; }
+    else { combo = 0; judge = 'MISS'; } judgeT = 30; };
   const onKey = e => { const l = KEYS.indexOf(e.key); if (l >= 0) { press(l); e.preventDefault(); e.stopPropagation(); } };
   addEventListener('keydown', onKey, true);
   box.querySelectorAll('.dpad button').forEach(b => b.onpointerdown = e => { press(+b.dataset.l); e.preventDefault(); });

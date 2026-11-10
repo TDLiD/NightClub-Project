@@ -46,7 +46,7 @@ function releaseSpot(owner) { const L = W.lights && W.lights.ball; if (!L || SPO
 W.spotBorrowed = () => !!SPOT.owner;   // world.js 가 매 프레임 미러볼 스팟 세기를 덮어쓰지 않도록
 const banner = document.createElement('div'); banner.id = 'fxBanner'; document.body.appendChild(banner);
 function announce(text, sec = 6, color = '#ffd23d') { banner.textContent = text; banner.style.setProperty('--c', color); banner.classList.remove('on'); void banner.offsetWidth; banner.classList.add('on'); clearTimeout(announce.t); announce.t = setTimeout(() => banner.classList.remove('on'), sec * 1000); W.ledMessage && W.ledMessage(text, sec, color); }
-const sfx = (f, d, v) => { const a = A(); if (a && a.ctx && a.hit) a.hit(a.ctx.currentTime, f, d, v, a.sfxBus); };
+const sfx = () => {};   // v21 효과음 삭제(배경 음악은 1~7.mp3 만)
 const nearCrowd = (x, z, r) => (NC.npcs || []).filter(n => n.g.visible && n.state !== 'off' && Math.hypot(n.x - x, n.z - z) < r);
 const busyNow = () => { const p = P(); return !p.group || p.busy || (NC.Dialog && NC.Dialog.cur) || FX.mode; };
 const FX = NC.Features = { mode: null };
@@ -129,7 +129,7 @@ djPanel.innerHTML = `<div class="djh"><b>🎧 DJ 부스 테이크오버</b><butt
   <label>🎛 필터 (로우패스) <span id="djLPv"></span><input id="djLP" type="range" min="0" max="100" value="100"></label>
   <label>🔊 베이스 부스트 <span id="djBassv"></span><input id="djBass" type="range" min="-6" max="12" value="0"></label>
   <label>🌈 조명 색 <span id="djHuev"></span><input id="djHue" type="range" min="0" max="360" value="300"></label>
-  <div class="djrow"><button id="djWave" class="on">〰 컬러 파형</button><button id="djDrop">💥 드롭!</button><button id="djScratch">💿 스크래치</button></div>
+  <div class="djrow"><button id="djWave" class="on">〰 컬러 파형</button><button id="djDrop">💥 드롭!</button></div>
   <div class="djrow" id="djStyles"></div><p class="djn">슬라이더를 움직이면 클럽 전체 음악 필터·베이스와 조명 색이 바로 바뀌어요</p>`;
 document.body.appendChild(djPanel);
 const dq = s => djPanel.querySelector(s);
@@ -140,7 +140,7 @@ function djStart() {
   if (NC.cam) { DJ.cam = Object.assign({}, NC.cam); Object.assign(NC.cam, { yaw: 0, pitch: .32, dist: 6.5 }); }
   if (NC.DJ) { NC.DJ.position.x = d.x - 2.6; B(NC.DJ, '오~ 부스 넘겨 줄게! 🎧', 2); }
   const a = A(); if (a && !a.ctx) a.init();
-  dq('#djStyles').innerHTML = Object.entries((a && a.STYLES) || {}).map(([id, m]) => `<button data-st="${id}" class="${a.style === id ? 'on' : ''}">${m.name}</button>`).join('');
+  dq('#djStyles').innerHTML = '<button data-st="r">🎲</button>' + [1, 2, 3, 4, 5, 6, 7].map(n => `<button data-st="${n}" class="${a && a.mp3Mode === 'single' && a.mp3Idx === n - 1 ? 'on' : ''}">${n}</button>`).join('');   // v21 곡 선택 = 1~7.mp3
   W.djHue = +dq('#djHue').value / 360; W.djWave = dq('#djWave').classList.contains('on'); djPanel.style.display = ''; djUpd();
   announce(`🎧 ${(NC.settings && NC.settings.name) || '손님'} 님이 DJ 부스를 장악했다!!`, 6, '#3de6ff');
 }
@@ -153,8 +153,7 @@ function djUpd() {
 dq('#djWave').onclick = e => { e.target.classList.toggle('on'); W.djWave = e.target.classList.contains('on'); };
 dq('#djDrop').onclick = () => { const p = P(); if (NC.fireCO2) NC.fireCO2(); sfx(60, .6, .6); burst(0, 4, -12, { n: 200, colors: ['#ff3d9a', '#3de6ff', '#ffd23d', '#9b5cff', '#ffffff'], up: 4, spread: 3, life: 2.2 }); Mo.play(p.group, 'cheer');
   announce('💥 DROP!!! 💥', 2.5, '#ff3d9a'); (NC.npcs || []).filter(n => n.g.visible && n.state !== 'seated').slice(0, 30).forEach((n, i) => setTimeout(() => { Mo.play(n.g, 'cheer'); if (i % 3 === 0) floatEmoji(n.x, n.g.position.y + 2.3, n.z, pk(['🔥', '🙌', '💥'])); }, i * 40)); };
-dq('#djScratch').onclick = () => { const a = A(); if (a && a.ctx) { const t = a.ctx.currentTime; for (let k = 0; k < 6; k++) a.hit(t + k * .07, 300 + (k % 2) * 900, .06, .25, a.sfxBus); } Mo.play(P().group, 'point'); };
-dq('#djStyles').onclick = e => { const b = e.target.closest('button[data-st]'); if (!b) return; A().setStyle(b.dataset.st); dq('#djStyles').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); NC.ui.toast('🎵 ' + b.textContent); };
+dq('#djStyles').onclick = e => { const b = e.target.closest('button[data-st]'); if (!b) return; if (b.dataset.st === 'r') A().playRandom(); else A().playTrack(+b.dataset.st); dq('#djStyles').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
 dq('#djExit').onclick = () => djEnd();
 djPanel.addEventListener('keydown', e => e.stopPropagation());
 function djEnd() {

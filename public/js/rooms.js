@@ -155,10 +155,10 @@ function throwItem(fromG, toG, emoji, delay) {
     const sp = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(cv), depthTest: false })); sp.scale.set(.3, .3, 1); WR.G.add(sp);
     const a = fromG.position.clone().setY(1.4), b = toG.position.clone().setY(1.5), t0 = performance.now();
     const step = () => { const e = Math.min(1, (performance.now() - t0) / 550); sp.position.lerpVectors(a, b, e); sp.position.y += Math.sin(e * Math.PI) * .6; sp.material.rotation = e * 8;
-      if (e < 1) requestAnimationFrame(step); else { WR.G.remove(sp); NC.Audio.sfx && NC.Audio.sfx('slap'); Mo.play(toG, 'flinch'); } }; step();
+      if (e < 1) requestAnimationFrame(step); else { WR.G.remove(sp); Mo.play(toG, 'flinch'); } }; step();
   }, delay);
 }
-function scream() { const A = NC.Audio, C = A && A.ctx; if (!C) return; const t = C.currentTime; [0, .25].forEach((d, i) => { const o = C.createOscillator(), g = C.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(900 + i * 150, t + d); o.frequency.linearRampToValueAtTime(1500 + i * 200, t + d + .35); o.frequency.linearRampToValueAtTime(1100, t + d + .8); g.gain.setValueAtTime(0, t + d); g.gain.linearRampToValueAtTime(.06, t + d + .05); g.gain.exponentialRampToValueAtTime(.0001, t + d + .9); o.connect(g); g.connect(A.master); o.start(t + d); o.stop(t + d + 1); }); }
+function scream() { }   // v21 효과음 삭제
 let wrBusy = false;
 function wrEpisode() {   // 남자가 여자 화장실에 들어갔을 때 — 코믹 소동극(랜덤 대사)
   const P = NC.player, B = NC.bubble || (() => {}), L = WR.ladies; if (wrBusy) return; wrBusy = true; P.busy = true;
@@ -168,7 +168,7 @@ function wrEpisode() {   // 남자가 여자 화장실에 들어갔을 때 — �
     NC.camShake = 1.0; NC.ui.toast('😱 헉… 여기 여자 화장실이었다!'); }, 1900);
   ['👜', '🧻', '💄', '🪮', '👠'].forEach((e, i) => throwItem(L[i % 2].g, pg, e, 2600 + i * 320));
   setTimeout(() => { const a = WR.ajumma; a.visible = true; a.position.set(WR.cx + 2.5, 0, WR.cz + 1.4); a.rotation.y = Math.atan2(pg.position.x - a.position.x, pg.position.z - a.position.z); a.userData.lookAt = pg.position;
-    B(a, U.pick(['아이고 이 총각이!! 여긴 여자 화장실이여!!', '어디서 남자가!! 빗자루 맛 좀 볼텨?!', '눈 감고 당장 나가!!']), 2.6); Mo.play(a, 'slap'); setTimeout(() => { NC.Audio.sfx && NC.Audio.sfx('slap'); Mo.play(pg, 'flinch'); }, 350); }, 4400);
+    B(a, U.pick(['아이고 이 총각이!! 여긴 여자 화장실이여!!', '어디서 남자가!! 빗자루 맛 좀 볼텨?!', '눈 감고 당장 나가!!']), 2.6); Mo.play(a, 'slap'); setTimeout(() => { Mo.play(pg, 'flinch'); }, 350); }, 4400);
   setTimeout(() => { B(pg, U.pick(['죄, 죄송합니다!!', '표지판을 잘못 봤어요!!', '저 아무것도 못 봤어요!!']), 1.8); }, 5300);
   setTimeout(() => { leave(WR); P.busy = false; wrBusy = false; setTimeout(() => { WR.ajumma.visible = false; L.forEach(l => l.g.userData.lookAt = null);
     NC.ui.toast('🚨 여자 화장실에서 쫓겨났어요! 클럽 여성 손님 호감도 -3');
@@ -189,15 +189,15 @@ function useToilet(kind, st) {
   const ov = document.createElement('div'); ov.id = 'roomOverlay'; ov.innerHTML = `<div>${kind === 'stall' ? '🚽 볼일 보는 중…' : '🚹 볼일 보는 중…'}</div><div class="bar"><i></i></div>`; document.body.appendChild(ov);
   if (st) { st.busy = true; st.door.position.x = st.door.userData.x0; st.sign.material.emissive.copy(col('#ff3355')); }
   const dur = kind === 'stall' ? 3800 : 2400; requestAnimationFrame(() => { ov.querySelector('i').style.transition = `width ${dur}ms linear`; ov.querySelector('i').style.width = '100%'; });
-  setTimeout(() => { const A = NC.Audio; if (A && A.ctx) { const t = A.ctx.currentTime; A.hit(t, 300, 1.4, .25, A.sfxBus); A.hit(t + .2, 900, 1.0, .12, A.sfxBus); }   // 물 내리는 소리
+  setTimeout(() => {   // 물 내리는 소리
     ov.remove(); P.busy = false; const L = life(); L.bladder = 0; L.warned = false; L.tipsy = Math.max(0, (L.tipsy || 0) - .3);
     if (st) { st.busy = false; st.sign.material.emissive.copy(col('#33dd66')); }
     NC.ui.toast(U.pick(['😌 개운하다! 손 씻는 것도 잊지 마세요', '😌 살 것 같다~ 이제 다시 놀아 볼까?', '😌 휴~ 다음엔 손 씻기!'])); }, dur);
 }
-function wash() { const P = NC.player; P.busy = true; const A = NC.Audio; if (A && A.ctx) { const t = A.ctx.currentTime; A.hit(t, 2500, 2.0, .08, A.sfxBus); }
+function wash() { const P = NC.player; P.busy = true; 
   Mo.play(P.group, 'clap'); setTimeout(() => { P.busy = false; const L = life(); L.charm = Math.min(3, (L.charm || 0) + 1); NC.ui.toast('🧼 손 씻기 완료! 깨끗해요 ✨ (다음 대화 첫인상 +)'); }, 2000); }
 function mirror() { const P = NC.player; Mo.play(P.group, 'shy'); const L = life(); L.charm = Math.min(3, (L.charm || 0) + 1); NC.ui.toast(U.pick(['🪞 머리 정리 완료~ 오늘 좀 괜찮은데?', '🪞 옷매무새 체크! 자신감 +', '🪞 미소 연습… 😁 완벽해요'])); }
-function dryer() { const A = NC.Audio; if (A && A.ctx) { const t = A.ctx.currentTime; A.hit(t, 600, 1.6, .2, A.sfxBus); } NC.ui.toast('💨 위잉~ 손이 보송보송'); }
+function dryer() { NC.ui.toast('💨 위잉~ 손이 보송보송'); }
 function smoke() { const P = NC.player; Mo.play(P.group, 'smoke'); puff(P.group); setTimeout(() => { Mo.play(P.group, 'smoke'); puff(P.group); }, 3200); NC.ui.toast('🚬 후~ (흡연은 건강에 해롭습니다)'); }
 
 /* 흡연실 손님 배치 */

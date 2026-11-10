@@ -67,7 +67,7 @@ function apply(r) {
   const f = r.an.flags;
   if (f.rude) Mo.trigger(n.g, 'affinity:rude'); else if (r.delta >= 8) Mo.trigger(n.g, 'affinity:bigUp');
   else if (Mo.EMOTION_TRIGGER[r.emotion]) Mo.trigger(n.g, Mo.EMOTION_TRIGGER[r.emotion]); else if (r.delta >= 3) Mo.trigger(n.g, 'affinity:up'); else if (r.delta <= -4) Mo.trigger(n.g, 'affinity:down');
-  const st = AF.stageOf(n.aff)[1]; if (st !== stBefore) { sys(n.aff > before ? `💗 호감도 단계 상승: ${st}` : `💔 호감도 단계 하락: ${st}`); NC.Audio.sfx(n.aff > before ? 'heart' : 'lose'); }
+  const st = AF.stageOf(n.aff)[1]; if (st !== stBefore) { sys(n.aff > before ? `💗 호감도 단계 상승: ${st}` : `💔 호감도 단계 하락: ${st}`); }
   // 속얘기 해금 (로컬 엔진일 때 명시적으로 보여줌. LLM은 프롬프트에 포함되어 자연스럽게 말함)
   ((n.persona && n.persona.secrets) || []).forEach(s => { if (n.aff >= s.at && !n.secretsShown[s.at]) { n.secretsShown[s.at] = true; if (r.source === 'local') setTimeout(() => D.cur && sys(`🤫 ${n.name}의 속얘기: “${s.text}”`), 900); } });
   // 행동
@@ -110,6 +110,7 @@ el.close.onclick = () => D.close('bye');
 { const tc = document.getElementById('tCancel'); if (tc) tc.onclick = () => D.close('bye'); }   // v16: 대화창 맨 위 취소 버튼
 addEventListener('keydown', e => { if (e.key === 'Escape' && D.cur && !document.querySelector('.modal') && !NC.ui.dlgOpen()) D.close('bye'); });
 el.tts.onclick = () => { NC.Audio.tts = !NC.Audio.tts; el.tts.textContent = NC.Audio.tts ? '🔊' : '🔈'; el.tts.title = NC.Audio.tts ? 'NPC 음성 켜짐' : 'NPC 음성 꺼짐'; if (!window.speechSynthesis) NC.ui.toast('이 브라우저는 음성 합성을 지원하지 않아요'); };
+if (el.tts) el.tts.style.display = 'none';   // v21 NPC TTS 음성 삭제
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let rec = null;
 el.mic.onclick = () => {
   if (!SR) return NC.ui.toast('이 브라우저는 음성 인식을 지원하지 않아요 (Chrome/Edge 권장)');

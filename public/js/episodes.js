@@ -268,35 +268,38 @@ function bandStart() {
   const kb = mk('키보드 나래', { gender: 'f', top: 'crop', strapless: true, topColor: '#9b5cff', bottom: 'skirt', mini: true, bottomColor: '#141418' }, 2.3, FRONT - 2.4);
   gt.userData.rig.elR.children.find(c => c.isGroup).add(BAND.guitar); BAND.singer.userData.rig.elR.children.find(c => c.isGroup).add(BAND.mic);
   BAND.singer.userData.dance = 'sing'; gt.userData.dance = 'groove'; kb.userData.dance = 'groove';
-  const AU = NC.Audio; if (AU && AU.musicVol) { BAND.prevVol = AU.musicVol.gain.value; AU.musicVol.gain.setTargetAtTime(.05, AU.ctx.currentTime, .5); }
+  BAND.prevVol = null;   // v20.1 밴드는 지금 나오는 스테이지 음악(MP3 등)에 맞춰 공연 — 음악을 줄이거나 다른 노래로 바꾸지 않음
   NC.ui.toast(`🎧 DJ: "여러분~ 오늘의 스페셜 게스트! ${name} 입니다!! 👏"`); NC.ui.chatAdd && NC.ui.chatAdd('DJ 노스탤지어', `${name} 무대 시작합니다! 무대 앞으로 오세요~ 🎶`);
   NC.fireCO2 && NC.fireCO2();
   // 팬들이 무대 앞으로
   (NC.npcs || []).filter(avail).sort(() => Math.random() - .5).slice(0, 6).forEach((n, i) => { const x = -4 + i * 1.6 + (Math.random() - .5) * .4, z = FRONT + 1.0 + Math.random() * .8; NC.NPC.goTo(n, { x, z }, () => { n.state = 'wander'; n.pause = 40; n.wp = { x, z, act: 'dance' }; n.g.rotation.y = Math.PI; n.g.userData.dance = 'groove'; if (BAND.singer) n.g.userData.lookAt = BAND.singer.position; Mo.play(n.g, 'cheer'); }, 2.6); });
-  BAND.queue = [U.pick(K.songs)]; BAND.left = 2; nextSong();
+  BAND.queue = []; BAND.left = 0; B(BAND.singer, '♪ 오늘 밤 신나게 달려 볼까요~! ♪', 3);
+  clearTimeout(BAND.endT); BAND.endT = setTimeout(() => { if (!K.playing || K.playing.singer !== 'band') bandEnd(); }, 90000);   // 90초 공연(신청곡을 부르는 중이면 그 곡이 끝날 때 퇴장)
 }
 function nextSong() {
   if (!BAND.on) return; const song = BAND.queue.shift() || U.pick(K.songs); BAND.song = song; BAND.lyric = 0;
   K.playSong(song, 'band'); B(BAND.singer, `♪ ${song.title} ♪`, 3);
 }
 NC.on && NC.on('band:songEnd', () => { if (!BAND.on || !BAND.singer) return; BAND.members.forEach(g => Mo.play(g, 'bow')); (NC.npcs || []).forEach(n => { if (n.g.userData.lookAt === BAND.singer.position) Mo.play(n.g, 'clap'); });
-  if (--BAND.left > 0 || BAND.queue.length) setTimeout(nextSong, 2500); else setTimeout(bandEnd, 2500); });
+  const AU = NC.Audio; if (AU && AU.musicVol && BAND.prevVol != null) { AU.musicVol.gain.setTargetAtTime(AU.on ? .34 : 0, AU.ctx.currentTime, .8); BAND.prevVol = null; }
+  if (BAND.queue.length) setTimeout(nextSong, 2500); else setTimeout(bandEnd, 2500); });
+NC.on && NC.on('music:user', () => { BAND.prevVol = null; });   // v20.1 사용자가 음악을 고르면 밴드 신청곡보다 우선
 function bandEnd() {
-  if (!BAND.on) return; BAND.on = false; K.stopSong && K.stopSong(); B(BAND.singer, '감사합니다~ 사랑해요 여러분!! 💕', 2.5);
+  if (!BAND.on) return; BAND.on = false; clearTimeout(BAND.endT); K.stopSong && K.stopSong(); B(BAND.singer, '감사합니다~ 사랑해요 여러분!! 💕', 2.5);
   setTimeout(() => { BAND.members.forEach(g => NC.scene.remove(g)); BAND.members = []; BAND.props.visible = false; (NC.npcs || []).forEach(n => { if (BAND.singer && n.g.userData.lookAt === BAND.singer.position) n.g.userData.lookAt = null; }); BAND.singer = null;
-    const AU = NC.Audio; if (AU && AU.musicVol && BAND.prevVol != null) AU.musicVol.gain.setTargetAtTime(BAND.prevVol, AU.ctx.currentTime, .8); }, 2600);
+    const AU = NC.Audio; if (AU && AU.musicVol && BAND.prevVol != null) AU.musicVol.gain.setTargetAtTime(AU.on ? .34 : 0, AU.ctx.currentTime, .8); }, 2600);
   BAND.nextAt = performance.now() + 240000 + Math.random() * 90000; NC.ui.toast('🎧 DJ: "게스트 무대에 큰 박수~! 다시 신나게 달려 볼까요!"');
 }
 function stageInvite() {          // 무대에 올라온 플레이어에게 가수가 말을 건다
   if (!BAND.on || BAND.asked) return; BAND.asked = true; B(BAND.singer, '무대 위 멋진 분~! 이리 와 봐요! 🎤', 2.6);
   setTimeout(() => {
     if (!BAND.on) return; P().busy = true;
-    NC.ui.showDlg({ name: BAND.singer.userData.name, tag: '🎤 초청 무대', job: `🪙 ${NC.Wallet.get()}`, say: '오늘 분위기 최고네요! 신청곡 있으세요? 아니면 저랑 한 소절 같이 부를래요? 😉',
-      opts: K.songs.slice(0, 4).map(s => ({ t: `🎵 신청곡: ${s.title} (${s.genre})`, run: () => { done(); BAND.queue.unshift(s); BAND.left = Math.max(BAND.left, 1); B(BAND.singer, `다음 곡은 신청곡! 「${s.title}」 갑니다~!`, 2.6); NC.ui.toast('🎶 신청곡이 다음 곡으로 예약됐어요'); } })).concat([
-        { t: '🎤 같이 한 소절 불러요 (듀엣)', run: () => { done(); duet(); } },
-        { t: '💵 팁 드릴게요 (🪙20)', run: () => { done(); if (!NC.Wallet.spend(20)) return NC.ui.toast('코인이 부족해요'); NC.Audio.sfx('coin'); B(BAND.singer, `${NC.settings.name}님 감사합니다~!! 이 노래 바칠게요 💕`, 3); Mo.play(BAND.singer, 'bow'); (NC.npcs || []).filter(n => n.gender === 'f' && n.enabled).forEach(n => n.aff = U.clamp((n.aff || 40) + 3, 0, 100)); NC.ui.toast('💗 클럽 여성 손님 호감도 +3'); } },
+    NC.ui.showDlg({ name: BAND.singer.userData.name, tag: '🎤 초청 무대', job: `🪙 ${NC.Wallet.get()}`, say: '오늘 분위기 최고네요! 저랑 무대에서 같이 놀아요~ 😉',
+      opts: [
+        { t: '💃 무대에서 같이 춰요 (듀엣)', run: () => { done(); duet(); } },
+        { t: '💵 팁 드릴게요 (🪙20)', run: () => { done(); if (!NC.Wallet.spend(20)) return NC.ui.toast('코인이 부족해요'); B(BAND.singer, `${NC.settings.name}님 감사합니다~!! 이 노래 바칠게요 💕`, 3); Mo.play(BAND.singer, 'bow'); (NC.npcs || []).filter(n => n.gender === 'f' && n.enabled).forEach(n => n.aff = U.clamp((n.aff || 40) + 3, 0, 100)); NC.ui.toast('💗 클럽 여성 손님 호감도 +3'); } },
         { t: '📸 기념사진 찍어요', run: () => { done(); photoFlash(); B(BAND.singer, '찰칵~ 예쁘게 나왔죠? ✌', 2.2); Mo.play(BAND.singer, 'wave'); } },
-        { t: '괜찮아요, 구경할게요', run: () => done() }]) });
+        { t: '괜찮아요, 구경할게요', run: () => done() }] });
     const done = () => { NC.ui.hideDlg(); P().busy = false; };
   }, 1500);
 }
@@ -305,7 +308,7 @@ function duet() {
   B(s, '자~ 같이! 하나 둘 셋~! 🎶', 2.2); (NC.npcs || []).forEach(n => { if (n.g.userData.lookAt === s.position) setTimeout(() => Mo.play(n.g, 'cheer'), Math.random() * 1200); });
   setTimeout(() => { p.group.userData.dance = null; p.busy = false; NC.Wallet.add(15, '듀엣 무대'); B(s, '와~ 노래 진짜 잘하시네요!! 👏', 2.4); NC.ui.toast('🎤 듀엣 성공! 🪙+15 · 관객 환호'); }, 12000);
 }
-function photoFlash() { const f = document.createElement('div'); f.style.cssText = 'position:fixed;inset:0;background:#fff;opacity:.9;z-index:99;pointer-events:none;transition:opacity .6s'; document.body.appendChild(f); requestAnimationFrame(() => { f.style.opacity = 0; }); setTimeout(() => f.remove(), 700); NC.Audio.sfx && NC.Audio.sfx('tick'); NC.ui.toast('📸 가수와 기념사진을 찍었어요!'); }
+function photoFlash() { const f = document.createElement('div'); f.style.cssText = 'position:fixed;inset:0;background:#fff;opacity:.9;z-index:99;pointer-events:none;transition:opacity .6s'; document.body.appendChild(f); requestAnimationFrame(() => { f.style.opacity = 0; }); setTimeout(() => f.remove(), 700); NC.ui.toast('📸 가수와 기념사진을 찍었어요!'); }
 let lastZone = null;
 NC.tickers.push(dt => {
   if (!P() || !P().group) return;
@@ -315,7 +318,7 @@ NC.tickers.push(dt => {
 });
 NC.interactProviders.push(() => {         // DJ 부스: 게스트 무대 요청
   const p = P(), d = W.spots.dj, dist = Math.hypot(p.x - d.x, p.z - d.z); if (dist > 2.6 || BAND.on || NC.Dialog.cur || online()) return [];
-  return [{ label: '🎤 DJ에게 초청 가수 무대 요청 (🪙30)', dist: dist + .2, run: () => { if (!NC.Wallet.spend(30)) return NC.ui.toast('🪙 코인이 부족해요 (30 필요)'); NC.Audio.sfx('coin'); bandStart(); } }];
+  return [{ label: '🎤 DJ에게 초청 가수 무대 요청 (🪙30)', dist: dist + .2, run: () => { if (!NC.Wallet.spend(30)) return NC.ui.toast('🪙 코인이 부족해요 (30 필요)'); bandStart(); } }];
 });
 
 /* ───── ④ 💸 돈 뿌리기 ───── */
@@ -323,7 +326,7 @@ const billTex = (() => { const cv = document.createElement('canvas'); cv.width =
 const bills = [];
 function throwMoney() {
   const p = P(), cost = 50; if (!NC.Wallet.spend(cost)) return NC.ui.toast(`🪙 코인이 부족해요 (${cost} 필요)`);
-  Mo.play(p.group, 'cheer'); NC.Audio.sfx('coin'); NC.ui.toast('💸 돈을 하늘 높이 뿌렸어요!! FLEX~');
+  Mo.play(p.group, 'cheer'); NC.ui.toast('💸 돈을 하늘 높이 뿌렸어요!! FLEX~');
   for (let i = 0; i < 36; i++) { const m = new T.Mesh(new T.PlaneGeometry(.22, .11), new T.MeshBasicMaterial({ map: billTex, side: T.DoubleSide, transparent: true }));
     const a = Math.random() * Math.PI * 2, r = 1 + Math.random() * 4, tx = U.clamp(p.x + Math.cos(a) * r, ST.x0 + .5, ST.x1 - .5), tz = U.clamp(p.z + Math.sin(a) * r, ST.z0 + 1, ST.z1 + 2.5);
     m.position.set(p.x, NC.groundY(p.x, p.z) + 1.8, p.z); NC.scene.add(m); bills.push({ m, t: 0, from: m.position.clone(), to: new T.Vector3(tx, NC.groundY(tx, tz) + .01, tz), up: 2.5 + Math.random() * 2, dur: 2.2 + Math.random() * 1.6, spin: (Math.random() - .5) * 8, landed: false }); }

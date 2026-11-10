@@ -36,7 +36,7 @@ const haze = []; for (let i = 0; i < 12; i++) { const sp = new T.Sprite(new T.Sp
 const jets = [-10.3, 10.3].map(x => { const j = new T.Mesh(new T.CylinderGeometry(.09, .12, .5, 14), black); put(clubG, j, x, SY + .25, FRONT - .5); const nz = new T.Mesh(new T.CylinderGeometry(.05, .07, .08, 12), chrome); put(clubG, nz, x, SY + .54, FRONT - .5);
   const plume = []; for (let k = 0; k < 7; k++) { const sp = new T.Sprite(new T.SpriteMaterial({ map: hazeTex, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false })); sp.position.set(x, SY + .6, FRONT - .5); clubG.add(sp); plume.push(sp); }
   return { x, plume, t: 0 }; });
-let jetT = 0; const fireCO2 = () => { jets.forEach(j => j.t = 1.6); if (NC.Audio && NC.Audio.ctx) { const C = NC.Audio.ctx, t = C.currentTime, n = C.createBufferSource(), b = C.createBuffer(1, C.sampleRate * 1.2, C.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length); n.buffer = b; const f = C.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1800; const g = C.createGain(); g.gain.value = .12; n.connect(f); f.connect(g); g.connect(NC.Audio.master); n.start(t); } };
+let jetT = 0; const fireCO2 = () => { jets.forEach(j => j.t = 1.6); };   // v21 효과음 삭제
 NC.fireCO2 = fireCO2;
 if (NC.Nightlife && NC.Nightlife.ringBell) { const orig = NC.Nightlife.dash; NC.Nightlife.dash = (...a) => { fireCO2(); return orig(...a); }; }
 

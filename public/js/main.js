@@ -30,7 +30,6 @@ function emote(name) {
   if (!P.group) return;
   if (name === 'stageDance' || name === 'groove') { P.group.userData.dance = name; P.danceUntil = performance.now() + 8000; }
   else Mo.play(P.group, name);
-  if (name === 'cheers') NC.Audio.sfx('clink');
   NC.net && NC.mode === 'online' && NC.net.send({ type: 'emote', name });
 }
 NC.emote = emote;

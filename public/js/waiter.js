@@ -106,14 +106,13 @@ function runTree(o) {
     NC.ui.showDlg({ name: o.def.title, tag: '🤵 부킹 담당', job: `단골도 ★${rep}`, say: sub(say), opts: (opts || []).map(op => ({ t: op.t, run: () => {
       if (op.set) Object.assign(st, op.set);
       if (op.tier) return book(op.tier);
-      if (op.next === 'tipOnly') { if (!NC.Wallet.spend(5)) return show('noMoney'); rep = Math.min(10, rep + 1); U.store.set('nc_rep', rep); NC.Audio.sfx('coin'); }
+      if (op.next === 'tipOnly') { if (!NC.Wallet.spend(5)) return show('noMoney'); rep = Math.min(10, rep + 1); U.store.set('nc_rep', rep); }
       show(op.next || 'end');
     } })) });
   };
   async function book(tier) {
     if (NC.Wallet.get() < tier.coin) return show('noMoney');
-    NC.Wallet.spend(tier.coin); NC.Audio.sfx('coin');
-    show('searching'); NC.ui.showDlg({ name: o.def.title, tag: '🤵 부킹 담당', say: sub(tree.searching.say), opts: [] });
+    NC.Wallet.spend(tier.coin);     show('searching'); NC.ui.showDlg({ name: o.def.title, tag: '🤵 부킹 담당', say: sub(tree.searching.say), opts: [] });
     await new Promise(r => setTimeout(r, 1600));
     const room = VIP.freeRoom();
     if (room < 0) { NC.Wallet.add(tier.coin); return show('roomsFull'); }

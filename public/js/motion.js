@@ -273,7 +273,7 @@ function trigger(a, ev, opt = {}) {
   if ('base' in tr) u.dance = tr.base;
   if (tr.gesture) play(a, tr.gesture, { expr: tr.expr });
   else if (tr.expr) u.setExpr(tr.expr, opt.dur || 2.5);
-  if (tr.sfx && NC.Audio && !opt.silent) NC.Audio.sfx(tr.sfx);
+  // (효과음 삭제)
   NC.emit('motion', a, ev);
 }
 

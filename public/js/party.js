@@ -63,7 +63,6 @@ function start(mode) {
   // 조명 · 음악 (처음 시작할 때의 것을 기억해 두었다가 끝나면 복원)
   const A = NC.Audio; if (!prev) { PT.prevTheme = W.themeId || 'neon'; PT.prevMusic = A && A.style; }
   if (W.setTheme) W.setTheme(mode === 'disco' ? 'neon' : 'warm');
-  if (A) { if (!A.ctx) A.init(); A.setStyle(mode === 'disco' ? 'disco' : 'ballad'); }
   // 손님 출동
   list.forEach(n => {
     const u = n.g.userData;
@@ -103,7 +102,7 @@ function pairReady(pr) {
 function stop(reason) {
   if (!PT.mode) return; const mode = PT.mode; PT.mode = null; PT.left = 0;
   const A = NC.Audio, k = K();
-  if (W.setTheme && PT.prevTheme) W.setTheme(PT.prevTheme); if (A && PT.prevMusic && A.STYLES[PT.prevMusic]) A.setStyle(PT.prevMusic);
+  if (W.setTheme && PT.prevTheme) W.setTheme(PT.prevTheme);
   if (k && k.BL && k.BL.n && k.BL.prevTheme) k.BL.prevTheme = PT.prevTheme;   // 플레이어가 부르스 중이면 끝날 때 돌아갈 조명도 원래 것으로
   PT.members.forEach(n => {
     const s = n._party, u = n.g.userData; n.party = false; n._pair = null; u.hideLabel = false; u.kissK = 0; u.bluesLead = s ? s.lead : u.bluesLead;

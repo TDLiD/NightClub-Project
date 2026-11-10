@@ -130,7 +130,7 @@ function ringBell() {
   NC.ui.modal(`<h3>🔔 골든벨을 울릴까요?</h3><p style="line-height:1.7">지금 클럽 손님 <b>${guests()}명</b>의 술값을 3분 동안 전부 내가 냅니다 (ALL PAY).<br>비용: <b style="color:#ffd23d">🪙${cost}</b> · 보유 🪙${NC.Wallet.get()}</p>`, [['🔔 울린다!', 'ok', true], ['취소', 0]]).then(r => {
     if (r.val !== 'ok') return; if (!NC.Wallet.spend(cost)) return NC.ui.toast(`🪙 코인이 부족해요 (${cost} 필요)`);
     ringT = 3.2; freeUntil = performance.now() + 180000; bellG.userData.glow.intensity = 2.5;
-    const A = NC.Audio, C = A && A.ctx; if (C) { const t = C.currentTime; [0, .45, .9, 1.35].forEach((dt, i) => [1568, 2093, 2637].forEach((f, k) => { const o = C.createOscillator(), g = C.createGain(); o.type = 'sine'; o.frequency.value = f * (i % 2 ? 1 : 1.0); g.gain.setValueAtTime(0, t + dt); g.gain.linearRampToValueAtTime(.18 / (k + 1), t + dt + .01); g.gain.exponentialRampToValueAtTime(.0001, t + dt + 1.6); o.connect(g); g.connect(A.master); o.start(t + dt); o.stop(t + dt + 1.7); })); }
+    
     NC.ui.toast(`🎧 DJ: "🔔 골든벨~!! 오늘 술값은 ${NC.settings.name}님이 쏩니다! ALL PAY 3분!"`);
     NC.ui.chatAdd && NC.ui.chatAdd('DJ 노스탤지어', `🔔 골든벨! ${NC.settings.name}님 ALL PAY! 3분간 모든 주문 무료~ 🥂`);
     if (NC.fx && NC.fx.confetti && NC.quality && NC.quality.level !== 'low') NC.fx.confetti(0, 3, -15, 80);
@@ -147,8 +147,7 @@ function dash() {        // ⑯ 여성 손님들이 골든벨 울린 사람에�
     summon(n, p.x + (Math.random() - .5) * 10, p.z + 6 + Math.random() * 3); n.cool = 0; n.state = 'path';
     setTimeout(() => NC.NPC.goTo(n, { x: tx, z: tz }, () => {
       n.aff = U.clamp((n.aff || 40) + 15, 0, 100); n.bl = n.bl || { kissed: false, warned: 0 }; n.g.userData.lookAt = p.group.position; n.state = 'wander'; n.pause = 6; n.wp = { x: n.x, z: n.z, act: 'stand' };
-      Mo.play(n.g, i % 2 ? 'clap' : 'wave'); bubble(n.g, LINES[i % LINES.length], 3.2); NC.Audio.sfx && NC.Audio.sfx('heart');
-      if (i === 0) setTimeout(() => { if (!NC.Dialog.cur) NC.Dialog.open(n, { intro: U.pick(['골든벨 울린 거 오빠죠? 와… 오늘 밤 오빠 옆에 딱 붙어 있을래요 💗', '오빠 진짜 멋있어요. 저 원래 먼저 말 안 거는데… 오늘은 예외예요 😘', '술 잘 마실게요 오빠~ 대신 제가 부르스 한 곡 쏠게요 💋']) }); }, 1200);
+      Mo.play(n.g, i % 2 ? 'clap' : 'wave'); bubble(n.g, LINES[i % LINES.length], 3.2);       if (i === 0) setTimeout(() => { if (!NC.Dialog.cur) NC.Dialog.open(n, { intro: U.pick(['골든벨 울린 거 오빠죠? 와… 오늘 밤 오빠 옆에 딱 붙어 있을래요 💗', '오빠 진짜 멋있어요. 저 원래 먼저 말 안 거는데… 오늘은 예외예요 😘', '술 잘 마실게요 오빠~ 대신 제가 부르스 한 곡 쏠게요 💋']) }); }, 1200);
     }, 3.4 + Math.random() * .6), i * 250);
   });
   NC.ui.toast(`💘 여성 손님 ${pool.length}명이 당신에게 달려와요!`);
