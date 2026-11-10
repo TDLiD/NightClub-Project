@@ -23,13 +23,14 @@ const Z = W.zones = {
   stage: { x0: -11, x1: 11, z0: -20, z1: -13.2, y: .5 },
   dance: { x0: -8, x1: 8, z0: -12.6, z1: -3 },
   corridor: { x0: -24, x1: 24, z0: 9.6, z1: 11.9 },
-  dj: { x0: -5.2, x1: 5.2, z0: -20, z1: -16.2, y: .5 + .8 },
+  dj: { x0: -10.9, x1: -6.5, z0: -17.4, z1: -14.0, y: .5 + .8 },   // v24 DJ 단을 무대 왼쪽 앞으로 → 뒤 LED 벽 전체가 보이게
   bar: { x0: 18.4, x1: 24, z0: -14, z1: 3 },
 };
 const inR = (r, x, z) => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1;
 /* v4: 양옆 테이블존을 0.42m 높인 라운지 테라스로 (계단 3곳 · 유리 난간) → 층이 생겨 공간이 입체적으로 */
 const TY = 0, TER = { inner: 99, z0: 0, z1: 0, westX: 0, eastX: 0, steps: [], stepW: 0, band: 0 };   // v15: 테라스 제거(평지 홀 + 테이블 16개)
 const RISE = .8;   // v15: DJ 단은 가수 무대보다 0.8m 더 높게
+const DJX = -8.6, DJZ = -15.5, DJR = .35;   // v24 DJ 부스 위치(무대 왼쪽 앞) · 홀 가운데를 향해 비스듬히
 const TABLE_POS = [[-3.2, .6], [3.2, .6], [-8.9, .6], [8.9, .6], [-14.2, .6], [14.2, .6], [-3.2, 6.2], [3.2, 6.2], [-8.9, 6.2], [8.9, 6.2], [-14.2, 6.2], [14.2, 6.2], [-14.2, -10.6], [-14.2, -5], [14.2, -10.6], [14.2, -5]];
 W.TY = TY; W.terrace = TER;
 
@@ -110,7 +111,7 @@ for (let z = -14; z <= 2; z += 8) for (const s of [-1, 1]) { put(new T.Mesh(box(
     const fl = put(new T.Mesh(new T.PlaneGeometry(len, 1.2), ao), x + Math.sin(r) * .6, .008, z + Math.cos(r) * .6); fl.rotation.set(-Math.PI / 2, 0, r + Math.PI); }); // 바닥 가장자리
   const blobs = TABLE_POS.map(([x, z]) => [x, z, 3.4]);
   blobs.forEach(([x, z, r]) => { const b = NC.contactShadow(r, r); b.position.set(x, TY + .012, z); S.add(b); });
-  [[0, -17.4, 8.5, 2.2], [-9.6, -18.6, 2.6, 2.2], [9.6, -18.6, 2.6, 2.2], [21.4, -5.5, 2.4, 17]].forEach(([x, z, w, d]) => { const b = NC.contactShadow(w, d); b.position.set(x, x === 0 ? .512 + RISE : Math.abs(x) > 9 && z < -18 ? .512 : .012, z); S.add(b); }); }
+  [[-8.7, -15.7, 4.4, 3.4, .512 + RISE], [-9.6, -18.6, 2.6, 2.2, .512], [9.6, -18.6, 2.6, 2.2, .512], [21.4, -5.5, 2.4, 17, .012]].forEach(([x, z, w, d, y]) => { const b = NC.contactShadow(w, d); b.position.set(x, y, z); S.add(b); }); }
 /* ═════ ① 메인 스테이지 / DJ 부스 ═════ */
 const stg = Z.stage;
 put(new T.Mesh(box(stg.x1 - stg.x0, .5, stg.z1 - stg.z0), MAT.stageFloor), 0, .25, (stg.z0 + stg.z1) / 2).receiveShadow = !!Q.shadows;
@@ -125,24 +126,25 @@ for (let x = -9; x <= 9; x += 3) put(new T.Mesh(box(.04, .02, 6), M.emi('#ff3d9a
   put(new T.Mesh(new T.PlaneGeometry(27, 1.2, 80, 1).translate(0, 0, 0), cm), 0, 10.3, -ROOM.z + .6); }
 const djFrom = S.children.length;
 // DJ 부스: 원목 전면 + 브러시드 메탈 상판 + CDJ·믹서
-put(new T.Mesh(box(7.6, 1.1, 1.4), MAT.wood), 0, 1.05, -17.4);
-put(new T.Mesh(box(7.8, .06, 1.55), MAT.brushed), 0, 1.63, -17.4);
-put(new T.Mesh(box(7.6, .06, .05), M.emi('#3de6ff', 4)), 0, 1.0, -16.68);
-{ const logo = NC.neonSign('DJ NOSTALGIA', 3.2, .55, { font: '900 120px Arial', color: '#e8fbff', glow: '#3de6ff', ph: 200 }); logo.position.set(0, 1.25, -16.68); S.add(logo); }
-[-2.4, -.9, .9, 2.4].forEach((x, i) => { if (i === 1 || i === 2) return; put(new T.Mesh(box(1.1, .1, .9), MAT.black), x, 1.71, -17.4); put(new T.Mesh(new T.CylinderGeometry(.34, .34, .03, 32), M.std('#22222a', { roughness: .3, metalness: .6 })), x, 1.78, -17.35); put(new T.Mesh(box(.5, .01, .2), M.emi('#4fc3ff', 2.4)), x, 1.765, -17.75); });
+put(new T.Mesh(box(3.6, 1.1, 1.4), MAT.wood), 0, 1.05, -17.4);
+put(new T.Mesh(box(3.8, .06, 1.55), MAT.brushed), 0, 1.63, -17.4);
+put(new T.Mesh(box(3.6, .06, .05), M.emi('#3de6ff', 4)), 0, 1.0, -16.68);
+{ const logo = NC.neonSign('DJ NOSTALGIA', 2.7, .46, { font: '900 120px Arial', color: '#e8fbff', glow: '#3de6ff', ph: 200 }); logo.position.set(0, 1.25, -16.68); S.add(logo); }
+[-1.2, -.9, .9, 1.2].forEach((x, i) => { if (i === 1 || i === 2) return; put(new T.Mesh(box(1.1, .1, .9), MAT.black), x, 1.71, -17.4); put(new T.Mesh(new T.CylinderGeometry(.34, .34, .03, 32), M.std('#22222a', { roughness: .3, metalness: .6 })), x, 1.78, -17.35); put(new T.Mesh(box(.5, .01, .2), M.emi('#4fc3ff', 2.4)), x, 1.765, -17.75); });
 put(new T.Mesh(box(1.4, .12, .9), MAT.black), 0, 1.72, -17.4);
 { const knobs = new T.InstancedMesh(new T.CylinderGeometry(.03, .03, .04, 10), M.emi('#ff3d9a', 1.6), 24), o = new T.Object3D(); for (let i = 0; i < 24; i++) { o.position.set(-.5 + (i % 6) * .2, 1.8, -17.7 + Math.floor(i / 6) * .18); o.updateMatrix(); knobs.setMatrixAt(i, o.matrix); } S.add(knobs); }
-for (let i = djFrom; i < S.children.length; i++) S.children[i].position.y += RISE;   // v15: 부스 전체를 DJ 단 위로
-/* v15 DJ 단: 가수 무대(0.5m) 뒤로 한 층 더 높은 단(1.3m) — 계단 · 전면 LED · 크롬 난간 */
-{ const dz0 = -20, dz1 = -16.2, w = 10.4, cz = (dz0 + dz1) / 2;
-  put(new T.Mesh(box(w, RISE, dz1 - dz0), MAT.stageFloor), 0, .5 + RISE / 2, cz).receiveShadow = !!Q.shadows;
-  put(new T.Mesh(box(w + .06, RISE, .05), MAT.black), 0, .5 + RISE / 2, dz1 + .02);
-  for (const y of [.62, .92, 1.22]) put(new T.Mesh(box(w, .025, .03), M.emi('#3de6ff', 3)), 0, y, dz1 + .06);
-  for (const sx of [-1, 1]) { for (let k = 0; k < 3; k++) { const h = RISE * (3 - k) / 3; put(new T.Mesh(box(.42, h, 1.3), MAT.stageFloor), sx * (w / 2 + .21 + k * .42), .5 + h / 2, dz1 - .9); }
-    put(new T.Mesh(new T.CylinderGeometry(.025, .025, 3.6, 8).rotateX(Math.PI / 2), MAT.chrome), sx * (w / 2 - .1), .5 + RISE + .95, cz - .2);
-    for (const z of [dz0 + .4, cz, dz1 - .25]) put(new T.Mesh(new T.CylinderGeometry(.02, .02, .95, 8), MAT.chrome), sx * (w / 2 - .1), .5 + RISE + .47, z); }
-  const ds = NC.neonSign('♪ DJ BOOTH', 2.2, .42, { font: '800 100px Arial', color: '#e8fbff', glow: '#3de6ff', ph: 200 }); ds.position.set(-3.6, .5 + RISE * .55, dz1 + .09); S.add(ds);
-  W.rects.push([-w / 2, dz0, w / 2, dz1]); }
+{ const bg = new T.Group(); bg.position.set(DJX, RISE, DJZ); bg.rotation.y = DJR;   // v24 부스를 묶어 무대 왼쪽 앞으로 옮기고 홀 가운데를 향하게
+  const parts = S.children.slice(djFrom); parts.forEach(o => { S.remove(o); o.position.z -= -17.4; bg.add(o); }); S.add(bg); }
+/* v24 DJ 단: 무대 왼쪽 앞 4.4×3.4m · 높이 1.3m — 오른쪽(홀 가운데 쪽) 계단 · 전면 LED 라인 · 크롬 난간 */
+{ const d = Z.dj, w = d.x1 - d.x0, dp = d.z1 - d.z0, cx = (d.x0 + d.x1) / 2, cz = (d.z0 + d.z1) / 2;
+  put(new T.Mesh(box(w, RISE, dp), MAT.stageFloor), cx, .5 + RISE / 2, cz).receiveShadow = !!Q.shadows;
+  put(new T.Mesh(box(w + .06, RISE, .05), MAT.black), cx, .5 + RISE / 2, d.z1 + .02);
+  for (const y of [.62, .92, 1.22]) put(new T.Mesh(box(w, .025, .03), M.emi('#3de6ff', 3)), cx, y, d.z1 + .06);
+  for (let k = 0; k < 3; k++) { const h = RISE * (3 - k) / 3; put(new T.Mesh(box(.42, h, 1.3), MAT.stageFloor), d.x1 + .21 + k * .42, .5 + h / 2, d.z0 + .9); }
+  put(new T.Mesh(new T.CylinderGeometry(.025, .025, dp - .2, 8).rotateX(Math.PI / 2), MAT.chrome), d.x0 + .1, .5 + RISE + .95, cz);
+  for (const z of [d.z0 + .3, cz, d.z1 - .2]) put(new T.Mesh(new T.CylinderGeometry(.02, .02, .95, 8), MAT.chrome), d.x0 + .1, .5 + RISE + .47, z);
+  const ds = NC.neonSign('♪ DJ BOOTH', 2.0, .38, { font: '800 100px Arial', color: '#e8fbff', glow: '#3de6ff', ph: 200 }); ds.position.set(cx - .6, .5 + RISE * .55, d.z1 + .09); S.add(ds);
+  W.rects.push([d.x0, d.z0, d.x1, d.z1]); }
 // 라인어레이(천장 매달림) + 서브우퍼(바닥)
 for (const s of [-1, 1]) {
   for (let k = 0; k < 6; k++) { const cab = put(new T.Mesh(box(1.3, .42, .8), MAT.matte), s * 9.2, 8.6 - k * .44, -14.6 + k * .03); cab.rotation.x = k * .05; const gr = put(new T.Mesh(new T.PlaneGeometry(1.2, .34), MAT.grill), s * 9.2, 8.6 - k * .44, -14.19 + k * .03); gr.rotation.x = k * .05; }
@@ -164,11 +166,11 @@ const ledCv = document.createElement('canvas'); ledCv.width = 1024; ledCv.height
 const ledMask = (() => { const c = document.createElement('canvas'); c.width = 1024; c.height = 320; const g = c.getContext('2d'); g.fillStyle = 'rgba(0,0,0,.55)'; for (let x = 0; x < 1024; x += 4) g.fillRect(x, 0, 1, 320); for (let y = 0; y < 320; y += 4) g.fillRect(0, y, 1024, 1); return c; })();
 const ledMat = new T.MeshBasicMaterial({ map: ledTex }); ledMat.color.setScalar(1.6);
 /* ── v20 LED 배경 영상: public/music/music/background.mp4 (또는 public/music/background.mp4 · public/video/background.mp4)를
- *  DJ 뒤 LED 전광판에 꽉 차게(비율 유지·가운데 기준으로 넘치는 부분만 잘라냄) 반복 재생. 소리는 끔(음악은 스테이지 음악이 담당).
+ *  DJ 뒤 LED 전광판 전체에 와이드로 꽉 차게 반복 재생. 소리는 끔(음악은 스테이지 음악이 담당).
  *  경로 바꾸기: NC.config.ledVideo = 'video/my.mp4' · 늘려서 채우기: NC.config.ledVideoFit = 'stretch' */
 const LV = (() => {
-  const CAND = (NC.config && NC.config.ledVideo) ? [NC.config.ledVideo] : ['music/music/background.mp4', 'music/background.mp4', 'video/background.mp4'];
-  let vid = null, want = U.store.get('nc_ledVideo', true) !== false, st = 'off', started = false;
+  const CAND = (NC.config && NC.config.ledVideo) ? [NC.config.ledVideo] : ['music/background.mp4', 'music/music/background.mp4', 'video/background.mp4'];
+  let vid = null, want = U.store.get('nc_ledVideo2', true) !== false, st = 'off', started = false;
   const emit = () => NC.emit && NC.emit('led:video', st);
   const find = k => k >= CAND.length ? Promise.resolve(null) : fetch(CAND[k], { method: 'HEAD', cache: 'no-store' }).then(r => r.ok && !/text\/html/i.test(r.headers.get('content-type') || '') ? CAND[k] : find(k + 1)).catch(() => find(k + 1));
   function load() {
@@ -191,16 +193,29 @@ const LV = (() => {
   NC.on && NC.on('start', begin);
   return {
     active: () => want && vid && st === 'on' && vid.readyState >= 2 && !vid.paused,
+    showing: () => !!(want && vid && st === 'on' && vid.videoWidth),   // 반복 재생 이음새에서 잠깐 readyState 가 떨어져도 화면이 깜박이지 않게
     el: () => vid, state: () => want ? st : (st === 'missing' ? 'missing' : 'off'),
-    toggle() { if (st === 'missing') { want = true; vid = null; load(); } else { want = !want; if (want) load(); else { if (vid) vid.pause(); st = 'off'; emit(); } } U.store.set('nc_ledVideo', want); started = true; return want; },
+    toggle() { if (st === 'missing') { want = true; vid = null; load(); } else { want = !want; if (want) load(); else { if (vid) vid.pause(); st = 'off'; emit(); } } U.store.set('nc_ledVideo2', want); started = true; return want; },
   };
 })();
 W.ledVideo = LV;
-function drawLedVideo(g) {
-  const v = LV.el(), vw = v.videoWidth || 16, vh = v.videoHeight || 9, CW = 1024, CH = 320;
-  if ((NC.config && NC.config.ledVideoFit) === 'stretch') { g.drawImage(v, 0, 0, CW, CH); return; }
-  const k = Math.max(CW / vw, CH / vh), sw = CW / k, sh = CH / k;   // cover: 화면을 꽉 채우고 넘치는 부분만 가운데 기준으로 잘라냄
-  g.drawImage(v, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, CW, CH);
+/* v22 영상은 LED 캔버스에 그리지 않고 전용 판(VideoTexture)에 직접 재생:
+ *  · 화면 비율을 그대로 유지해 뮤비 전체가 보이게(위아래 잘림 없음) — 남는 좌우는 LED 연출이 은은하게 이어짐
+ *  · 렌더 프레임마다 브라우저가 디코딩한 영상 프레임을 바로 올려 30fps 캔버스 복사로 생기던 끊김이 없음 */
+const LED_W = 19, LED_H = 5.9;
+const vidMat = new T.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }); vidMat.visible = false;
+const vidMesh = put(new T.Mesh(new T.PlaneGeometry(1, 1), vidMat), 0, 4.3, -ROOM.z + .085); vidMesh.renderOrder = 2; vidMesh.userData.dyn = true;
+let vidTex = null, vidAspect = 0;
+function vidTick() {
+  const on = LV.showing() && !(W.ledMsg && performance.now() < W.ledMsg.until); if (!on)   // 전광판 알림(샴페인 쇼 등) 동안엔 알림을 보여 줌
+  { if (vidMat.visible) { vidMat.visible = false; } return; }
+  const v = LV.el();
+  if (!vidTex || vidTex.image !== v) { if (vidTex) vidTex.dispose(); vidTex = new T.VideoTexture(v); vidTex.encoding = T.sRGBEncoding; vidTex.minFilter = vidTex.magFilter = T.LinearFilter; vidTex.generateMipmaps = false; vidMat.map = vidTex; vidMat.needsUpdate = true; vidAspect = 0; }
+  const a = (v.videoWidth || 16) / (v.videoHeight || 9);
+  if (Math.abs(a - vidAspect) > .001) { vidAspect = a; const fit = (NC.config && NC.config.ledVideoFit) || 'stretch';   // v23 기본 = 벽면 전체에 와이드로 꽉 채움 · 비율 유지가 필요하면 'contain'
+    let w = LED_W, h = LED_H; if (fit === 'contain') { if (a > LED_W / LED_H) h = LED_W / a; else w = LED_H * a; }   // 'stretch' 면 꽉 채움
+    vidMesh.scale.set(w, h, 1); }
+  vidMat.visible = true;
 }
 put(new T.Mesh(new T.PlaneGeometry(19, 5.9), ledMat), 0, 4.3, -ROOM.z + .06);
 put(new T.Mesh(box(19.6, 6.5, .1), MAT.black), 0, 4.3, -ROOM.z + .01);
@@ -223,7 +238,7 @@ const THEMES = W.THEMES = {
 };
 let TH = THEMES.neon;
 W.ledMessage = (text, sec = 8, color) => { W.ledMsg = { text, until: performance.now() + sec * 1000, color }; };
-W.setTheme = id => { const th = THEMES[id]; if (!th) return; TH = th; W.themeId = id; U.store.set('nc_theme', id);
+W.setTheme = id => { const th = THEMES[id]; if (!th) return; TH = th; W.themeId = id; U.store.set('nc_theme2', id);
   spots.forEach((sp, i) => { const c = col(th.spots[i % th.spots.length]); if (sp.L) sp.L.color.copy(c); sp.beam.material.uniforms.color.value.copy(c); sp.head.children[1] && sp.head.children[1].material && sp.head.children[1].material.color.copy(c).multiplyScalar(6); });
   haze.forEach((h, i) => h.sp.material.color.copy(col(th.haze[i % 3]))); S.fog.color.copy(col(th.fog)); glows[0].color.copy(col(th.glow[0])); glows[1].color.copy(col(th.glow[1]));
   key.intensity = .75 * (th.keyK || 1); W.stageOff = !!th.nostage; NC.emit && NC.emit('theme', id); };
@@ -246,12 +261,8 @@ function dancerFig(g, x, y, s, ph, style) {   // 막대 인형 실루엣 댄서 
 }
 function drawLED(t, b) {
   const g = ledG, SPK = TH.sparkle !== false, kick = SPK ? 1 - b.phase : .3;
-  if (LV.active()) {   // v20 배경 영상 재생 중: 영상을 꽉 차게 + 알림 메시지 + LED 픽셀 격자
-    ledMat.color.setScalar(1.05); try { drawLedVideo(g); } catch (e) { }
-    if (W.ledMsg && performance.now() < W.ledMsg.until) { const m = W.ledMsg, k = .5 + .5 * Math.sin(t * 6); g.fillStyle = 'rgba(10,4,20,.72)'; g.fillRect(0, 90, 1024, 140);
-      g.font = '900 78px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = m.color || '#ffd23d'; g.shadowBlur = 20 + 20 * k; g.fillStyle = '#fff'; g.fillText(m.text, 512, 162); g.shadowBlur = 0; g.textAlign = 'left'; }
-    g.globalAlpha = .45; g.drawImage(ledMask, 0, 0); g.globalAlpha = 1; ledTex.needsUpdate = true; return; }
-  ledMat.color.setScalar(1.6);
+  ledMat.color.setScalar(LV.showing() ? .55 : 1.6);   // v22 영상 재생 중엔 좌우 LED 연출을 은은하게
+
   ledNext -= 1 / 15; if (ledNext <= 0) { ledNext = 10; let m; do { m = Math.floor(Math.random() * LED_MODES.length); } while (m === ledMode); ledMode = m; ledFade = 0; }
   ledFade = Math.min(1, ledFade + .08);
   g.fillStyle = '#07030f'; g.fillRect(0, 0, 1024, 320);
@@ -317,8 +328,21 @@ function drawLED(t, b) {
   g.textAlign = 'left';
   g.drawImage(ledMask, 0, 0); ledTex.needsUpdate = true;
 }
-W.spots.dj = { x: 0, z: -18.3, y: .5 + RISE, ry: 0 };
+W.spots.dj = { x: DJX - Math.sin(DJR) * .95, z: DJZ - Math.cos(DJR) * .95, y: .5 + RISE, ry: DJR };   // 부스 뒤에서 홀을 향해
 
+/* v24 원통형 댄서 무대(포디움) 2개 — 댄스플로어 좌우 가장자리 · 높이 0.9m · 지름 2.6m · 크롬 테두리 + LED 링
+ *  위에서 무대 댄서 2명씩 춤 (stage.js) — 뒤 LED 벽을 가리지 않는 위치 */
+const PODIUM_H = .9, PODIUM_R = 1.3;
+W.podiums = [-10.4, 10.4].map(px => {
+  const pz = -8.0;
+  put(new T.Mesh(new T.CylinderGeometry(PODIUM_R, PODIUM_R + .08, PODIUM_H, 48), MAT.black), px, PODIUM_H / 2, pz);
+  put(new T.Mesh(new T.CylinderGeometry(PODIUM_R + .02, PODIUM_R + .02, .05, 48), MAT.chrome), px, PODIUM_H - .02, pz);
+  put(new T.Mesh(new T.CylinderGeometry(PODIUM_R - .04, PODIUM_R - .04, .02, 48), M.pbr ? MAT.marbleDark : MAT.black), px, PODIUM_H + .005, pz);
+  const rings = [.2, .5].map(y => put(new T.Mesh(new T.TorusGeometry(PODIUM_R + .06, .025, 8, 64).rotateX(Math.PI / 2), new T.MeshBasicMaterial({ color: 0xff3d9a, toneMapped: false })), px, y, pz));
+  rings.forEach(r => { r.userData.dyn = true; });
+  W.circles.push([px, pz, PODIUM_R + .25]);
+  return { x: px, z: pz, y: PODIUM_H + .015, r: PODIUM_R, rings };
+});
 /* 댄스플로어: LED 타일 + 위에 얹은 강화유리(반사) */
 const DF = Z.dance, TILE = 1.6, TX = 10, TZ = 6;
 const tiles = new T.InstancedMesh(box(TILE - .06, .1, TILE - .06), new T.MeshBasicMaterial({ color: 0xffffff }), TX * TZ);
@@ -572,7 +596,8 @@ const terraceY = () => -1;   // v15: 테라스 없음
 W.terraceY = terraceY;
 const vipFloorY = (x, z) => { if (z < BAL_Z || z > ROOM.z) return -1; const ax = Math.abs(x), sx = ROOM.x - STAIR_RUN; if (z < VIP_Z0 && ax > sx) return VY * U.clamp((ROOM.x - LAND - ax) / (STAIR_RUN - LAND), 0, 1); return VY; };
 W.vipFloorY = vipFloorY;
-NC.groundY = (x, z) => { const vy = vipFloorY(x, z); if (vy >= 0) return vy; if (Math.abs(x) <= Z.dj.x1 && z <= Z.dj.z1 && z >= -ROOM.z) return Z.dj.y; if (x < stg.x0 || x > stg.x1 || z < -ROOM.z || z > ROOM.z) return 0; if (z <= stg.z1) return .5; if (z < stg.z1 + .9 && Math.abs(x) < 3) return .5 * (1 - (z - stg.z1) / .9); return 0; };
+const DANCE_Y = .108;   // v24 댄스플로어 LED 타일(0.1m)+강화유리 위를 걷도록 — 발목이 바닥에 잠기던 문제
+NC.groundY = (x, z) => { const vy = vipFloorY(x, z); if (vy >= 0) return vy; if (inR(Z.dj, x, z)) return Z.dj.y; if (x < stg.x0 || x > stg.x1 || z < -ROOM.z || z > ROOM.z) return 0; if (z <= stg.z1) return .5; if (z < stg.z1 + .9 && Math.abs(x) < 3) return .5 * (1 - (z - stg.z1) / .9); return inR(Z.dance, x, z) ? DANCE_Y : 0; };
 W.locked = i => (NC.roomLockedForMe ? NC.roomLockedForMe(i) : false);
 /* v18 카메라 벽 회피: 플레이어(t)→카메라(p) 사이에 벽(서쪽·동쪽 동, VIP 2층 아래 매스, 바깥 벽)이 있으면 카메라를 그 앞까지 당김
  *  → 무대 쪽을 바라봐도 뒤쪽 벽이 화면을 가리지 않고 홀 전경이 보임 */
@@ -633,7 +658,7 @@ W.update = function (dt, t, agents) {
   });
   haze.forEach(h => { h.sp.visible = !OFF; h.p += dt * .12; h.sp.position.set(h.x + Math.sin(h.p) * 1.5, h.y + Math.sin(h.p * 1.3) * .3, h.z + Math.cos(h.p * .8) * 1.2); h.sp.material.rotation += h.r * dt; h.sp.material.opacity = .05 + .02 * Math.sin(h.p * 2) + kick * .01; });
   candles.forEach((c, i) => { const f = .8 + .2 * Math.sin(t * 13 + i * 3) * Math.sin(t * 7.3 + i); c.material.color.setRGB(4 * f, 2.2 * f, .7 * f); c.scale.y = 1.4 + .3 * f; });
-  ledT += dt; if (ledT > (Q.level === 'low' ? (LV.active() ? 1 / 12 : 1 / 8) : LV.active() ? 1 / 30 : 1 / 15)) { ledT = 0; drawLED(t, b); }   // 영상 재생 중엔 PC 30fps
+  W.podiums.forEach((p, i) => p.rings.forEach((r, k) => r.material.color.setHSL(((t * .12 + i * .5 + k * .25) % 1), 1, .55).multiplyScalar(1.4 + .8 * (1 - b.phase)))); vidTick(); ledT += dt; if (ledT > (Q.level === 'low' ? 1 / 8 : 1 / 15)) { ledT = 0; drawLED(t, b); }
   W.vip.forEach(v => {
     const locked = W.locked(v.id); let want = false;
     for (const a of agents || []) if (Math.abs(a.x - v.cx) < 1.9 && Math.abs(a.z - VIP_Z0) < 2.2 && !(a.me && locked)) { want = true; break; }
@@ -660,7 +685,7 @@ ball.userData.dyn = true; floor.userData.dyn = true;
     const mm = new T.Mesh(out, list[0].material); list.forEach(m => S.remove(m)); S.add(mm); after++; });
   console.info(`[world] 정적 메시 병합 ${before} → ${after}`);
 })();
-W.setTheme(THEMES[U.store.get('nc_theme', 'neon')] ? U.store.get('nc_theme', 'neon') : 'neon');
+W.setTheme(THEMES[U.store.get('nc_theme2', 'house')] ? U.store.get('nc_theme2', 'house') : 'house');   // v22 기본 = 💡 전등만(무대 조명 끔)
 // 그림자: 바닥·무대는 받기, 큰 가구는 드리우기
 if (Q.shadows) S.children.forEach(o => { if (o.isMesh && !o.material.transparent && !o.isInstancedMesh && o !== floor && !o.userData.dyn) { o.castShadow = true; o.receiveShadow = true; } });
 })();

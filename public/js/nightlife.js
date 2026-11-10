@@ -132,7 +132,7 @@ function ringBell() {
     ringT = 3.2; freeUntil = performance.now() + 180000; bellG.userData.glow.intensity = 2.5;
     
     NC.ui.toast(`🎧 DJ: "🔔 골든벨~!! 오늘 술값은 ${NC.settings.name}님이 쏩니다! ALL PAY 3분!"`);
-    NC.ui.chatAdd && NC.ui.chatAdd('DJ 노스탤지어', `🔔 골든벨! ${NC.settings.name}님 ALL PAY! 3분간 모든 주문 무료~ 🥂`);
+    NC.ui.chatAdd && NC.ui.chatAdd('DJ 루나', `🔔 골든벨! ${NC.settings.name}님 ALL PAY! 3분간 모든 주문 무료~ 🥂`);
     if (NC.fx && NC.fx.confetti && NC.quality && NC.quality.level !== 'low') NC.fx.confetti(0, 3, -15, 80);
     (NC.npcs || []).forEach(n => { if (n.enabled && n.g.visible && n.state !== 'seated' && Math.random() < .8) setTimeout(() => Mo.play(n.g, 'cheer'), Math.random() * 900); });
     NC.DJ && Mo.play(NC.DJ, 'cheer');

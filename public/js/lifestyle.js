@@ -17,7 +17,7 @@ const life = NC.Life = { tipsy: 0, bladder: 0, drink: null, sips: 0, charm: 0, w
 const panel = document.createElement('div'); panel.id = 'clubPanel'; panel.innerHTML = `
   <button id="cpToggle" title="클럽 설정">🎛</button>
   <div id="cpBody"><button id="cpClose" class="mClose" title="닫기">✕</button><h4>🎨 무대 조명</h4><div id="cpTheme" class="cpGrid"></div><h4>🎵 스테이지 음악 <small>(1~7.mp3)</small></h4><div class="cpGrid"><button id="cpRandom">🎲 랜덤 연속 재생</button></div>
-  <div id="cpCtl"><button id="cpPlay">⏸ 정지</button><span id="cpNow"></span></div>
+  <div class="mpBox" id="cpPlayer"><div class="mpBtns"><button class="mpPrev" title="이전 곡">⏮</button><button class="mpPlay" title="재생 / 정지">⏸</button><button class="mpNext" title="다음 곡">⏭</button></div><div class="mpInfo"><div class="mpTop"><b class="mpTitle">🎵 음악</b><span class="mpTime">0:00 / 0:00</span></div><div class="mpBar"><i class="mpFill"></i></div></div></div>
   <h4>💿 곡 선택 <small>(누르면 그 곡만 반복)</small></h4><div id="cpTracks"></div>
   <h4>📺 LED 전광판</h4><div class="cpGrid"><button id="cpVideo">📺 배경 영상 켜짐</button></div>
   <div class="cpGrid"><button id="cpPhoto">📸 사진 찍기</button><button id="cpHelp">❔ 생활 기능</button></div></div>`;
@@ -34,16 +34,56 @@ function renderPanel() {   // v20: 버튼은 처음 한 번만 만들고 이후�
 }
 /* v20 정지/재생 버튼 + 지금 재생 중 표시 (패널이 열려 있을 때만 1초마다 갱신 — 버튼을 다시 만들지 않아 클릭이 씹히지 않음) */
 function renderCtl() {
-  const A = NC.Audio, pl = $('#cpPlay'), now = $('#cpNow'), v = $('#cpVideo'); if (!pl) return;
-  const stopped = A.paused || !A.ctx || A.ctx.state !== 'running'; pl.textContent = stopped ? '▶ 재생' : '⏸ 정지'; pl.className = stopped ? 'on' : '';
-  now.textContent = A.nowText ? A.nowText() : '';
+  const v = $('#cpVideo');
   if (v && W.ledVideo) { const st = W.ledVideo.state(); v.textContent = st === 'on' ? '📺 배경 영상 켜짐 (끄기)' : st === 'loading' ? '⏳ 영상 불러오는 중… (끄기)' : st === 'missing' ? '⚠ 영상 파일 없음 (다시 찾기)' : '📺 배경 영상 꺼짐 (켜기)'; v.className = st === 'on' || st === 'loading' ? 'on' : ''; }
 }
-$('#cpPlay').onclick = () => { const A = NC.Audio; A.wake(); if (A.paused || !A.ctx || A.ctx.state !== 'running') A.resume(); else A.stop(); setTimeout(renderCtl, 60); };
 $('#cpRandom').onclick = () => NC.Audio.playRandom();
 $('#cpVideo').onclick = () => { if (W.ledVideo) W.ledVideo.toggle(); setTimeout(renderCtl, 60); };
 setInterval(() => { if (panel.classList.contains('open')) renderCtl(); }, 1000);
 NC.on('music:state', renderCtl); NC.on('music:track', renderPanel); NC.on('led:video', renderCtl);
+/* ═════ v23 음악 플레이어 (하단 + 🎛 패널 안) — 재생 시간 · ⏮ 이전 · ▶/⏸ · ⏭ 다음 · 탐색 바
+ *  스타일을 이 파일에 직접 넣어 둠: 브라우저가 옛 style.css 를 캐시하고 있어도 플레이어가 반드시 보이게 */
+{ const st = document.createElement('style'); st.id = 'mpStyle'; st.textContent = `
+#musicPlayer{position:fixed;left:max(12px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom));z-index:12;width:300px;padding:7px 10px;border-radius:14px;background:rgba(32,18,66,.88);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(6px);box-shadow:0 4px 18px rgba(0,0,0,.45)}
+.mpBox{display:flex;align-items:center;gap:8px;color:#fff;box-sizing:border-box;user-select:none;font-family:inherit}
+#cpPlayer{margin:2px 0 8px;padding:7px 8px;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.12)}
+.mpBox .mpBtns{display:flex;align-items:center;gap:4px;flex:0 0 auto}
+.mpBox .mpBtns button{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:#2c1758;color:#fff;font-size:13px;cursor:pointer;padding:0;line-height:1;text-align:center}
+.mpBox .mpBtns .mpPlay{width:38px;height:38px;font-size:15px;background:linear-gradient(135deg,#ff3d9a,#7b3dff);border:0}
+.mpBox .mpBtns .mpPlay.on{background:linear-gradient(135deg,#29d17d,#1f8fff)}
+.mpBox .mpBtns button:active{transform:scale(.92)}
+.mpBox .mpInfo{flex:1;min-width:0}
+.mpBox .mpTop{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font-size:12px;margin-bottom:5px}
+.mpBox .mpTitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mpBox .mpTime{font-variant-numeric:tabular-nums;color:#cfe8ff;font-size:11.5px;white-space:nowrap}
+.mpBox .mpBar{position:relative;height:6px;border-radius:3px;background:rgba(255,255,255,.2);cursor:pointer;touch-action:none}
+.mpBox .mpBar::before{content:'';position:absolute;left:0;right:0;top:-7px;bottom:-7px}
+.mpBox .mpFill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;background:linear-gradient(90deg,#ff3d9a,#3de6ff)}
+#cpPlayer{gap:5px;padding:6px}#cpPlayer .mpBtns{gap:2px}#cpPlayer .mpBtns button{width:25px;height:25px;font-size:10.5px}#cpPlayer .mpBtns .mpPlay{width:29px;height:29px;font-size:12px}#cpPlayer .mpTop{font-size:11px;gap:4px}#cpPlayer .mpTime{font-size:10px;letter-spacing:-.2px}
+@media (max-width:1024px){#musicPlayer{width:260px}}
+@media (max-width:640px){#musicPlayer{left:auto;right:6px;bottom:62px;width:206px;padding:5px 7px}#musicPlayer .mpBtns button{width:28px;height:28px;font-size:12px}#musicPlayer .mpBtns .mpPlay{width:32px;height:32px;font-size:13px}#musicPlayer .mpTop{font-size:11px;margin-bottom:4px}}
+@media (max-height:500px) and (orientation:landscape){#musicPlayer{left:auto;right:6px;bottom:4px;width:220px;padding:4px 7px}#musicPlayer .mpBtns button{width:26px;height:26px;font-size:11px}#musicPlayer .mpBtns .mpPlay{width:30px;height:30px}}`;
+  document.head.appendChild(st); }
+const mp = document.createElement('div'); mp.id = 'musicPlayer'; mp.className = 'mpBox';
+mp.innerHTML = $('#cpPlayer').innerHTML; document.body.appendChild(mp);
+const PLAYERS = [mp, $('#cpPlayer')], fmt = x => isFinite(x) ? `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}` : '0:00';
+function renderMP() {
+  const A = NC.Audio, el = A.mp3El, stopped = A.paused || !A.ctx || A.ctx.state !== 'running' || !el || el.paused, n = A.mp3Idx + 1;
+  const title = n > 0 ? `${A.mp3Mode === 'single' ? '🔂' : '🔀'} ${n}번 곡` : '🎵 음악', cur = el ? el.currentTime : 0, dur = el ? el.duration : 0;
+  const time = `${fmt(cur)} / ${fmt(dur)}`, pct = (isFinite(dur) && dur > 0 ? Math.min(100, cur / dur * 100) : 0) + '%';
+  PLAYERS.forEach(box => { const q = c => box.querySelector(c), pb = q('.mpPlay'); pb.textContent = stopped ? '▶' : '⏸'; pb.classList.toggle('on', stopped);
+    q('.mpTitle').textContent = title; q('.mpTime').textContent = time; q('.mpFill').style.width = pct; });
+}
+PLAYERS.forEach(box => {
+  const q = c => box.querySelector(c);
+  q('.mpPrev').onclick = () => { NC.Audio.prevTrack(); setTimeout(renderMP, 80); };
+  q('.mpNext').onclick = () => { NC.Audio.nextTrack(); setTimeout(renderMP, 80); };
+  q('.mpPlay').onclick = () => { const A = NC.Audio, el = A.mp3El; A.wake(); if (A.paused || !el || el.paused || !A.ctx || A.ctx.state !== 'running') A.resume(); else A.stop(); setTimeout(() => { renderMP(); renderPanel(); }, 80); };
+  q('.mpBar').addEventListener('pointerdown', e => { const r = q('.mpBar').getBoundingClientRect(); NC.Audio.seek((e.clientX - r.left) / r.width); renderMP(); });
+  box.addEventListener('pointerdown', e => e.stopPropagation());   // 플레이어를 눌러도 캐릭터가 이동하지 않게
+});
+setInterval(renderMP, 250); NC.on('music:state', renderMP); NC.on('music:track', renderMP);
+NC.on('music:state', renderPanel); NC.on('music:track', renderPanel);   // 패널의 선택 표시도 같이 맞춤
 $('#cpToggle').onclick = () => { panel.classList.toggle('open'); renderPanel(); };
 $('#cpClose').onclick = () => panel.classList.remove('open');
 $('#cpPhoto').onclick = () => photo();
@@ -222,9 +262,9 @@ NC.interactProviders.push(() => {
 });
 function djRequest() {
   const A = NC.Audio, p = P(); p.busy = true;
-  const req = (label, fn) => ({ t: label, run: () => { NC.ui.hideDlg(); p.busy = false; if (!NC.Wallet.spend(2)) return NC.ui.toast('코인이 부족해요'); fn(); NC.DJ && Mo.play(NC.DJ, 'cheer'); NC.ui.chatAdd('DJ 노스탤지어', `🎧 신청곡 들어갑니다~ ${label.replace(/ \(.*\)$/, '')}! 다 같이 손 머리 위로!`); renderPanel(); } });
-  NC.ui.showDlg({ name: 'DJ 노스탤지어', tag: '🎧 DJ 부스', say: '신청곡 받습니다! 몇 번 곡 틀어 드릴까요? 🎶 (신청곡 🪙2)', opts: [req('🎲 랜덤 연속 재생', () => A.playRandom())].concat([1, 2, 3, 4, 5, 6, 7].map(n => req(`🎵 ${n}번 곡${A.mp3Mode === 'single' && A.mp3Idx === n - 1 ? ' (재생 중)' : ''}`, () => A.playTrack(n))))
-    .concat([{ t: '💵 DJ 팁 (🪙5)', run: () => { NC.ui.hideDlg(); p.busy = false; if (NC.Wallet.spend(5)) { NC.DJ && Mo.play(NC.DJ, 'bow'); NC.ui.chatAdd('DJ 노스탤지어', '감사합니다! 다음 곡은 당신을 위해 🔥'); } } }, { t: '그냥 구경할게요', run: () => { NC.ui.hideDlg(); p.busy = false; } }]) });
+  const req = (label, fn) => ({ t: label, run: () => { NC.ui.hideDlg(); p.busy = false; if (!NC.Wallet.spend(2)) return NC.ui.toast('코인이 부족해요'); fn(); NC.DJ && Mo.play(NC.DJ, 'cheer'); NC.ui.chatAdd('DJ 루나', `🎧 신청곡 들어갑니다~ ${label.replace(/ \(.*\)$/, '')}! 다 같이 손 머리 위로!`); renderPanel(); } });
+  NC.ui.showDlg({ name: 'DJ 루나', tag: '🎧 DJ 부스', say: '신청곡 받습니다! 몇 번 곡 틀어 드릴까요? 🎶 (신청곡 🪙2)', opts: [req('🎲 랜덤 연속 재생', () => A.playRandom())].concat([1, 2, 3, 4, 5, 6, 7].map(n => req(`🎵 ${n}번 곡${A.mp3Mode === 'single' && A.mp3Idx === n - 1 ? ' (재생 중)' : ''}`, () => A.playTrack(n))))
+    .concat([{ t: '💵 DJ 루나에게 팁 주기', run: () => { NC.ui.hideDlg(); p.busy = false; NC.Stage && NC.Stage.tip(); } }, { t: '그냥 구경할게요', run: () => { NC.ui.hideDlg(); p.busy = false; } }]) });
 }
 
 /* ═════ 7. 앉아 있을 때 하단 액션바 ═════ */

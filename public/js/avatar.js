@@ -621,6 +621,7 @@ function create(o = {}) {
   glass.add(mesh(G('liq', () => new T.CylinderGeometry(.028, .022, .06, 12)), NC.mat.std('#ffb340', { roughness: .2, emissive: '#5a2a00' }), 0, -.02, 0));
   if (TL) { mHair.map = TL.texture('hair', 'map', {}, [3, 1]); mHair.normalMap = TL.texture('hair', 'normal', {}, [3, 1]); mHair.normalScale.set(.7, .7); mHair.onBeforeCompile = rimInject('1.0,0.95,0.9', '0.6'); }
   mergeStatic(fig);
+  fig.position.y += SOLE;   // v24 신발 밑창이 몸 기준점보다 3~4cm 아래로 내려와 바닥·무대에 발목이 잠겨 보이던 문제 → 몸 전체를 살짝 올림
   if (NC.contactShadow) root.add(NC.contactShadow(.85, .65));
   if (NC.shadow) NC.shadow(fig, true, false);
   // 이름표
@@ -643,6 +644,7 @@ function create(o = {}) {
   return root;
 }
 
+const SOLE = .045;
 /* 이름표 크기: 가까우면 작게(얼굴 가림 방지), 대화 상대는 숨김 */
 function fitLabel(g, cam) { const l = g.userData.label; if (!l) return; const d = cam.position.distanceTo(g.position), k = U.clamp(d / 10, .32, 1); l.scale.set(1.9 * k, .48 * k, 1); l.visible = !g.userData.hideLabel; }
 NC.Avatar = { create, undress, randomLook, mergeLook, drawFace, fitLabel, EXPR, FACE_SIZE: [FW, FH],

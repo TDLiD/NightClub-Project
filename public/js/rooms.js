@@ -111,7 +111,7 @@ function enter(R) {
   const P = NC.player; if (P.busy || cur) return;
   if (NC.Dialog && NC.Dialog.cur) NC.Dialog.close('bye');
   NC.ui.fade(() => { if (P.seat) NC.requestStand(); P.x = R.entry.x + R.cx; P.z = R.entry.z + R.cz; P.ry = R.entry.ry; P.target = null; P.autoPath = null; P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry;
-    R.G.visible = true; setClub(false, R); borrow(R, true); cur = R; NC.ui.toast(`${R.label}에 들어왔어요`);
+    R.G.visible = true; setClub(false, R); borrow(R, true); cur = R; NC.ui.toast(R.id === 'smoke' ? `${R.label}에 들어왔어요 — 흡연 손님에게 다가가 E: 담배·불 빌리기 🚬` : `${R.label}에 들어왔어요`);
     if (R.id === 'wroom') { const lk = P.group.userData.look; if (lk && lk.gender === 'm') wrEpisode(); else setTimeout(() => NC.bubble && NC.bubble(WR.ladies[0].g, U.pick(['아까 골든벨 오빠 봤어? 완전 내 스타일 ㅋㅋ', '립 뭐 써요? 색 너무 예쁘다~', '오늘 부킹 몇 번 했어? 나 벌써 세 번 ㅋㅋ']), 3), 800); } });
 }
 function leave(R) {
@@ -181,7 +181,7 @@ NC.tickers.push(dt => {
   if (cur !== WR) return; const near = true; [...WR.ladies.map(l => l.g), WR.ajumma].forEach(g => { if (g.visible) Mo.update(g, dt, { near, speed: 1 }); });
 });
 NC.on && NC.on('room:enter', () => {});
-NC.Rooms = { restroom: RR, smoke: SM, wroom: WR, enter, leave, current: () => cur, wrEpisode };
+NC.Rooms = { restroom: RR, smoke: SM, wroom: WR, enter, leave, current: () => cur, wrEpisode, borrowCig: n => borrowCig(n), borrowFire: n => borrowFire(n), smokeFight: n => smokeFight(n), get SF() { return SF; }, initSmokers: () => initSmokers() };
 
 /* 화장실 행동 */
 function useToilet(kind, st) {
@@ -201,13 +201,100 @@ function dryer() { NC.ui.toast('💨 위잉~ 손이 보송보송'); }
 function smoke() { const P = NC.player; Mo.play(P.group, 'smoke'); puff(P.group); setTimeout(() => { Mo.play(P.group, 'smoke'); puff(P.group); }, 3200); NC.ui.toast('🚬 후~ (흡연은 건강에 해롭습니다)'); }
 
 /* 흡연실 손님 배치 */
-let smokersInit = false;
-function initSmokers() {
-  const pool = (NC.npcs || []).filter(n => n.role === 'crowd' && n.enabled && !n.stay && !n.g.userData.vrm && n.state === 'wander');
-  [pool.find(n => n.gender === 'm'), pool.find(n => n.gender === 'f' && n !== pool[0])].filter(Boolean).slice(0, 2).forEach((n, k) => {
-    const t = SM.tables[k]; n.stay = 'smoke'; n.booked = true; n.state = 'stay'; n.aff = n.aff ?? 40; n.x = SM.cx + t.x + .55; n.z = SM.cz + t.z + .2; n.g.position.set(n.x, 0, n.z); n.g.rotation.y = -Math.PI / 2; n.g.visible = false; n.g.userData.lookAt = null; SM.npcs.push(n);
-  });
+let smokeT = 2;
+function initSmokers() {   // v24 흡연 손님 2명(남·여)을 채움 — 비어 있으면 몇 초마다 다시 시도
+  const pool = (NC.npcs || []).filter(n => (n.role === 'crowd' || n.role === 'persona') && n.enabled && !n.stay && !n.gone && !n.g.userData.vrm && !n.booked && !['seated', 'talk', 'escort', 'off', 'stay', 'party'].includes(n.state) && !(NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.n === n));
+  ['m', 'f'].forEach(gd => { if (SM.npcs.length >= 2 || SM.npcs.some(o => o.gender === gd)) return; const n = pool.find(o => o.gender === gd && o.role === 'crowd' && !SM.npcs.includes(o)) || pool.find(o => o.gender === gd && !SM.npcs.includes(o)); if (!n) return;   // 일반 손님 우선, 없으면 주요 인물
+    const used = SM.npcs.map(o => o.smokeTable), k = [0, 1, 2].find(q => !used.includes(q)), t = SM.tables[k];
+    n.stay = 'smoke'; n.smokeTable = k; n.booked = true; n.state = 'stay'; n.aff = n.aff ?? 40; n.x = SM.cx + t.x + .55; n.z = SM.cz + t.z + .2; n.g.position.set(n.x, 0, n.z); n.g.rotation.y = -Math.PI / 2; n.g.visible = cur === SM; n.g.userData.lookAt = null; n.g.userData.moving = false; SM.npcs.push(n); });
 }
+
+/* ═════ v24 흡연실 대화: 담배 빌리기 · 불 빌리기 → 거절당하면 주먹다짐 → 웨이터가 경찰 신고 → 상대 체포·연행 ═════ */
+const SF = { on: false, temps: [], walkers: [], timers: [] };
+const say = (g, t, s = 2.4) => NC.bubble && NC.bubble(g, t, s);
+const FX = () => (NC.Features && NC.Features.fx) || {};
+const later = (sec, fn) => { const id = setTimeout(() => { if (SF.on || fn.always) fn(); }, sec * 1000); SF.timers.push(id); return id; };
+function face(a, b) { a.rotation.y = Math.atan2(b.position.x - a.position.x, b.position.z - a.position.z); }
+function faceP(n) { const P = NC.player; n.g.rotation.y = Math.atan2(P.x - n.x, P.z - n.z); P.ry = Math.atan2(n.x - P.x, n.z - P.z); P.group.rotation.y = P.ry; }
+function tempAvatar(name, look, x, z, color) { const g = NC.Avatar.create({ name, look, seed: U.hash(name + Date.now()), expr: 'neutral', labelColor: color }); g.position.set(x, 0, z); NC.scene.add(g); SF.temps.push(g); return g; }
+function walkTo(obj, pts, speed, done) { SF.walkers.push({ obj, pts: pts.slice(), speed, done }); }   // obj: { g } 또는 NPC(n)
+function smokerMenu(n) {
+  const P = NC.player; P.busy = true; faceP(n); const done = () => { NC.ui.hideDlg(); P.busy = false; };
+  NC.ui.showDlg({ name: n.name, tag: '🚬 흡연실', job: `💗 ${Math.round(n.aff ?? 40)}`, say: U.pick(['네? 무슨 일이세요?', '아, 저요? ㅎㅎ', '왜요~?']),
+    opts: [
+      { t: '🚬 담배 한 개비 빌리기', run: () => { done(); borrowCig(n); } },
+      { t: '🔥 불 빌리기', run: () => { done(); borrowFire(n); } },
+      ...(n.lit ? [] : [{ t: '🔥 라이터 빌려주기', run: () => { done(); n.lit = true; n.aff = U.clamp((n.aff ?? 40) + 3, 0, 100); Mo.play(n.g, 'bow'); NC.ui.chatAdd(n.name, U.pick(['어머, 고마워요! 라이터를 두고 왔지 뭐예요 😅', '오 감사합니다~ 센스 있으시네요 👍', '살았다… 고마워요! 이따 한 잔 살게요 ㅎㅎ'])); NC.ui.toast(`💗 ${n.name} 호감도 +3`); setTimeout(() => { Mo.play(n.g, 'smoke'); puff(n.g); }, 800); } }]),
+      { t: '💬 그냥 대화하기', run: () => { done(); NC.Dialog.open(n, { intro: U.pick(['아, 불 있으세요? …농담이에요 ㅎㅎ', '여기 공기 좀 답답하죠? 그래도 조용해서 좋아요', '스테이지 너무 시끄러워서 잠깐 피신 왔어요 ㅋㅋ']) }); } },
+      { t: '아니에요, 실례했어요', run: done },
+    ] });
+}
+function borrowCig(n) {
+  const P = NC.player; P.busy = true; faceP(n); say(P.group, U.pick(['저기… 담배 한 개비만 빌릴 수 있을까요? 🙏', '죄송한데 담배 한 대만 빌려주실 수 있어요?', '제가 담배를 두고 와서… 한 개비만 부탁드려요']), 2.2);
+  setTimeout(() => {
+    const ok = (n.aff ?? 40) >= 55 || Math.random() < (n.gender === 'f' ? .6 : .4);
+    if (ok) { n.aff = U.clamp((n.aff ?? 40) + 2, 0, 100); Mo.play(n.g, 'nod'); say(n.g, U.pick(['그럼요~ 여기요 🚬', '하나 피세요, 불도 드릴까요?', '네 여기요. 맛은 장담 못 해요 ㅋㅋ']));
+      setTimeout(() => { smoke(); P.busy = false; NC.ui.toast(`🚬 ${n.name}에게 담배 한 개비를 빌렸어요`); }, 1400); return; }
+    n.aff = U.clamp((n.aff ?? 40) - 3, 0, 100);
+    if (n.gender === 'f') { Mo.play(n.g, 'headshake'); say(n.g, U.pick(['어… 죄송해요, 이게 마지막 한 개비라서요 😅', '저도 빌려 핀 거라서요… 미안해요!'])); setTimeout(() => { P.busy = false; }, 1600); return; }
+    smokeFight(n);
+  }, 1700);
+}
+function borrowFire(n) {
+  const P = NC.player; P.busy = true; faceP(n); say(P.group, U.pick(['혹시 불 있으세요? 🔥', '라이터 잠깐만 빌릴게요~', '불 좀 빌릴 수 있을까요?']), 2);
+  setTimeout(() => { n.aff = U.clamp((n.aff ?? 40) + 2, 0, 100); Mo.play(n.g, 'point'); say(n.g, U.pick(['네~ 여기요 🔥 바람 조심하세요', '자, 불 붙여 드릴게요', '저도 마침 붙이려던 참이에요 ㅎㅎ']));
+    setTimeout(() => { smoke(); P.busy = false; NC.ui.toast(`🔥 ${n.name}이(가) 불을 붙여 줬어요`); }, 1300); }, 1500);
+}
+function smokeFight(n) {
+  const P = NC.player, pg = P.group, ng = n.g, other = SM.npcs.find(o => o !== n && !o.gone), ex = { x: SM.cx + SM.exit.x, z: SM.cz + SM.exit.z };
+  SF.on = true; SF.n = n; n.inFight = true;
+  Mo.play(ng, 'crossArms'); say(ng, U.pick(['싫은데요? 담배는 사서 피우세요.', '내가 왜요? 처음 보는 사람한테.', '아 됐어요, 귀찮게 하지 마요.']), 2.2);
+  later(2.2, () => { say(pg, U.pick(['아니 한 개비 갖고 뭘 그렇게까지…', '말을 왜 그렇게 해요?', '그냥 좋게 부탁한 건데…']), 2); Mo.play(pg, 'headshake'); });
+  later(4.2, () => { say(ng, U.pick(['뭐? 지금 나한테 시비 거는 거야?!', '어쭈, 해보자는 거야?!', '너 말 다 했어?!']), 2); Mo.play(ng, 'point'); });
+  later(5.6, () => { say(pg, '…뭐라고요?!', 1.4); NC.ui.toast('💥 주먹다짐이 벌어졌어요!'); if (other) { say(other.g, '꺄악!! 누가 좀 말려 주세요!!', 2.6); Mo.play(other.g, 'flinch'); } });
+  for (let k = 0; k < 6; k++) later(6.2 + k * .75, () => {   // 주먹다짐: 번갈아 밀치기·때리기 ↔ 움찔
+    const atk = k % 2 ? pg : ng, def = k % 2 ? ng : pg; face(atk, def); Mo.play(atk, k % 3 === 2 ? 'push' : 'slap'); setTimeout(() => Mo.play(def, 'flinch'), 180);
+    const f = FX(); if (f.floatEmoji) f.floatEmoji(def.position.x, def.position.y + 1.9, def.position.z, U.pick(['💥', '👊', '💢', '⭐'])); if (k === 1) say(def, '윽!!', .9); if (k === 4) say(def, '아야!!', .9); });
+  later(8.4, () => {   // 웨이터가 뛰어 들어와 경찰 신고
+    const w = tempAvatar('웨이터', { gender: 'm', hairStyle: 'comma', hairColor: '#17110f', top: 'vest', topColor: '#121018', inner: 'tee', innerColor: '#f4f2ee', bottom: 'pants', bottomColor: '#121018' }, ex.x, ex.z, '#ffd23d'); SF.waiter = w;
+    say(w, '손님들!! 그만하세요!!', 1.8); walkTo({ g: w }, [{ x: (pg.position.x + ng.position.x) / 2 + .9, z: (pg.position.z + ng.position.z) / 2 + .9 }], 3.2, () => { face(w, ng); Mo.play(w, 'point'); say(w, '더 이상은 안 됩니다! 경찰 부를게요!', 2.2); }); });
+  later(11.4, () => { const w = SF.waiter; if (!w) return; Mo.play(w, 'think'); say(w, '📞 여보세요, 경찰이죠? 추억의 나이트 흡연실에서 폭행 사건입니다!', 3.2); Mo.play(ng, 'crossArms'); say(ng, '아 경찰은 왜 불러!!', 1.8); });
+  later(15.2, () => {   // 경찰 도착
+    const cop = tempAvatar('👮 경찰관', { gender: 'm', hairStyle: 'comma', hairColor: '#17110f', top: 'jacket', topColor: '#1b2a4a', inner: 'tee', innerColor: '#dfe6f2', bottom: 'pants', bottomColor: '#1b2a4a', shoes: 'boots', hat: 'newsboy', hatColor: '#14203a', face: { attractive: false } }, ex.x, ex.z, '#6fb6ff'); SF.cop = cop;
+    NC.ui.toast('🚨 경찰이 도착했어요'); say(cop, '경찰입니다! 다들 그대로 계세요!', 2);
+    walkTo({ g: cop }, [{ x: ng.position.x + .7, z: ng.position.z + .5 }], 2.8, () => { face(cop, ng); face(ng, cop); Mo.play(cop, 'point'); say(cop, '폭행 현행범으로 체포합니다. 순순히 따라오세요.', 2.6); }); });
+  later(19.6, () => { say(ng, U.pick(['아 왜 나만 잡아가요!! 저 사람이 먼저…', '억울해요!! 담배 한 개비 때문에…']), 2.2); Mo.play(ng, 'headshake'); const f = FX(); if (f.floatEmoji) f.floatEmoji(ng.position.x, ng.position.y + 1.9, ng.position.z, '🔗'); NC.ui.toast(`🔗 ${n.name}이(가) 수갑을 찼어요`); });
+  later(22.2, () => {   // 연행: 경찰이 앞장, 상대가 뒤따라 문 밖으로
+    const cop = SF.cop; say(cop, '갑시다.', 1.4); n.stay = 'arrest'; n.state = 'escort';
+    walkTo({ g: cop }, [ex], 1.6, () => { if (cop) cop.visible = false; });
+    walkTo(n, [{ x: ex.x + .4, z: ex.z - .5 }, ex], 1.6, () => { n.g.visible = false; });
+    const w = SF.waiter; if (w) { face(w, pg); say(w, '손님 괜찮으세요? 놀라셨죠… 다음엔 좋게 말씀해 보세요 🙏', 3); } });
+  later(26.5, () => { const w = SF.waiter; if (w) walkTo({ g: w }, [ex], 2.4, () => { w.visible = false; }); NC.ui.toast(`🚓 ${n.name}이(가) 경찰에 연행됐어요`); });
+  const fin = () => smokeFightEnd(); fin.always = true; later(29, fin);
+}
+function smokeFightEnd() {
+  const P = NC.player, n = SF.n; SF.timers.forEach(clearTimeout); SF.timers.length = 0; SF.walkers.length = 0;
+  SF.temps.forEach(g => NC.scene.remove(g)); SF.temps.length = 0; SF.waiter = SF.cop = null; SF.on = false; P.busy = false;
+  if (n) { n.inFight = false; n.gone = true; n.state = 'stay'; n.g.userData.moving = false; const i = SM.npcs.indexOf(n); if (i >= 0) SM.npcs.splice(i, 1); n.g.visible = false;
+    setTimeout(() => releaseArrested(n), 90000); }   // 90초 뒤 훈방돼 클럽으로 돌아옴
+  SF.n = null; setTimeout(refillSmoker, 45000);
+}
+function releaseArrested(n) {
+  if (cur === SM) return setTimeout(() => releaseArrested(n), 5000);
+  const d = W.spots.smokeDoor; n.gone = false; n.stay = null; n.booked = false; n.state = 'wander'; n.x = d.x + 1; n.z = d.z; n.g.visible = true; n.g.position.set(n.x, 0, n.z); n.aff = 15;
+}
+function refillSmoker() { initSmokers(); }
+function tickSmokeFight(dt) {
+  if (!SF.on) return; if (cur !== SM) return smokeFightEnd();   // 도중에 흡연실을 나가면 상황 종료(상대는 연행된 것으로 처리)
+  const cam = NC.camera;
+  for (let i = SF.walkers.length - 1; i >= 0; i--) { const w = SF.walkers[i], g = w.obj.g, isN = 'state' in w.obj, tgt = w.pts[0];
+    const px = isN ? w.obj.x : g.position.x, pz = isN ? w.obj.z : g.position.z, dx = tgt.x - px, dz = tgt.z - pz, d = Math.hypot(dx, dz);
+    if (d < .1) { w.pts.shift(); if (!w.pts.length) { g.userData.moving = false; SF.walkers.splice(i, 1); w.done && w.done(); } continue; }
+    const k = Math.min(1, w.speed * dt / d), nx = px + dx * k, nz = pz + dz * k; g.userData.moving = true; g.rotation.y = Math.atan2(dx, dz);
+    if (isN) { w.obj.x = nx; w.obj.z = nz; } else g.position.set(nx, 0, nz); }
+  SF.temps.forEach(g => { Mo.update(g, dt, { near: true, speed: 1.2 }); if (cam && NC.Avatar.fitLabel) NC.Avatar.fitLabel(g, cam); });
+}
+NC.tickers.push(dt => tickSmokeFight(dt));
 
 /* E 상호작용 */
 NC.interactProviders.push(() => {
@@ -225,10 +312,10 @@ NC.interactProviders.push(() => {
       if (Math.abs(lz + 2.6) < 1.0 && Math.abs(lx) < 2.2) out.push({ label: '💄 거울 보고 화장 고치기 (E)', dist: .4, run: mirror }); }
   } else {
     SM.tables.forEach(t => { if (near(t, 1.3)) out.push({ label: '🚬 담배 한 대 피우기 (E)', dist: .6, run: smoke }); });
-    SM.npcs.forEach(n => { const d = Math.hypot(P.x - n.x, P.z - n.z); if (d < 2.0) {
-      out.push({ label: `💬 ${n.name}와 대화 (E)`, dist: d - .3, run: () => NC.Dialog.open(n, { intro: U.pick(['아, 불 있으세요? …농담이에요 ㅎㅎ', '여기 공기 좀 답답하죠? 그래도 조용해서 좋아요', '스테이지 너무 시끄러워서 잠깐 피신 왔어요 ㅋㅋ']) }) });
-      if (!n.lit) out.push({ label: `🔥 ${n.name}에게 라이터 빌려주기 (E)`, dist: d - .1, run: () => { n.lit = true; n.aff = U.clamp((n.aff ?? 40) + 3, 0, 100); Mo.play(n.g, 'bow'); NC.ui.chatAdd(n.name, U.pick(['어머, 고마워요! 라이터를 두고 왔지 뭐예요 😅', '오 감사합니다~ 센스 있으시네요 👍', '살았다… 고마워요! 이따 한 잔 살게요 ㅎㅎ'])); NC.ui.toast(`💗 ${n.name} 호감도 +3`); setTimeout(() => { Mo.play(n.g, 'smoke'); puff(n.g); }, 800); } });
-    } });
+    /* v24.1 E 버튼에는 가장 가까운 동작 하나만 떠서(재떨이 테이블의 '담배 피우기'가 늘 이김) 손님 옵션이 안 보이던 문제
+     *  → 흡연 손님 근처에선 「💬 말 걸기」 하나를 최우선으로 띄우고, 누르면 선택 창에서 대화·담배 빌리기·불 빌리기·라이터 빌려주기를 고름 */
+    if (!SF.on) SM.npcs.forEach(n => { const d = Math.hypot(P.x - n.x, P.z - n.z); if (d < 2.2 && !n.gone)
+      out.push({ label: `💬 ${n.name}에게 말 걸기 (E) — 담배·불 빌리기`, dist: d - 1.5, run: () => smokerMenu(n) }); });
   }
   return out;
 });
@@ -236,7 +323,7 @@ NC.interactProviders.push(() => {
 /* 프레임: 방 안에서만 갱신 */
 let npcT = 0;
 NC.tickers.push((dt, t) => {
-  if (!smokersInit && NC.npcs && NC.npcs.length > 4) { smokersInit = true; initSmokers(); }
+  smokeT -= dt; if (smokeT < 0) { smokeT = 3; if (SM.npcs.length < 2 && !SF.on && NC.npcs && NC.npcs.length > 2) initSmokers(); }   // 방 안에 있어도 채움(손님이 들어온 것처럼)
   for (let i = puffs.length - 1; i >= 0; i--) { const p = puffs[i]; p.t += dt; p.sp.position.y += dt * .25; p.sp.scale.setScalar(.15 + p.t * .5); p.sp.material.opacity = Math.max(0, .5 - p.t * .2); if (p.t > 2.5) { S.remove(p.sp); p.sp.material.dispose(); puffs.splice(i, 1); } }
   if (!cur) return;
   if (cur === SM) {

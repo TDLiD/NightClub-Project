@@ -136,9 +136,9 @@ const dq = s => djPanel.querySelector(s);
 function djStart() {
   const p = P(), u = p.group.userData, d = W.spots.dj; FX.mode = 'dj'; p.busy = true; p.target = null; p.autoPath = null;
   DJ.saved = { x: p.x, z: p.z, dance: u.dance, djPos: NC.DJ ? NC.DJ.position.clone() : null };
-  p.x = d.x + .9; p.z = d.z; p.ry = 0; p.group.rotation.y = 0; u.dance = 'djMix';
+  p.x = d.x + Math.cos(d.ry || 0) * .9; p.z = d.z - Math.sin(d.ry || 0) * .9; p.ry = d.ry || 0; p.group.rotation.y = p.ry; u.dance = 'djMix';
   if (NC.cam) { DJ.cam = Object.assign({}, NC.cam); Object.assign(NC.cam, { yaw: 0, pitch: .32, dist: 6.5 }); }
-  if (NC.DJ) { NC.DJ.position.x = d.x - 2.6; B(NC.DJ, '오~ 부스 넘겨 줄게! 🎧', 2); }
+  if (NC.DJ) { const z = W.zones.dj; NC.DJ.position.set(z.x0 + .5, z.y, z.z0 + .5); NC.DJ.userData.dance = 'groove'; B(NC.DJ, '오~ 부스 넘겨 줄게! 🎧', 2); }
   const a = A(); if (a && !a.ctx) a.init();
   dq('#djStyles').innerHTML = '<button data-st="r">🎲</button>' + [1, 2, 3, 4, 5, 6, 7].map(n => `<button data-st="${n}" class="${a && a.mp3Mode === 'single' && a.mp3Idx === n - 1 ? 'on' : ''}">${n}</button>`).join('');   // v21 곡 선택 = 1~7.mp3
   W.djHue = +dq('#djHue').value / 360; W.djWave = dq('#djWave').classList.contains('on'); djPanel.style.display = ''; djUpd();
@@ -158,7 +158,7 @@ dq('#djExit').onclick = () => djEnd();
 djPanel.addEventListener('keydown', e => e.stopPropagation());
 function djEnd() {
   const p = P(), u = p.group.userData, a = A(); if (a) { a.djLP = null; a.djBass = 0; } if (NC.cam && DJ.cam) Object.assign(NC.cam, DJ.cam); W.djHue = null; W.djWave = false;
-  u.dance = DJ.saved.dance || null; p.x = 0; p.z = -15.5; p.ry = Math.PI; if (NC.DJ && DJ.saved.djPos) NC.DJ.position.copy(DJ.saved.djPos);
+  u.dance = DJ.saved.dance || null; p.x = W.zones.dj.x1 + 1.4; p.z = W.zones.dj.z0 + .9; p.ry = Math.PI / 2; if (NC.DJ && DJ.saved.djPos) { NC.DJ.position.copy(DJ.saved.djPos); NC.DJ.userData.dance = 'djMix'; }
   djPanel.style.display = 'none'; p.busy = false; FX.mode = null; NC.Wallet.add(10, 'DJ 테이크오버'); if (NC.DJ) B(NC.DJ, '실력 좋던데? 👍', 2);
 }
 
@@ -242,7 +242,7 @@ NC.interactProviders.push(() => {
   if (p.zone === 'stage') out.push({ label: '💥 무아지경 시그니처 댄스 (E)', dist: 1.9, run: () => sigStart(null) });
   if (!p.seat && ['tables'].includes(p.zone)) { const ts = NC.tables || []; let best = -1, bd = 3.3; ts.forEach((t, i) => { const d = Math.hypot(t.x - p.x, t.z - p.z); if (d < bd && !NC.tableOcc[i].some(Boolean)) { bd = d; best = i; } }); if (best >= 0) out.push({ label: `🕺 T${best + 1} 테이블 위 시그니처 댄스 (E)`, dist: bd + .6, run: () => sigStart(best) }); }
   if (p.room >= 0 && !CH.phase) out.push({ label: '🍾 샴페인 폭죽 쇼 (🪙80)', dist: 1.5, run: chStart });
-  { const d = W.spots.dj, dd = Math.hypot(p.x - d.x, p.z - d.z); if (dd < 3.2 && p.zone === 'stage') out.push({ label: '🎧 DJ 부스 테이크오버 (E)', dist: dd - .5, run: djStart }); }
+  { const d = W.spots.dj, dd = Math.hypot(p.x - d.x, p.z - d.z); if (dd < 3.6 && p.zone === 'stage') out.push({ label: '🎧 DJ 부스 테이크오버 (E)', dist: dd - .5, run: djStart }); }
   if (p.zone === 'wroom') out.push({ label: '💄 파우더룸 — 칭찬·소품 나누기 (E)', dist: 1, run: prOpen });
   return out;
 });
@@ -256,12 +256,12 @@ NC.tickers.push(dt => {
     a.needsUpdate = true; b.pts.material.opacity = Math.max(0, 1 - Math.max(0, b.t - b.life * .6) / (b.life * .4)); if (b.t >= b.life) { NC.scene.remove(b.pts); b.pts.geometry.dispose(); b.pts.material.dispose(); bursts.splice(i, 1); } }
   try {
     if (FX.mode === 'sig') sigTick(dt); else if (FX.mode === 'search') fsTick(dt);
-    if (FX.mode === 'dj') { const p = P(), d = W.spots.dj; p.x = d.x + .9; p.z = d.z; p.group.userData.dance = 'djMix'; }
+    if (FX.mode === 'dj') { const p = P(), d = W.spots.dj; p.x = d.x + Math.cos(d.ry || 0) * .9; p.z = d.z - Math.sin(d.ry || 0) * .9; p.group.userData.dance = 'djMix'; }
     if (CH.phase) chTick(dt);
   } catch (e) { console.warn('[features]', e); if (FX.mode === 'sig') sigEnd(); else if (FX.mode === 'search') fsEnd(false); }
   const inWr = P().zone === 'wroom'; PR.girls.forEach((q, i) => { q.g.visible = inWr; if (inWr) { q.g.userData.dance = i ? 'idle' : null; Mo.update(q.g, dt, { near: true, speed: 1 }); NC.Avatar.fitLabel(q.g, NC.camera); } });
   if (inWr && !PR.built) prBuild();
 });
-Object.assign(FX, { sigStart, chStart, djStart, prOpen, fsStart, announce, fx: { burst, floatEmoji, emojiSprite } });
+Object.assign(FX, { sigStart, chStart, djStart, prOpen, fsStart, announce, borrowSpot, releaseSpot, spotTarget: () => SPOT.tg, fx: { burst, floatEmoji, emojiSprite } });
 console.info('[features] 시그니처 댄스 · 샴페인 쇼 · DJ 테이크오버 · 파우더룸 · 바닥 수색 준비 완료');
 })();

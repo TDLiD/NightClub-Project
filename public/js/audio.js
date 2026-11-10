@@ -111,6 +111,7 @@ const A = NC.Audio = {
   mp3Play(idx) {
     const el = this.mp3El; if (!el) return; const L = this.mp3List(); let i = idx;
     if (i < 0 || i >= L.length) { do { i = Math.floor(Math.random() * L.length); } while (L.length > 1 && i === this.mp3Idx); }
+    if (!this._back && this.mp3Idx >= 0 && this.mp3Idx !== i) { this.hist.push(this.mp3Idx); if (this.hist.length > 30) this.hist.shift(); } this._back = false;   // ⏮ 이전 곡용 기록
     this.mp3Idx = i; el.loop = this.mp3Mode === 'single'; el.src = L[i]; this.wake();
     const p = el.play(); if (p && p.catch) p.catch(e => { if (e && e.name === 'NotAllowedError') NC.ui && NC.ui.toast('🔇 브라우저가 소리를 막았어요 — 화면을 한 번 클릭한 뒤 ▶ 재생을 눌러 주세요'); });
     NC.ui && NC.ui.toast(this.mp3Mode === 'single' ? `🎵 ${i + 1}번 곡 재생 (반복)` : `🎲 랜덤 재생 — ${i + 1}번 곡`); NC.emit('music:track', i + 1); NC.emit('music:state');
@@ -122,6 +123,17 @@ const A = NC.Audio = {
   stop() { this.paused = true; if (this.mp3El) this.mp3El.pause(); NC.emit('music:state'); },
   resume() { this.userMusic(); if (!this.ctx) return; this.paused = false; const el = this.mp3El;
     if (el && el.src && !el.ended && el.currentTime > 0) { const p = el.play(); if (p && p.catch) p.catch(() => this.mp3Play(-1)); } else this.mp3Start(); NC.emit('music:state'); },
+  /* v22 하단 플레이어: ⏮ 이전 · ⏭ 다음 · 탐색 */
+  hist: [],
+  nextTrack() { this.userMusic(); if (!this.ctx) return; this.paused = false; this.mp3Ensure();
+    this.mp3Probe().then(() => { if (this.mp3Mode === 'single') this.mp3Play((this.mp3Idx + 1) % this.MP3_COUNT); else this.mp3Play(-1); }); NC.emit('music:style', 'mp3'); },
+  prevTrack() { this.userMusic(); if (!this.ctx) return; const el = this.mp3El; this.paused = false;
+    if (el && el.currentTime > 3 && !el.paused) { el.currentTime = 0; return; }   // 3초 넘게 들었으면 처음부터
+    this.mp3Ensure(); this.mp3Probe().then(() => {
+      if (this.mp3Mode === 'single') this.mp3Play((this.mp3Idx - 1 + this.MP3_COUNT) % this.MP3_COUNT);
+      else if (this.hist.length) { this._back = true; this.mp3Play(this.hist.pop()); }
+      else this.mp3Play(-1); }); NC.emit('music:style', 'mp3'); },
+  seek(frac) { const el = this.mp3El; if (el && isFinite(el.duration)) { el.currentTime = Math.max(0, Math.min(.999, frac)) * el.duration; NC.emit('music:state'); } },
   togglePlay() { if (this.paused) this.resume(); else this.stop(); return !this.paused; },
   mp3Stop() { this.stop(); },
   nowText() {

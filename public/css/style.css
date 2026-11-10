@@ -299,3 +299,4 @@ html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 #cpTracks{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:6px}
 #cpTracks button{padding:7px 0;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:#2b1758;color:#fff;cursor:pointer;font-size:13px;font-weight:700}
 #cpTracks button.on{background:linear-gradient(135deg,#ff3d9a,#7b3dff);border:0}
+/* v23 음악 플레이어 스타일은 js/lifestyle.js 안에 있음(캐시 문제 방지) */

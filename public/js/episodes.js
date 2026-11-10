@@ -269,7 +269,7 @@ function bandStart() {
   gt.userData.rig.elR.children.find(c => c.isGroup).add(BAND.guitar); BAND.singer.userData.rig.elR.children.find(c => c.isGroup).add(BAND.mic);
   BAND.singer.userData.dance = 'sing'; gt.userData.dance = 'groove'; kb.userData.dance = 'groove';
   BAND.prevVol = null;   // v20.1 밴드는 지금 나오는 스테이지 음악(MP3 등)에 맞춰 공연 — 음악을 줄이거나 다른 노래로 바꾸지 않음
-  NC.ui.toast(`🎧 DJ: "여러분~ 오늘의 스페셜 게스트! ${name} 입니다!! 👏"`); NC.ui.chatAdd && NC.ui.chatAdd('DJ 노스탤지어', `${name} 무대 시작합니다! 무대 앞으로 오세요~ 🎶`);
+  NC.ui.toast(`🎧 DJ: "여러분~ 오늘의 스페셜 게스트! ${name} 입니다!! 👏"`); NC.ui.chatAdd && NC.ui.chatAdd('DJ 루나', `${name} 무대 시작합니다! 무대 앞으로 오세요~ 🎶`);
   NC.fireCO2 && NC.fireCO2();
   // 팬들이 무대 앞으로
   (NC.npcs || []).filter(avail).sort(() => Math.random() - .5).slice(0, 6).forEach((n, i) => { const x = -4 + i * 1.6 + (Math.random() - .5) * .4, z = FRONT + 1.0 + Math.random() * .8; NC.NPC.goTo(n, { x, z }, () => { n.state = 'wander'; n.pause = 40; n.wp = { x, z, act: 'dance' }; n.g.rotation.y = Math.PI; n.g.userData.dance = 'groove'; if (BAND.singer) n.g.userData.lookAt = BAND.singer.position; Mo.play(n.g, 'cheer'); }, 2.6); });
