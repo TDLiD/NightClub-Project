@@ -263,6 +263,6 @@ NC.tickers.push(dt => {
   const inWr = P().zone === 'wroom'; PR.girls.forEach((q, i) => { q.g.visible = inWr; if (inWr) { q.g.userData.dance = i ? 'idle' : null; Mo.update(q.g, dt, { near: true, speed: 1 }); NC.Avatar.fitLabel(q.g, NC.camera); } });
   if (inWr && !PR.built) prBuild();
 });
-Object.assign(FX, { sigStart, chStart, djStart, prOpen, fsStart, announce });
+Object.assign(FX, { sigStart, chStart, djStart, prOpen, fsStart, announce, fx: { burst, floatEmoji, emojiSprite } });
 console.info('[features] 시그니처 댄스 · 샴페인 쇼 · DJ 테이크오버 · 파우더룸 · 바닥 수색 준비 완료');
 })();

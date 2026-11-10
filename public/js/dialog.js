@@ -125,10 +125,11 @@ D.send = send; D.npcSay = npcSay; D.sys = sys; D.renderHead = renderHead; D.chip
 D.focus = function (camera) {
   const c = D.cur; if (!c) return null; const n = c.n, P = NC.player;
   const ax = P.group.position.x, az = P.group.position.z, bx = n.g.position.x, bz = n.g.position.z, mx = (ax + bx) / 2, mz = (az + bz) / 2;
-  if (P.seat && P.seat.kind === 'vip') { const v = NC.world.vip[P.seat.room]; return { tx: mx, ty: 1.0, tz: mz, cx: mx + .4, cy: 2.7, cz: mz - (v ? 4.6 : 4.2) }; }
+  const gy = P.group.position.y || 0;   // v19: VIP 2층·DJ 단 등 높은 바닥에서도 카메라가 바닥 아래로 가지 않게
+  if (P.seat && P.seat.kind === 'vip') { const v = NC.world.vip[P.seat.room], vy = (v && v.y) || gy; return { tx: mx, ty: 1.0 + vy, tz: mz, cx: mx + .4, cy: 2.7 + vy, cz: mz - (v ? 4.6 : 4.2) }; }
   let vx = bx - ax, vz = bz - az; const l = Math.hypot(vx, vz) || 1; vx /= l; vz /= l; let px = -vz, pz = vx;
   if ((camera.position.x - mx) * px + (camera.position.z - mz) * pz < 0) { px = -px; pz = -pz; }
-  return { tx: mx, ty: 1.4, tz: mz, cx: mx + px * 3.6, cy: 2.3, cz: mz + pz * 3.6 };
+  return { tx: mx, ty: 1.4 + gy, tz: mz, cx: mx + px * 3.6, cy: 2.3 + gy, cz: mz + pz * 3.6 };
 };
 
 /* E 상호작용: 근처 NPC에게 말 걸기 */

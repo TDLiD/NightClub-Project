@@ -51,6 +51,7 @@ const A = NC.Audio = {
     const n = C.sampleRate * .5, buf = C.createBuffer(1, n, C.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; this.noise = buf;
     { const sv = NC.util.store.get('nc_music', ''); if (this.STYLES[sv]) { this.style = sv; this.bpm = this.STYLES[sv].bpm; } }
     this.next = this.t0 = C.currentTime + .1; this.timer = setInterval(() => this.sched(), 25);
+    if ((this.STYLES[this.style] || {}).mp3) this.mp3Start();
   },
   impulse(sec) { const C = this.ctx, n = C.sampleRate * sec, b = C.createBuffer(2, n, C.sampleRate); for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6); } return b; },
   setPos(node, x, y, z) { if (node.positionX) { node.positionX.value = x; node.positionY.value = y; node.positionZ.value = z; } else node.setPosition(x, y, z); },
@@ -87,11 +88,31 @@ const A = NC.Audio = {
     lounge: { name: '칠 라운지', bpm: 86, roots: [49, 41.2, 55, 46.25] },
     synth:  { name: '레트로 신스팝', bpm: 110, roots: [55, 43.65, 49, 41.2] },
     ballad: { name: '블루스 발라드', bpm: 68, roots: [49, 41.2, 43.65, 55] },
+    mp3:    { name: '🎲 랜덤 유로 댄스', bpm: 128, roots: [55, 49, 43.65, 41.2], mp3: true },   // v19: public/music/1~6.mp3 를 랜덤 재생
   },
-  setStyle(id) { const S = this.STYLES[id]; if (!S) return; this.style = id; this.bpm = S.bpm; NC.util.store.set('nc_music', id); if (this.ctx) { this.step = 0; this.next = this.t0 = this.ctx.currentTime + .08; } NC.emit('music:style', id); },
+  setStyle(id) { const S = this.STYLES[id]; if (!S) return; this.style = id; this.bpm = S.bpm; NC.util.store.set('nc_music', id); if (this.ctx) { this.step = 0; this.next = this.t0 = this.ctx.currentTime + .08; if (S.mp3) this.mp3Start(); else this.mp3Stop(); } NC.emit('music:style', id); },
+  /* ── v19 랜덤 유로 댄스(MP3): public/music/1.mp3 ~ 6.mp3 를 겹치지 않게 랜덤 연속 재생 ──
+   *  같은 음악 버스로 흘려서 구역별 소리(VIP 먹먹함·노래방 차단·DJ 필터)와 음소거 버튼이 그대로 적용됨
+   *  목록 바꾸기: NC.config.mp3List = ['music/a.mp3', …] (config.js) */
+  mp3List() { return (NC.config && NC.config.mp3List) || [1, 2, 3, 4, 5, 6].map(i => `music/${i}.mp3`); },
+  mp3Start() {
+    if (!this.ctx) return; const C = this.ctx;
+    if (!this.mp3El) { const el = this.mp3El = new Audio(); el.preload = 'auto'; el.crossOrigin = 'anonymous';
+      try { this.mp3Src = C.createMediaElementSource(el); this.mp3Src.connect(this.musicBus); } catch (e) { console.warn('[audio] MP3 연결 실패', e); }
+      el.addEventListener('ended', () => this.mp3Next());
+      el.addEventListener('playing', () => { this.next = this.t0 = C.currentTime + .05; this.step = 0; this.mp3Err = 0; });   // 곡 시작에 박자 시계를 맞춤
+      el.addEventListener('error', () => { this.mp3Err = (this.mp3Err || 0) + 1; if (this.mp3Err >= this.mp3List().length) { this.mp3Err = 0; NC.ui && NC.ui.toast('🎵 MP3 파일을 찾지 못했어요 — public/music 폴더에 1~6.mp3 를 넣어 주세요. 기본 음악으로 돌아가요'); this.setStyle('euro'); } else this.mp3Next(); }); }
+    this.mp3Next();
+  },
+  mp3Next() {
+    if (!this.mp3El || !(this.STYLES[this.style] || {}).mp3) return; const L = this.mp3List(); let i; do { i = Math.floor(Math.random() * L.length); } while (L.length > 1 && i === this.mp3Idx); this.mp3Idx = i;
+    this.mp3El.src = L[i]; const p = this.mp3El.play(); if (p && p.catch) p.catch(() => {}); NC.ui && NC.ui.toast(`🎲 랜덤 유로 댄스 — ${i + 1}번 곡`); NC.emit && NC.emit('music:track', i + 1);
+  },
+  mp3Stop() { if (this.mp3El) { this.mp3El.pause(); this.mp3El.removeAttribute('src'); this.mp3El.load(); } },
   kick(t, v = 1.1) { const C = this.ctx, o = C.createOscillator(), g = C.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + .12); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + .24); o.connect(g); g.connect(this.musicBus); o.start(t); o.stop(t + .26); },
   play(s, t) {
     const S = this.STYLES[this.style] || this.STYLES.euro, bar = Math.floor(s / 16) % 4, root = S.roots[bar], b = s % 16;
+    if (S.mp3) return;   // MP3 재생 중에는 신스 연주를 쉼(박자 시계·드롭 이벤트는 그대로 → 조명이 계속 박자를 탐)
     switch (this.style) {
       case 'disco':      // 4온더플로어 + 오픈 하이햇 + 옥타브 베이스 + 스트링 스탭
         if (s % 4 === 0) this.kick(t, 1); if (s % 8 === 4) this.hit(t, 1500, .14, .32); if (s % 4 === 2) this.hit(t, 6500, .16, .2); else this.hit(t, 9000, .02, .05);

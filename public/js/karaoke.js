@@ -653,8 +653,8 @@ const ACT = {   // 동작 길이(초) · 반응 시점(초) · 서로 더 붙는
   undress: { dur: 3.4, hit: 1.25, close: 0, desc: '👚 옷자락을 잡고 위로 천천히 올린다' },
   dress: { dur: 2.4, hit: .9, close: 0, desc: '👕 벗겨진 겉옷을 다시 입혀 준다' },
 };
-function bluesAct(kind) {
-  const n = BL.n; if (!n || BL.busy) return; const D = NC.Dialog, P = NC.player, r = REACT[kind](n), a = ACT[kind], t0 = performance.now();
+function bluesAct(kind, forced) {
+  const n = BL.n; if (!n || BL.busy) return; const D = NC.Dialog, P = NC.player, r = forced || REACT[kind](n), a = ACT[kind], t0 = performance.now();
   const dur = r.kiss ? Math.max(a.dur, r.kiss + a.hit + .6) : a.dur;
   BL.busy = true; BL.act = { k: kind, t0, dur, close: r.out === 'refuse' && !r.kiss ? Math.min(a.close, .03) : a.close, flip: a.flip && r.out === 'accept', spin: a.spin, hit: a.hit };
   P.group.userData.bAct = { k: kind, t0, dur, out: r.out, hit: a.hit }; n.g.userData.bAct = { k: kind, t0, dur, out: r.out, hit: a.hit };
@@ -675,13 +675,57 @@ function bluesAct(kind) {
     else D.chips();
   }, (r.slap ? a.hit + 1.0 : dur) * 1000);
 }
+/* ───── v19 회원 전용 프리미엄 로맨스 (노래방 블루스 중, 각 🪙500 · 상대가 항상 받아 줌) ─────
+ *  로맨틱 딥 & 키스 · 이마 키스 · 백허그 슬로댄스 · 달콤한 키스 · 소파에 기대 쉬기 · 러브샷 · 장미 꽃다발 · 손편지 고백 · 커플링 · 커플 사진
+ *  손님(비로그인)은 🔒 표시 + 회원가입 안내 */
+const PREMIUM_COST = 500;
+const PREMIUM = [['로맨틱 딥 & 키스', 'dipKiss'], ['이마 키스', 'foreKiss'], ['백허그 슬로댄스', 'backhugLong'], ['달콤한 키스', 'sweetKiss'], ['소파에 기대 쉬기', 'sofa'],
+  ['러브샷', 'loveshot'], ['장미 꽃다발', 'rose'], ['손편지 고백', 'letter'], ['커플링 맞추기', 'ring'], ['커플 사진', 'photo']];
+const hearts = (g, n = 10, emo = ['💕', '💖', '❤️', '💗']) => { const F = NC.Features && NC.Features.fx; if (!F) return; const p = g.position; for (let k = 0; k < n; k++) setTimeout(() => F.floatEmoji(p.x, p.y + 2.1, p.z, U.pick(emo)), k * 110);
+  F.burst(p.x, p.y + 1.9, p.z, { n: 60, colors: ['#ff5fa8', '#ff9ad0', '#ffffff', '#ffd23d'], up: 1.3, spread: .9, life: 1.6, size: .05, g: .6 }); };
+const toss = (from, to, emo, done) => { const F = NC.Features && NC.Features.fx; if (!F) return done && done(); const sp = F.emojiSprite(emo, .32); NC.scene.add(sp); const a = from.position.clone(), b = to.position.clone(); a.y += 1.35; b.y += 1.35; const t0 = performance.now();
+  const tick = () => { const k = Math.min(1, (performance.now() - t0) / 850); sp.position.lerpVectors(a, b, k); sp.position.y += Math.sin(k * Math.PI) * .45; if (k < 1) requestAnimationFrame(tick); else { NC.scene.remove(sp); done && done(); } }; requestAnimationFrame(tick); };
+const yes = (line, e = 'shy', d = 4, extra = {}) => Object.assign({ out: 'accept', d, e, line }, extra);
+function premium(kind) {
+  const n = BL.n, P = NC.player, D = NC.Dialog; if (!n || BL.busy) return;
+  if (!NC.account) return NC.ui.modal('<h3>🔒 회원 전용 프리미엄 로맨스</h3><p style="font-size:13px;line-height:1.6">로그인한 회원만 이용할 수 있어요.<br>처음 화면의 <b>회원가입</b> 탭에서 1분이면 가입돼요 — 코인도 회원 정보에 저장돼요.</p>', [['확인', 0]]);
+  if (!(K.inRoom || BL.where === 'karaoke')) return NC.ui.toast('🎤 노래방 안에서만 쓸 수 있어요');
+  if (!NC.Wallet.spend(PREMIUM_COST)) return NC.ui.toast(`🪙 ${PREMIUM_COST} 코인이 필요해요 (지금 ${NC.Wallet.get()})`);
+  NC.ui.toast(`💎 프리미엄 로맨스 · 🪙-${PREMIUM_COST}`);
+  const after = (ms, f) => setTimeout(() => { if (BL.n === n || kind === 'sofa') f(); }, ms);
+  switch (kind) {
+    case 'dipKiss': bluesAct('dip', yes(U.pick(['꺅… (목에 팔을 감으며) 이대로 멈춰 줘요 💗', '(눈을 감고 기대며) 놓치면 안 돼요…']), 'laugh', 4));
+      after(ACT.dip.dur * 1000 + 200, () => { bluesAct('kiss', yes(U.pick(['……💋 영화 속 한 장면 같아요', '(수줍게 웃으며) 오늘 밤 잊지 못할 것 같아요 💗']), 'kiss', 5, { kiss: 3 })); after(1400, () => hearts(n.g, 12)); }); break;
+    case 'foreKiss': bluesAct('forehead', yes(U.pick(['(눈을 감고 미소 짓는다) …이마 키스가 제일 설레요', '헤헤… 소중히 대해 주는 느낌이에요 💗']), 'shy', 4)); after(1200, () => hearts(n.g, 8)); break;
+    case 'backhugLong': bluesAct('backhug', yes(U.pick(['(손을 포개며) 노래 끝날 때까지 이대로 있어요…', '뒤에서 안아 주니까 세상에 둘만 있는 것 같아요 💗']), 'shy', 5)); after(1600, () => hearts(n.g, 8)); break;
+    case 'sweetKiss': bluesAct('kiss', yes(U.pick(['……💋 (볼이 빨개진다)', '(살짝 웃으며 한 번 더 다가온다) 💗']), 'kiss', 5, { kiss: 3.2 })); after(1300, () => hearts(n.g, 12)); break;
+    case 'sofa': {   // 블루스를 마치고 소파에 나란히 앉아 그녀가 어깨에 기댐
+      endBlues('stop'); NC.ui.fade(() => { const si = 1, sj = 2; occ.forEach((o, k) => { if (o === n || o === 'me') occ[k] = null; }); occ[si] = 'me'; occ[sj] = n;
+        NC.sitPlayer({ kind: 'karaoke', s: si }, SEATS[si]); const s2 = SEATS[sj]; n.x = s2.x; n.z = s2.z; NC.NPC.sit(n, s2.x, s2.z, s2.ry, s2.h); n.g.userData.lookAt = P.group.position;
+        const fig = n.g.userData.fig; if (fig) { fig.rotation.z = .16; setTimeout(() => { fig.rotation.z = 0; }, 14000); }
+        n.aff = U.clamp(n.aff + 4, 0, 100); setTimeout(() => { if (!D.cur) D.open(n, { intro: U.pick(['(어깨에 머리를 기대며) …잠깐만 이러고 있어도 돼요?', '여기 앉으니까 노래 소리가 멀게 들려요… 좋다 💗']) }); hearts(n.g, 8); }, 700); }); break; }
+    case 'loveshot': NC.Motion.play(P.group, 'cheers'); NC.Motion.play(n.g, 'cheers'); D.sys('🥂 팔을 걸고 러브샷!');
+      after(900, () => { NC.Motion.play(P.group, 'drink'); NC.Motion.play(n.g, 'drink'); }); after(2200, () => { aff(n, 4); D.npcSay(U.pick(['ㅋㅋㅋ 러브샷 진짜 오랜만이에요!', '(얼굴이 빨개지며) 술 때문이에요… 아마도 💗']), 'laugh'); hearts(n.g, 6, ['🥂', '💕', '✨']); }); break;
+    case 'rose': D.sys('🌹 등 뒤에 숨겼던 장미 꽃다발을 건넨다'); NC.Motion.play(P.group, 'bow');
+      toss(P.group, n.g, '💐', () => { NC.Motion.play(n.g, 'shy'); aff(n, 4); D.npcSay(U.pick(['어머… 꽃이요? 진짜 감동이에요 ㅠㅠ 💗', '(꽃다발에 얼굴을 묻으며) 향기 너무 좋다…']), 'shy'); hearts(n.g, 12, ['🌹', '💕', '💖']); }); break;
+    case 'letter': NC.ui.modal('<h3>💌 손편지 쓰기</h3><textarea id="loveLetter" rows="4" style="width:100%;box-sizing:border-box;border-radius:10px;padding:8px;background:#241148;color:#fff;border:1px solid #6b4bc0" maxlength="200" placeholder="오늘 처음 봤는데…"></textarea>', [['💌 건네기', 'ok', true], ['취소', 0]])
+      .then(r => { const t = r.root && r.root.querySelector('#loveLetter'), txt = (t && t.value.trim()) || '오늘 당신을 만나서 행복했어요.'; if (r.val !== 'ok') { NC.Wallet.add(PREMIUM_COST, '손편지 취소 환불'); return; }
+        D.sys(`💌 "${txt.slice(0, 80)}${txt.length > 80 ? '…' : ''}"`); toss(P.group, n.g, '💌', () => { NC.Motion.play(n.g, 'think'); after(1500, () => { NC.Motion.play(n.g, 'shy'); aff(n, 5); D.npcSay(U.pick(['(편지를 꼭 쥐며) …이거 집에 가서 몇 번이고 읽을 거예요', '손편지라니… 반칙이에요 ㅠㅠ 💗']), 'shy'); hearts(n.g, 10); }); }); }); break;
+    case 'ring': D.sys('💍 작은 상자를 열어 커플링을 끼워 준다'); toss(P.group, n.g, '💍', () => { NC.Motion.play(n.g, 'cheer'); NC.Motion.play(P.group, 'cheer'); aff(n, 6);
+      D.npcSay(U.pick(['꺄… 커플링이요?! 오늘부터 1일이에요? 💍💗', '(손가락을 들어 반짝이는 반지를 본다) …예쁘다']), 'laugh'); hearts(n.g, 14, ['💍', '💖', '✨']); }); break;
+    case 'photo': D.sys('📸 볼을 맞대고 커플 사진 찰칵!'); bluesAct('cheek', yes('김치~ 📸 (볼을 맞대고 브이)', 'laugh', 3));
+      after(1300, () => { const f = document.createElement('div'); f.style.cssText = 'position:fixed;inset:0;background:#fff;opacity:.9;z-index:80;transition:opacity .5s;pointer-events:none'; document.body.appendChild(f); setTimeout(() => { f.style.opacity = 0; setTimeout(() => f.remove(), 500); }, 80);
+        const b = document.getElementById('cpPhoto'); if (b) setTimeout(() => b.click(), 300); hearts(n.g, 6, ['📸', '💕']); }); break;
+  }
+}
 const CHIPS = [['👂 귓속말', 'whisper'], ['🤲 허리 끌어당기기', 'waist'], ['💫 한 바퀴 돌리기', 'spin'], ['💃 뒤로 눕히기(딥)', 'dip'], ['💗 이마 맞대기', 'forehead'], ['😚 볼 뽀뽀', 'cheek'],
-  ['🤗 꼭 안아 주기', 'hug'], ['🫂 백허그', 'backhug'], ['💋 키스하기', 'kiss'], ['🔥 진한 키스', 'deepkiss'], ['💋 목덜미 키스', 'neck'], ['🍑 엉덩이 만지기', 'butt'], ['🫳 가슴 만지기', 'chest'], ['👚 옷 벗기기', 'undress']];
+  ['🤗 꼭 안아 주기', 'hug'], ['🫂 백허그', 'backhug'], ['💋 키스하기', 'kiss']];   // v19: 신체 접촉·탈의 옵션은 제거
 NC.dialogChipsOverride = (n, CHIP) => {
   if (BL.n !== n) return false;
   if (BL.busy) { CHIP('⏳ …', () => {}); return true; }
   CHIPS.forEach(([l, k]) => CHIP(l, () => bluesAct(k), k === 'kiss' ? 'pri' : ''));
   if (n.g.userData.undressed) CHIP('👕 옷 다시 입혀 주기', () => bluesAct('dress'));
+  if (BL.where === 'karaoke' || K.inRoom) PREMIUM.forEach(([l, k]) => CHIP(`${NC.account ? '💎' : '🔒'} ${l} 🪙${PREMIUM_COST}`, () => premium(k)));
   CHIP('⏹ 부르스 그만', () => endBlues('stop'));
   return true;
 };
