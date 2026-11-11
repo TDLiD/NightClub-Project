@@ -85,7 +85,15 @@ const A = NC.Audio = {
   setStyle() { this.userMusic(); this.mp3Mode = 'random'; this.mp3Start(); NC.emit('music:style', 'mp3'); },   // 옛 코드 호환: 어떤 스타일을 요청해도 MP3 랜덤 재생
   paused: false, mp3Mode: 'random', mp3Idx: -1,
   MP3_COUNT: 7, MP3_DIRS: ['music/', 'music/music/'],
-  mp3List() { if (NC.config && NC.config.mp3List) return NC.config.mp3List; const d = this.mp3Dir || this.MP3_DIRS[0]; return Array.from({ length: this.MP3_COUNT }, (_, i) => `${d}${i + 1}.mp3`); },
+  /* v26 재생 목록: euro = 1~7.mp3 (디스코 타임·기본) · blues = blues1~3.mp3 (블루스 타임) — 파일을 바꾸면 그 곡이 나옴 */
+  pl: 'euro', PL_GAIN: { euro: 1, blues: 1.6 },
+  mp3List(pl) { pl = pl || this.pl; const d = this.mp3Dir || this.MP3_DIRS[0];
+    if (pl === 'blues') return (NC.config && NC.config.bluesList) || [1, 2, 3].map(i => `${d}blues${i}.mp3`);
+    if (NC.config && NC.config.mp3List) return NC.config.mp3List; return Array.from({ length: this.MP3_COUNT }, (_, i) => `${d}${i + 1}.mp3`); },
+  /* 디스코 타임 → 유로 7곡 랜덤 연속 · 블루스 타임 → 블루스 곡 랜덤 연속 (party.js 가 호출) */
+  playPlaylist(pl) { this.wake(); if (!this.ctx) return; this.pl = pl === 'blues' ? 'blues' : 'euro'; this.mp3Mode = 'random'; this.mp3Idx = -1; this.hist = []; this.paused = false;
+    if (this.mp3Gain) this.mp3Gain.gain.setTargetAtTime(this.PL_GAIN[this.pl] || 1, this.ctx.currentTime, .3);
+    this.mp3Ensure(); this.mp3Probe().then(() => this.mp3Play(-1)); NC.emit('music:style', 'mp3'); },
   mp3Probe() {
     if (this._probe) return this._probe; if (NC.config && NC.config.mp3List) return (this._probe = Promise.resolve());
     const tryDir = k => k >= this.MP3_DIRS.length ? Promise.resolve(null) : fetch(this.MP3_DIRS[k] + '1.mp3', { method: 'HEAD', cache: 'no-store' }).then(r => r.ok && !/text\/html/i.test(r.headers.get('content-type') || '') ? this.MP3_DIRS[k] : tryDir(k + 1)).catch(() => tryDir(k + 1));
@@ -101,7 +109,7 @@ const A = NC.Audio = {
       if (!el.getAttribute('src')) return; const L = this.mp3List();
       if (this.mp3Mode === 'single') { NC.ui && NC.ui.toast(`🎵 ${this.mp3Idx + 1}.mp3 를 찾지 못했어요 — 랜덤 재생으로 바꿔요`); this.mp3Mode = 'random'; el.loop = false; }
       this.mp3Err = (this.mp3Err || 0) + 1;
-      if (this.mp3Err >= L.length) { this.mp3Err = 0; this.paused = true; NC.emit('music:state'); NC.ui && NC.ui.toast('🎵 MP3 파일을 찾지 못했어요 — public/music 폴더에 1.mp3 ~ 7.mp3 를 넣어 주세요'); }
+      if (this.mp3Err >= L.length) { this.mp3Err = 0; if (this.pl === 'blues') { NC.ui && NC.ui.toast('💕 블루스 곡(blues1~3.mp3)을 찾지 못해 유로 댄스로 이어 틀어요'); return this.playPlaylist('euro'); } this.paused = true; NC.emit('music:state'); NC.ui && NC.ui.toast('🎵 MP3 파일을 찾지 못했어요 — public/music 폴더에 1.mp3 ~ 7.mp3 를 넣어 주세요'); }
       else this.mp3Play(-1); });
     return el;
   },
@@ -114,23 +122,24 @@ const A = NC.Audio = {
     if (!this._back && this.mp3Idx >= 0 && this.mp3Idx !== i) { this.hist.push(this.mp3Idx); if (this.hist.length > 30) this.hist.shift(); } this._back = false;   // ⏮ 이전 곡용 기록
     this.mp3Idx = i; el.loop = this.mp3Mode === 'single'; el.src = L[i]; this.wake();
     const p = el.play(); if (p && p.catch) p.catch(e => { if (e && e.name === 'NotAllowedError') NC.ui && NC.ui.toast('🔇 브라우저가 소리를 막았어요 — 화면을 한 번 클릭한 뒤 ▶ 재생을 눌러 주세요'); });
-    NC.ui && NC.ui.toast(this.mp3Mode === 'single' ? `🎵 ${i + 1}번 곡 재생 (반복)` : `🎲 랜덤 재생 — ${i + 1}번 곡`); NC.emit('music:track', i + 1); NC.emit('music:state');
+    NC.ui && NC.ui.toast(this.pl === 'blues' ? `💕 블루스 ${i + 1}번 곡` : this.mp3Mode === 'single' ? `🎵 ${i + 1}번 곡 재생 (반복)` : `🎲 유로 댄스 — ${i + 1}번 곡`); NC.emit('music:track', i + 1); NC.emit('music:state');
   },
   /* 사용자가 음악 버튼을 누르면 정상 볼륨으로 되돌림 */
   userMusic() { this.wake(); NC.emit('music:user'); if (this.musicVol && this.ctx) { this.musicVol.gain.cancelScheduledValues(this.ctx.currentTime); this.musicVol.gain.setValueAtTime(this.on ? VOL : 0, this.ctx.currentTime); } },
-  playRandom() { this.userMusic(); if (!this.ctx) return; this.mp3Mode = 'random'; this.mp3Start(); NC.emit('music:style', 'mp3'); },
-  playTrack(n) { this.userMusic(); if (!this.ctx) return; this.paused = false; this.mp3Mode = 'single'; this.mp3Idx = n - 1; this.mp3Ensure(); this.mp3Probe().then(() => this.mp3Play(n - 1)); NC.emit('music:style', 'mp3'); },
+  playRandom() { this.userMusic(); if (!this.ctx) return; this.toEuro(); this.mp3Mode = 'random'; this.mp3Start(); NC.emit('music:style', 'mp3'); },
+  toEuro() { if (this.pl !== 'euro') { this.pl = 'euro'; this.hist = []; if (this.mp3Gain) this.mp3Gain.gain.setTargetAtTime(1, this.ctx.currentTime, .2); } },
+  playTrack(n) { this.userMusic(); if (!this.ctx) return; this.toEuro(); this.paused = false; this.mp3Mode = 'single'; this.mp3Idx = n - 1; this.mp3Ensure(); this.mp3Probe().then(() => this.mp3Play(n - 1)); NC.emit('music:style', 'mp3'); },
   stop() { this.paused = true; if (this.mp3El) this.mp3El.pause(); NC.emit('music:state'); },
   resume() { this.userMusic(); if (!this.ctx) return; this.paused = false; const el = this.mp3El;
     if (el && el.src && !el.ended && el.currentTime > 0) { const p = el.play(); if (p && p.catch) p.catch(() => this.mp3Play(-1)); } else this.mp3Start(); NC.emit('music:state'); },
   /* v22 하단 플레이어: ⏮ 이전 · ⏭ 다음 · 탐색 */
   hist: [],
   nextTrack() { this.userMusic(); if (!this.ctx) return; this.paused = false; this.mp3Ensure();
-    this.mp3Probe().then(() => { if (this.mp3Mode === 'single') this.mp3Play((this.mp3Idx + 1) % this.MP3_COUNT); else this.mp3Play(-1); }); NC.emit('music:style', 'mp3'); },
+    this.mp3Probe().then(() => { if (this.mp3Mode === 'single') this.mp3Play((this.mp3Idx + 1) % this.mp3List().length); else this.mp3Play(-1); }); NC.emit('music:style', 'mp3'); },
   prevTrack() { this.userMusic(); if (!this.ctx) return; const el = this.mp3El; this.paused = false;
     if (el && el.currentTime > 3 && !el.paused) { el.currentTime = 0; return; }   // 3초 넘게 들었으면 처음부터
     this.mp3Ensure(); this.mp3Probe().then(() => {
-      if (this.mp3Mode === 'single') this.mp3Play((this.mp3Idx - 1 + this.MP3_COUNT) % this.MP3_COUNT);
+      if (this.mp3Mode === 'single') this.mp3Play((this.mp3Idx - 1 + this.mp3List().length) % this.mp3List().length);
       else if (this.hist.length) { this._back = true; this.mp3Play(this.hist.pop()); }
       else this.mp3Play(-1); }); NC.emit('music:style', 'mp3'); },
   seek(frac) { const el = this.mp3El; if (el && isFinite(el.duration)) { el.currentTime = Math.max(0, Math.min(.999, frac)) * el.duration; NC.emit('music:state'); } },
@@ -140,7 +149,7 @@ const A = NC.Audio = {
     if (!this.ctx) return '🔈 입장하면 음악이 시작돼요'; if (this.ctx.state !== 'running') return '🔇 브라우저가 소리를 멈췄어요 — ▶ 재생을 눌러 주세요';
     if (this.paused) return '⏸ 정지됨'; const el = this.mp3El, n = this.mp3Idx + 1, f = x => isFinite(x) ? `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}` : '--:--';
     if (!el || n < 1) return '⏳ MP3 불러오는 중…'; if (el.readyState < 2 && !el.paused) return `⏳ ${n}번 곡 불러오는 중…`;
-    return `▶ ${this.mp3Mode === 'single' ? n + '번 곡 반복' : '랜덤 · ' + n + '번 곡'} ${f(el.currentTime)} / ${f(el.duration)}`;
+    return `▶ ${this.pl === 'blues' ? '💕 블루스 ' + n + '번' : this.mp3Mode === 'single' ? n + '번 곡 반복' : '랜덤 · ' + n + '번 곡'} ${f(el.currentTime)} / ${f(el.duration)}`;
   },
   /* 🔊 버튼: 배경 음악 음소거/해제 */
   toggle() { if (!this.ctx) this.init(); this.on = !this.on; if (this.musicVol && this.ctx) { this.musicVol.gain.cancelScheduledValues(this.ctx.currentTime); this.musicVol.gain.setValueAtTime(this.on ? VOL : 0, this.ctx.currentTime); } return this.on; },

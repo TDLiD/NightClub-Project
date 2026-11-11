@@ -36,24 +36,44 @@ const ACT = n => {
 };
 const where = (x, z) => { const zn = W.zoneAt(x, z); if (zn.name === 'vip') return `VIP ${zn.room + 1}`; if (zn.name === 'tables') { const t = (NC.tables || []).reduce((a, b, i) => { const d = Math.hypot(b.x - x, b.z - z); return d < a.d ? { d, i } : a; }, { d: 99, i: -1 }); if (t.d < 3.4) return `T${t.i + 1}`; } return W.zoneLabel[zn.name] || zn.name; };
 const isDancing = n => !!(n.party || n.g.userData.dance);
+/* v27 손님이 지금 있는 곳(방 안 포함) — 플레이어가 어디에 있든 리스트에 모두 보임 */
+const whereN = n => { const K = NC.Karaoke;
+  if (n.stay === 'arrest') return '🚓 연행 중'; if (n.stay === 'smoke') return '🚬 흡연실'; if (n.stay === 'outing') return '🎤 별빛 노래방';
+  if (K && (n === K.companion || (K.guests || []).includes(n)) && K.inRoom) return K.mode === 'vip' ? `✨ ${K.label}` : `🎤 ${K.label || '노래방 룸'}`;
+  if (n.karaoke) return '🎤 노래방 룸'; return where(n.x, n.z); };
+NC.whereGuest = whereN;
+/* v27 부킹 지목 모드: 웨이터에게 부킹을 부탁하면 리스트에서 손님을 눌러 고름 */
+let pickCb = null, pickCancel = null;
+const pickBar = document.createElement('div'); pickBar.id = 'glPick'; pickBar.innerHTML = '<b>💃 부킹할 손님을 리스트에서 눌러 고르세요</b><button>취소</button>'; pickBar.style.display = 'none'; box.insertBefore(pickBar, box.children[1]);
+pickBar.querySelector('button').onclick = () => endPick(true);
+function startPick(cb, onCancel) { pickCb = cb; pickCancel = onCancel || null; setOpen(true); fold(false); if (filter !== 'all') { filter = 'all'; $('#glFilter').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.f === 'all')); } pickBar.style.display = ''; box.classList.add('picking'); render(true); NC.ui.toast('👥 왼쪽 손님 리스트에서 부킹할 손님을 눌러 주세요'); }
+function endPick(cancelled) { const c = pickCancel; pickCb = null; pickCancel = null; pickBar.style.display = 'none'; box.classList.remove('picking'); render(true); if (cancelled && c) c(); }
 
 let hover = false, lastO = '', lastA = '';
 box.addEventListener('mouseenter', () => { hover = true; }); box.addEventListener('mouseleave', () => { hover = false; });
 function render(force) {
   if (box.style.display === 'none' || (hover && force !== true && !follow)) return;   // 마우스를 올려 둔 동안은 목록이 바뀌지 않게(클릭 놓침 방지)
-  const q = $('#glSearch').value.trim(), all = (NC.npcs || []).filter(n => (n.role === 'crowd' || n.role === 'persona') && n.g.visible && n.state !== 'off');
+  const q = $('#glSearch').value.trim(), all = (NC.npcs || []).filter(n => (n.role === 'crowd' || n.role === 'persona') && n.enabled !== false && n.state !== 'off' && !n.gone);   // v27 방 안에 있어도(화면에서 숨겨져도) 모두 표시
   const list = all.filter(n => (!q || n.name.includes(q)) && (filter === 'all' || (filter === 'dance' ? isDancing(n) : n.gender === filter)));
   list.sort((a, b) => (a.role === 'persona' ? 0 : 1) - (b.role === 'persona' ? 0 : 1) || a.name.localeCompare(b.name, 'ko'));
   const rem = []; (NC.remotes || new Map()).forEach((r, id) => { if (r && r.g && (!q || String(r.name || '').includes(q))) rem.push([id, r]); });
   $('#glCount').textContent = ` AI ${all.length}${rem.length ? ' · 🌐 ' + rem.length : ''}`;
   const ho = rem.length ? `<div class="glSec">🌐 온라인 접속자 ${rem.length}명</div>` + rem.map(([id, r]) => `<div class="glRow online${follow && follow.rid === id ? ' go' : ''}" data-r="${esc(id)}"><i class="dot on"></i><b>${esc(r.name || '손님')}</b><small>${esc(where(r.g.position.x, r.g.position.z))}</small></div>`).join('') : (NC.mode === 'online' ? '<div class="glSec">🌐 온라인 접속자 0명</div>' : '');
-  const ha = `<div class="glSec">🤖 AI 손님 ${list.length}명</div>` + list.map(n => `<div class="glRow${follow && follow.n === n ? ' go' : ''}" data-id="${esc(n.id)}"><i class="dot ${n.gender === 'f' ? 'f' : 'm'}">${n.gender === 'f' ? '♀' : '♂'}</i><b>${esc(n.name)}${n.role === 'persona' ? ' ⭐' : ''}</b><small>${esc(where(n.x, n.z))} · ${ACT(n)}</small></div>`).join('');
-  if (ho !== lastO) $('#glOnline').innerHTML = lastO = ho; if (ha !== lastA) $('#glAI').innerHTML = lastA = ha;
+  const ha = `<div class="glSec">🤖 AI 손님 ${list.length}명</div>` + list.map(n => `<div class="glRow${follow && follow.n === n ? ' go' : ''}" data-id="${esc(n.id)}"><i class="dot ${n.gender === 'f' ? 'f' : 'm'}">${n.gender === 'f' ? '♀' : '♂'}</i><b>${esc(n.name)}${n.role === 'persona' ? ' ⭐' : ''}</b><small>${esc(whereN(n))} · ${ACT(n)}</small></div>`).join('');
+  if (ho !== lastO) $('#glOnline').innerHTML = lastO = ho;
+  /* v27 같은 손님 구성이면 행을 다시 만들지 않고 글자만 바꿈 — 누르는 순간 행이 바뀌어 클릭이 씹히던 문제 */
+  const keys = list.map(n => n.id).join('|') + (follow && follow.n ? '#' + follow.n.id : '');
+  if (keys !== lastA || !$('#glAI').firstChild) { $('#glAI').innerHTML = ha; lastA = keys; }
+  else { const sec = $('#glAI').querySelector('.glSec'); if (sec) sec.textContent = `🤖 AI 손님 ${list.length}명`;
+    list.forEach(n => { const row = $('#glAI').querySelector(`.glRow[data-id="${CSS.escape(String(n.id))}"] small`), t = `${whereN(n)} · ${ACT(n)}`; if (row && row.textContent !== t) row.textContent = t; }); }
 }
 box.addEventListener('click', e => {
   const row = e.target.closest('.glRow'); if (!row) return;
   if (row.dataset.r) { const r = NC.remotes.get(row.dataset.r); if (r) goTo({ rid: row.dataset.r, name: r.name, pos: () => r.g.position }); return; }
-  const n = (NC.npcs || []).find(x => String(x.id) === row.dataset.id); if (n) goTo({ n, name: n.name, pos: () => ({ x: n.x, z: n.z }) });
+  const n = (NC.npcs || []).find(x => String(x.id) === row.dataset.id); if (!n) return;
+  if (pickCb) { const cb = pickCb; endPick(false); cb(n); return; }   // 부킹 지목
+  if (NC.Rooms && NC.Rooms.current && NC.Rooms.current() || (NC.Karaoke && NC.Karaoke.inRoom)) return NC.ui.toast(`📍 ${n.name} — ${whereN(n)} (방 밖으로 나가면 찾아갈 수 있어요 · 🔔 웨이터로 부킹 가능)`);
+  goTo({ n, name: n.name, pos: () => ({ x: n.x, z: n.z }) });
 });
 
 /* ── 자동 이동: 상대 바로 옆(앉아 있으면 테이블 바깥쪽)으로 길찾기 → 상대가 움직이면 2초마다 다시 찾기 ── */
@@ -87,5 +107,5 @@ NC.tickers.push(() => {
 });
 addEventListener('keydown', e => { if (follow && !NC.ui.typing() && ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes((e.key || '').toLowerCase())) { follow = null; render(); } });
 setInterval(render, 1500);
-NC.GuestList = { render, goTo };
+NC.GuestList = { render, goTo, startPick, endPick, open: () => setOpen(true) };
 })();

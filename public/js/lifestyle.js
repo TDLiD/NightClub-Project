@@ -28,8 +28,8 @@ function renderPanel() {   // v20: 버튼은 처음 한 번만 만들고 이후�
   if (!th.children.length) Object.entries(W.THEMES || {}).forEach(([id, t]) => { const b = document.createElement('button'); b.textContent = t.name; b.dataset.id = id; b.onclick = () => { W.setTheme(id); NC.ui.toast('🎨 조명: ' + t.name); }; th.appendChild(b); });
   if (!tr.children.length) for (let n = 1; n <= (A.MP3_COUNT || 7); n++) { const b = document.createElement('button'); b.textContent = n; b.title = n + '.mp3'; b.dataset.n = n; b.onclick = () => A.playTrack(n); tr.appendChild(b); }
   [...th.children].forEach(b => b.classList.toggle('on', W.themeId === b.dataset.id));
-  $('#cpRandom').classList.toggle('on', !single && !A.paused);
-  [...tr.children].forEach(b => b.classList.toggle('on', single && A.mp3Idx === b.dataset.n - 1));
+  $('#cpRandom').classList.toggle('on', !single && !A.paused && A.pl !== 'blues');
+  [...tr.children].forEach(b => b.classList.toggle('on', single && A.pl !== 'blues' && A.mp3Idx === b.dataset.n - 1));
   renderCtl();
 }
 /* v20 정지/재생 버튼 + 지금 재생 중 표시 (패널이 열려 있을 때만 1초마다 갱신 — 버튼을 다시 만들지 않아 클릭이 씹히지 않음) */
@@ -69,7 +69,7 @@ mp.innerHTML = $('#cpPlayer').innerHTML; document.body.appendChild(mp);
 const PLAYERS = [mp, $('#cpPlayer')], fmt = x => isFinite(x) ? `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}` : '0:00';
 function renderMP() {
   const A = NC.Audio, el = A.mp3El, stopped = A.paused || !A.ctx || A.ctx.state !== 'running' || !el || el.paused, n = A.mp3Idx + 1;
-  const title = n > 0 ? `${A.mp3Mode === 'single' ? '🔂' : '🔀'} ${n}번 곡` : '🎵 음악', cur = el ? el.currentTime : 0, dur = el ? el.duration : 0;
+  const title = n > 0 ? (A.pl === 'blues' ? `💕 블루스 ${n}번` : `${A.mp3Mode === 'single' ? '🔂' : '🔀'} ${n}번 곡`) : '🎵 음악', cur = el ? el.currentTime : 0, dur = el ? el.duration : 0;
   const time = `${fmt(cur)} / ${fmt(dur)}`, pct = (isFinite(dur) && dur > 0 ? Math.min(100, cur / dur * 100) : 0) + '%';
   PLAYERS.forEach(box => { const q = c => box.querySelector(c), pb = q('.mpPlay'); pb.textContent = stopped ? '▶' : '⏸'; pb.classList.toggle('on', stopped);
     q('.mpTitle').textContent = title; q('.mpTime').textContent = time; q('.mpFill').style.width = pct; });
@@ -89,7 +89,7 @@ $('#cpClose').onclick = () => panel.classList.remove('open');
 $('#cpPhoto').onclick = () => photo();
 $('#cpHelp').onclick = () => NC.ui.modal(`<h3>🍸 나이트 생활 가이드</h3><ul style="text-align:left;line-height:1.7">
   <li>🪑 <b>테이블·VIP 소파·바 의자</b>에 다가가 E → 앉으면 웨이터/바텐더가 주문을 받아요</li><li>🛋 빈 <b>VIP 룸</b>에 들어가면 웨이터가 따라와 안내해요</li>
-  <li>🍹 하단 액션바: 마시기 · 건배 · 옆자리 대화 · 술 한 잔 사기 · 팁</li><li>🚻 <b>화장실</b>(동쪽 화장실 동) · 🚬 <b>흡연실</b>(서쪽 동 북쪽) · 🎤 노래방(서쪽 노래방 동 입구)</li>
+  <li>🍹 하단 액션바: 마시기 · 건배 · 옆자리 대화 · 술 한 잔 사기 · 팁</li><li>🚻 <b>화장실</b>(동쪽 화장실 동) · 🚬 <b>흡연실</b>(서쪽 동 북쪽) · 🚪 VIP 4~7(1층) · ✨ 2층 VIP 라운지(서쪽 계단) · 🎤 노래방(통로 동쪽 끝 출입구 → 길 건너 별빛 노래방)</li>
   <li>🎵 <b>DJ 부스</b> 앞에서 신청곡 · 🍺 취기가 오르면 물을 드세요</li></ul>`, [['알겠어요', 'ok', true]]);
 NC.on('music:style', renderPanel); NC.on('theme', renderPanel);
 
@@ -184,6 +184,7 @@ function dispatchWaiter(to, ctx, greet) {
   o.busy = true; o.g.userData.lookAt = null;
   const route = NC.NPC.planPath(o, to), back = () => { o.busy = false; o.state = 'idle'; o.g.userData.lookAt = null; if (o.home) NC.Waiters.walk(o, NC.NPC.planPath(o, o.home)); };
   NC.Waiters.walk(o, route, () => {
+    const pp = P(); if ((NC.Rooms && NC.Rooms.current && NC.Rooms.current()) || (NC.Karaoke && NC.Karaoke.inRoom) || Math.hypot(pp.x - to.x, pp.z - to.z) > 4.5) { back(); return; }   // v25 그새 자리를 떠났으면 돌아감
     o.g.userData.lookAt = P(); Mo.play(o.g, 'bow');
     const items = MENU[ctx.kind === 'vipEnter' ? 'vip' : ctx.kind] || MENU.table;
     const extra = [{ t: '💃 부킹 부탁해요', run: () => { NC.ui.hideDlg(); P().busy = false; if (P().seat && NC.Episodes && NC.Episodes.bookToSeat(o)) back(); else { o.busy = false; NC.Waiters.runTree(o); } } }, /* v14: 테이블·VIP 자리로 부킹 */ { t: '🧾 팁 드릴게요 (🪙5)', run: () => { if (NC.Wallet.spend(5)) { NC.ui.chatAdd(o.def.title, '감사합니다! 오늘 서비스 확실히 챙겨 드릴게요 😄'); } back(); } }];
@@ -274,7 +275,7 @@ function seatBar() {
   const p = P(), s = p.seat, inRoom = NC.Karaoke && NC.Karaoke.inRoom;
   if (!s || p.busy || inRoom || s.kind === 'karaoke') { if (barSig) { bar.innerHTML = ''; bar.style.display = 'none'; barSig = ''; } return; }
   const btns = [];
-  if (s.kind === 'bar') btns.push(['🍸 주문', barMenu]); else btns.push(['🔔 웨이터 호출', () => { const st = s.kind === 'table' ? NC.standPos(s.t, s.s) : { x: W.vip[s.room].seats[s.s].x + 1, z: Math.min(W.vip[s.room].seats[s.s].z, 17.4) }; dispatchWaiter(st, { kind: s.kind, room: s.room, seat: s }, '부르셨어요? 😊'); }]);
+  if (s.kind === 'bar') btns.push(['🍸 주문', barMenu]); else btns.push(['🔔 웨이터 호출', () => { if (s.kind === 'table' && NC.TableLife) NC.TableLife.waveLamp(s.t); const st = s.kind === 'table' ? NC.standPos(s.t, s.s) : { x: W.vip[s.room].seats[s.s].x + 1, z: Math.min(W.vip[s.room].seats[s.s].z, 17.4) }; dispatchWaiter(st, { kind: s.kind, room: s.room, seat: s }, '부르셨어요? 😊'); }]);
   if (life.drink) btns.push(['🍹 마시기', sip]); btns.push(['🥂 건배', cheers]);
   const n = nearbyCompanion(3.4); if (n && n !== p) { btns.push([`💬 ${n.name}`, () => n.stay ? talkTo(n) : NC.Dialog.open(n, {})]); if (s.kind === 'bar' || n.stay) btns.push([`🍸 ${n.name}에게 한 잔 (🪙10)`, () => buyDrinkFor(n)]); }
   btns.push(['📸', photo]);

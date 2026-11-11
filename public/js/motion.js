@@ -189,6 +189,17 @@ const BASE = {
     if (big === 0) { p.shL = [-.4 - .25 * Math.max(0, sw), 0, -.35]; p.elL = [-.8, 0, 0]; } else if (big === 1) { p.shL = [-1.6, 0, -.5 + .2 * sw]; p.elL = [-.25, 0, 0]; } else { p.shL = [-.2, 0, -1.2 - .3 * dip]; p.elL = [-.4, 0, 0]; }
   },
   stageDance(p, t, u, b) { CHOREO(p, u, b, 1); },  // v12: 스테이지 — 크고 흐르는 안무 9종
+  /* v28 폴 댄스(오른손으로 폴을 잡고 회전): stage.js 가 u.polePhase('walk'|'spin'|'climb'|'wave')와 위치·회전을 정함 */
+  pole(p, t, u, b) {
+    const s = Math.sin(t * 2.1 + u.seed * 3), c = Math.cos(t * 1.05), ph = u.polePhase || 'walk';
+    p.shR = [-2.55, 0, -.3]; p.elR = [-.3, 0, 0];                                            // 오른손: 머리 위로 폴을 잡음
+    p.shL = [-.9 - .45 * s, 0, -1.05 - .35 * c]; p.elL = [-.55 - .3 * Math.max(0, s), 0, 0];   // 왼팔: 흐르듯 펼침
+    p.head = [-.12, .15 * c, .1 * s]; p.torso = [-.05, .1 * c, .16];
+    if (ph === 'walk') { const w = Math.sin(t * 4.2); p.legL = [w * .32, 0, -.02]; p.legR = [-w * .32, 0, .02]; p.knL = [Math.max(0, -w) * .5 + .05, 0, 0]; p.knR = [Math.max(0, w) * .5 + .05, 0, 0]; p.bodyX = .05 * w; }
+    else if (ph === 'spin') { p.legL = [-.15, 0, -.05]; p.knL = [.15, 0, 0]; p.legR = [-1.0, 0, .12]; p.knR = [1.35, 0, 0]; p.torso = [-.1, 0, .28]; p.head = [-.25, 0, .2]; p.shL = [-1.2, 0, -1.5]; p.elL = [-.2, 0, 0]; }   // 한쪽 다리를 걸고 회전
+    else if (ph === 'climb') { p.shL = [-2.6, 0, .25]; p.elL = [-.35, 0, 0]; p.legL = [-.75, 0, -.05]; p.knL = [1.5, 0, 0]; p.legR = [-.9, 0, .05]; p.knR = [1.3, 0, 0]; p.torso = [-.06, 0, .05]; p.head = [-.3, 0, 0]; p.hipsY = u.hipH; }   // 두 손으로 잡고 다리를 접어 매달림
+    else { const d = (1 + Math.cos(b.phase * 2 * PI)) / 2; p.hipsY = u.hipH - .12 * d; p.knL = [.5 * d, 0, 0]; p.knR = [.5 * d, 0, 0]; p.legL = [-.3 * d, 0, -.15]; p.legR = [-.3 * d, 0, .15]; p.torso = [.15 * d - .1, .1 * s, .1]; p.bodyX = .05 * s; }   // 폴을 잡고 바디 웨이브(앉았다 일어서기)
+  },
   // v9 부르스(블루스): 마주 보고 천천히 좌우로 흔들기. 리드는 손을 상대 허리에, 상대는 어깨에. u.kissK(0~1) 로 서로 기울임
   blues(p, t, u) {
     const s = Math.sin(t * 1.55), w = Math.sin(t * .77), k = u.kissK || 0;
@@ -298,6 +309,7 @@ function update(a, dt, opt = {}) {
     const rel = U.clamp(((yw - a.rotation.y + PI) % (PI * 2) + PI * 2) % (PI * 2) - PI, -1.1, 1.1);
     const h = p.head || [0, 0, 0]; p.head = [h[0], h[1] * .3 + rel * .6, h[2]]; const n = p.neck || [0, 0, 0]; p.neck = [n[0], rel * .35, n[2]];
   }
+  const cf = u.cfix; if (cf) for (const j in cf) { const tg = p[j] || REST[j] || ZERO, c = cf[j]; p[j] = [tg[0] + c[0], tg[1] + c[1], tg[2] + c[2]]; }   // v26 접촉 보정(contact.js): 팔이 상대 몸을 뚫지 않게 더한 관절 오프셋
   const k = 1 - Math.exp(-dt * 14);
   for (const j of JOINTS) { const tg = p[j] || REST[j] || ZERO, r = R[j].rotation; r.x += (tg[0] - r.x) * k; r.y += (tg[1] - r.y) * k; r.z += (tg[2] - r.z) * k; }
   R.hips.position.y += ((p.hipsY != null ? p.hipsY : u.hipH) - R.hips.position.y) * k;

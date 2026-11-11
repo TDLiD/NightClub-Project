@@ -7,6 +7,9 @@
  */
 (() => {
 'use strict';
+
+/* v28 카메라 플래시: 조명을 추가·삭제하면 모든 재질 셰이더가 재컴파일돼 모바일에서 끊김·메모리 급증 → 상주 조명 1개를 켰다 끄기 (저사양은 생략) */
+let _flash = null; const flashLight = () => { if (NC.quality && NC.quality.level === 'low') return null; if (!_flash) { _flash = new NC.THREE.PointLight(0xffffff, 0, 6); NC.scene.add(_flash); } return _flash; };
 const NC = window.NC, T = window.THREE, U = NC.util, W = NC.world, Mo = NC.Motion, K = NC.Karaoke;
 const P = () => NC.player, B = (g, t, s) => NC.bubble && NC.bubble(g, t, s);
 const online = () => NC.isOnline && NC.isOnline();
@@ -237,7 +240,7 @@ function tickGroups(dt) {
       a.g.position.set(a.x, NC.groundY(a.x, a.z), a.z); b.g.position.set(b.x, NC.groundY(b.x, b.z), b.z); }
     else if (g.frame === 'onTable') { const f = g.ns[0]; f.g.position.y = NC.groundY(f.x, f.z) + .82; }
     else if (g.frame === 'onTable2') { g.ns.slice(0, 2).forEach(f => { f.g.position.y = NC.groundY(f.x, f.z) + .82; }); }
-    if (g.flash) { g.flash = 0; const t = ctr(g); if (NC.camera && Math.hypot(t.x - P().x, t.z - P().z) < 14) { const L_ = new T.PointLight(0xffffff, 3, 6); L_.position.set(t.x, 2.2 + (g.vip != null ? W.vip[g.vip].y : 0), t.z); NC.scene.add(L_); setTimeout(() => NC.scene.remove(L_), 120); } }
+    if (g.flash) { g.flash = 0; const t = ctr(g); if (NC.camera && Math.hypot(t.x - P().x, t.z - P().z) < 14) { const L_ = flashLight(); if (L_) { L_.position.set(t.x, 2.2 + (g.vip != null ? W.vip[g.vip].y : 0), t.z); L_.intensity = 3; setTimeout(() => { L_.intensity = 0; }, 120); } } }
     // 대본 진행 + 2~3분마다 다른 장면으로
     g.reroll -= dt; g.wait -= dt;
     if (g.wait > 0) return;
@@ -368,6 +371,6 @@ NC.tickers.push(dt => {
 });
 NC.interactProviders.push(() => { const p = P(), out = []; puddles.forEach(q => { const n = q.n, d = Math.hypot(n.x - p.x, n.z - p.z); if (q.t < 15 && !q.helped && d < 2.2 && !NC.Dialog.cur) out.push({ label: `🧻 ${n.name}에게 휴지 건네주기 (E)`, dist: d - .3, run: () => { q.helped = true; n.aff = U.clamp((n.aff || 40) + 5, 0, 100); Mo.play(p.group, 'bow'); B(n.g, U.pick(['고, 고마워요… 창피하다 ㅠㅠ', '헤헤… 오빠 착하다… 물 한 잔만…', '이 은혜는 꼭 갚을게요… 우웁']), 2.6); NC.ui.toast(`💗 ${n.name} 호감도 +5`); } }); }); return out; });
 
-NC.Episodes = { bookToSeat, bandStart, bandEnd, throwMoney, vomit, GROUPS, BAND };
+NC.Episodes = { bookToSeat, freeSeatNear, bandStart, bandEnd, throwMoney, vomit, GROUPS, BAND };
 console.info('[episodes] 모든 룸 부킹 · 테이블 손님 · 초청 밴드 · 돈 뿌리기 · 토하기 준비 완료');
 })();

@@ -12,8 +12,8 @@ const NC = window.NC; if (!NC) return;
 const T = NC.THREE, R = NC.renderer, U = NC.util;
 
 /* ───────── 화질 ───────── */
-const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || Math.min(screen.width, screen.height) < 600;
-const LEVELS = { high: { post: true, shadows: true, pr: 1.75, tex: 512, film: true }, mid: { post: true, shadows: false, pr: 1.25, tex: 512, film: true }, low: { post: false, shadows: false, pr: 1, tex: 256, film: false } };
+const mobile = NC.isMobile;
+const LEVELS = { high: { post: true, shadows: true, pr: 1.75, tex: 512, film: true }, mid: { post: true, shadows: false, pr: 1.25, tex: 512, film: true }, low: { post: false, shadows: false, pr: NC.isMobile ? 1.25 : 1, tex: 256, film: false } };
 const level = LEVELS[U.store.get('nc_quality', '')] ? U.store.get('nc_quality', '') : (mobile ? 'low' : 'high');
 const Q = NC.quality = Object.assign({ level }, LEVELS[level]);
 NC.setQuality = lv => { if (!LEVELS[lv]) return; U.store.set('nc_quality', lv); location.reload(); };
@@ -121,7 +121,15 @@ const GEN = {
     const n = fbm(S, 64, 2, 131); return { map: c, normal: normalFrom(n, S, 1.2), rough: fieldCanvas(S, (x, y) => { const v = 180 + n[y * S + x] * 50; return [v, v, v]; }) }; },
 };
 const cache = {};
-function texFrom(c, srgb, rep) { const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = Math.min(8, R.capabilities.getMaxAnisotropy()); if (srgb) t.encoding = T.sRGBEncoding; if (rep) t.repeat.set(rep[0], rep[1]); return t; }
+/* v28 GPU 텍스처 공유: 같은 캔버스+반복값이면 Texture 객체를 재사용(r128 은 Texture 객체마다 GPU 업로드 → 모바일 메모리 폭증·탭 재시작의 주원인)
+ *  저사양(모바일)은 노멀·러프니스 맵을 생략 → 텍스처 메모리 약 1/3 */
+const texCache = new Map(); let texId = 0;
+const LITE = Q.level === 'low';
+function texFrom(c, srgb, rep) {
+  if (!c._tid) c._tid = ++texId; const key = c._tid + '|' + (srgb ? 1 : 0) + '|' + (rep ? rep.join(',') : '1,1');
+  let t = texCache.get(key); if (!t) { t = texFrom0(c, srgb, rep); texCache.set(key, t); } return t;
+}
+function texFrom0(c, srgb, rep) { const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = Math.min(LITE ? 2 : 8, R.capabilities.getMaxAnisotropy()); if (srgb) t.encoding = T.sRGBEncoding; if (rep) t.repeat.set(rep[0], rep[1]); return t; }
 NC.TexLib = {
   get(name, o = {}) { const key = name + JSON.stringify(o); if (!cache[key]) { const t0 = performance.now(); cache[key] = GEN[name](o); cache[key]._ms = performance.now() - t0; } return cache[key]; },
   /* PBR 머티리얼: NC.mat.pbr('marble', { repeat:[12,10], color, roughness, metalness, gen:{a,b} }) */
@@ -130,12 +138,13 @@ NC.TexLib = {
     const m = new T.MeshStandardMaterial({ roughness: o.roughness ?? 1, metalness: o.metalness ?? 0, envMapIntensity: o.env ?? 1, side: o.side || T.FrontSide, transparent: !!o.transparent, opacity: o.opacity ?? 1 });
     m.color = NC.col(o.color || '#ffffff');
     if (set.map) m.map = texFrom(set.map, true, rep);
-    if (set.normal) { m.normalMap = texFrom(set.normal, false, rep); const ns = o.normalScale ?? 1; m.normalScale.set(ns, ns); }
-    if (set.rough) m.roughnessMap = texFrom(set.rough, false, rep);
+    if (set.normal && !LITE) { m.normalMap = texFrom(set.normal, false, rep); const ns = o.normalScale ?? 1; m.normalScale.set(ns, ns); }
+    if (set.rough && !LITE) m.roughnessMap = texFrom(set.rough, false, rep);
     if (o.emissive) { m.emissive = NC.col(o.emissive); m.emissiveIntensity = o.emissiveIntensity ?? 1; }
     return m;
   },
-  texture(name, kind, o = {}, rep) { const set = this.get(name, o); return texFrom(set[kind], kind === 'map', rep); },
+  texture(name, kind, o = {}, rep) { if (LITE && (kind === 'normal' || kind === 'rough')) return null; const set = this.get(name, o); return texFrom(set[kind], kind === 'map', rep); },
+  stats: () => ({ shared: texCache.size }),
 };
 NC.mat.pbr = (name, o) => NC.TexLib.material(name, o);
 

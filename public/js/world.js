@@ -6,6 +6,7 @@
  *  v15 국빈관식 배치: 북쪽 DJ 단(한 층 더 높게) → 초청가수 무대 → 댄스·블루스 플로어 → 뒤쪽 홀 전체 테이블 16개
  *      ㄷ자 외곽 = 서쪽 노래방 동(+흡연실) · 남쪽 VIP 룸 3개 · 동쪽 바 + 화장실 동
  *  v16: VIP 룸을 2층(4.6m)으로 — 양 끝 계단 → 앞쪽 발코니 복도(유리 난간) → 룸. 1층 그 자리는 「VIP LOUNGE」 파사드
+ *  v25: 무대 양옆 기둥 삭제 · 1층 VIP 4·5(무대 양옆 구석)·VIP 6·7(서쪽 동, 옛 노래방) · 서쪽 계단 → 2층 VIP 라운지(VIP 8~13) · 노래방은 클럽 밖 별도 건물(outside.js)
  *  재질: gfx.js 의 절차적 PBR 텍스처 + 환경맵 반사. 조명: 무빙헤드 볼륨 빔 · 레이저 · 미러볼 반사점 · 연기 · LED 월
  */
 (() => {
@@ -60,8 +61,7 @@ const MAT = {
 /* ── 기본 조명 ── */
 S.background = col('#120c1e');
 S.fog = new T.FogExp2(col('#2a1f44'), .0085);
-S.add(new T.AmbientLight(col('#bfb0ea'), .34));
-S.add(new T.HemisphereLight(col('#d8ccff'), col('#3d2c5c'), .5));
+const ambL = new T.AmbientLight(col('#bfb0ea'), .34), hemiL = new T.HemisphereLight(col('#d8ccff'), col('#3d2c5c'), .5); S.add(ambL, hemiL);   // v28 테마별 밝기 조절용 참조
 if (NC.buildEnv) { S.environment = NC.buildEnv(); }
 // 그림자용 키 라이트 (홀 전체를 덮는 천장 워시)
 const key = new T.SpotLight(col('#ffe9d8'), .75, 60, 1.05, .6, 1.2); key.position.set(0, 10.6, -2); key.target.position.set(0, 0, -5); S.add(key, key.target);
@@ -97,11 +97,10 @@ for (let z = -14; z <= 2; z += 8) for (const s of [-1, 1]) { put(new T.Mesh(box(
   S.add(im, trim); }
 /* v4: 프로시니엄 아치 (무대 액자) + 마키 전구 */
 { const pz = -13.15, velvetCol = pbr('tufted', { repeat: [1, 8], color: '#6a1030', roughness: 1 });
-  for (const s of [-1, 1]) { put(new T.Mesh(box(1.2, 10.2, 1.0), velvetCol), s * 11.9, 5.1, pz); put(new T.Mesh(box(1.3, .12, 1.1), MAT.gold), s * 11.9, .06, pz); put(new T.Mesh(box(.06, 10.2, .06), MAT.gold), s * 11.3, 5.1, pz + .5); W.rects.push([s * 11.9 - .6, pz - .5, s * 11.9 + .6, pz + .5]); }
+  // v25 무대 양옆 기둥 삭제(요청) — 위쪽 밸런스(천장 가림막)와 가로 마키 전구만 남김
   put(new T.Mesh(box(25, 1.3, 1.0), velvetCol), 0, 10.35, pz); put(new T.Mesh(box(25, .08, 1.05), MAT.gold), 0, 9.68, pz);
   const bulbs = [], bulbG = new T.SphereGeometry(.07, 10, 8);
   for (let x = -11.2; x <= 11.2; x += .55) bulbs.push([x, 9.55, pz + .52]);
-  for (const s of [-1, 1]) for (let y = .6; y < 9.4; y += .55) bulbs.push([s * 11.25, y, pz + .52]);
   const bm = new T.InstancedMesh(bulbG, new T.MeshBasicMaterial({ color: 0xffffff }), bulbs.length), o = new T.Object3D(); bulbs.forEach((p, i) => { o.position.set(...p); o.updateMatrix(); bm.setMatrixAt(i, o.matrix); bm.setColorAt(i, new T.Color(3, 2.2, 1.2)); }); S.add(bm); W.marquee = bm; W.marqueeN = bulbs.length; }
 /* v4: 벽·바닥 접합부 AO(부드러운 음영) — 구석이 어두워져 깊이감이 살아남 */
 { const c = document.createElement('canvas'); c.width = 4; c.height = 128; const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.65)'); g.fillStyle = gr; g.fillRect(0, 0, 4, 128);
@@ -170,7 +169,7 @@ const ledMat = new T.MeshBasicMaterial({ map: ledTex }); ledMat.color.setScalar(
  *  경로 바꾸기: NC.config.ledVideo = 'video/my.mp4' · 늘려서 채우기: NC.config.ledVideoFit = 'stretch' */
 const LV = (() => {
   const CAND = (NC.config && NC.config.ledVideo) ? [NC.config.ledVideo] : ['music/background.mp4', 'music/music/background.mp4', 'video/background.mp4'];
-  let vid = null, want = U.store.get('nc_ledVideo2', true) !== false, st = 'off', started = false;
+  let vid = null, want = U.store.get('nc_ledVideo2', !NC.isMobile) !== false, st = 'off', started = false;
   const emit = () => NC.emit && NC.emit('led:video', st);
   const find = k => k >= CAND.length ? Promise.resolve(null) : fetch(CAND[k], { method: 'HEAD', cache: 'no-store' }).then(r => r.ok && !/text\/html/i.test(r.headers.get('content-type') || '') ? CAND[k] : find(k + 1)).catch(() => find(k + 1));
   function load() {
@@ -206,7 +205,12 @@ const LED_W = 19, LED_H = 5.9;
 const vidMat = new T.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }); vidMat.visible = false;
 const vidMesh = put(new T.Mesh(new T.PlaneGeometry(1, 1), vidMat), 0, 4.3, -ROOM.z + .085); vidMesh.renderOrder = 2; vidMesh.userData.dyn = true;
 let vidTex = null, vidAspect = 0;
+/* v28 홀 밖(노래방·VIP·흡연실·거리·로비)이나 백그라운드면 영상 디코딩을 멈춤 → 모바일 CPU·GPU·배터리 절약 */
+let vidAway = false;
 function vidTick() {
+  { const P = NC.player, away = document.hidden || !!(NC.Karaoke && NC.Karaoke.inRoom) || !!(P && P.group && W.extraZones && W.extraZones.some(e => e.test(P.x, P.z)));
+    const v0 = LV.el(); if (away !== vidAway) { vidAway = away; if (v0) { if (away) v0.pause(); else if (LV.state() === 'on' || LV.state() === 'loading') { const p = v0.play(); if (p && p.catch) p.catch(() => {}); } } }
+    if (away) { if (vidMat.visible) vidMat.visible = false; return; } }
   const on = LV.showing() && !(W.ledMsg && performance.now() < W.ledMsg.until); if (!on)   // 전광판 알림(샴페인 쇼 등) 동안엔 알림을 보여 줌
   { if (vidMat.visible) { vidMat.visible = false; } return; }
   const v = LV.el();
@@ -234,6 +238,7 @@ const THEMES = W.THEMES = {
   warm:    { name: '웜 라운지 (반짝임 없음)', h0: .07, h1: .1, sat: .6, lit: .2, spots: ['#ffc890', '#ffb878', '#ffd8a8', '#ffbf80', '#ffe2c0', '#ffc890'], laser: false, beam: .35, speed: .12, led: [28, 38], ledDim: .55, text: 'WARM LOUNGE', haze: ['#ffd0a0', '#ffc090', '#ffe0c0'], fog: '#241a12', glow: ['#ffb070', '#ffcf90'], sparkle: false, spotK: .7 },
   pastel:  { name: '파스텔 드림 (반짝임 없음)', h0: .78, h1: .95, sat: .45, lit: .3, spots: ['#ffb0d8', '#c8b0ff', '#b0d8ff', '#ffc8e0', '#d8c8ff', '#b0e8ff'], laser: false, beam: .45, speed: .15, led: [280, 330], ledSat: 55, ledDim: .7, text: '~ pastel dream ~', haze: ['#ffc8e8', '#d8c8ff', '#c8e0ff'], fog: '#221c2e', glow: ['#ffb0d8', '#b0c8ff'], sparkle: false, spotK: .8 },
   house:   { name: '💡 전등만 (무대 조명 끔)', h0: .1, h1: .1, sat: .05, lit: .18, spots: ['#fff4e6', '#fff4e6', '#fff4e6', '#fff4e6', '#fff4e6', '#fff4e6'], laser: false, beam: 0, speed: 0, led: [35, 35], ledSat: 10, ledDim: .45, text: '추억의 나이트', haze: ['#f0ece6', '#f0ece6', '#f0ece6'], fog: '#1c1a1e', glow: ['#fff1e0', '#fff1e0'], sparkle: false, nostage: true, spotK: 0, keyK: 1.9 },   // v16: 무빙라이트·빔·레이저·헤이즈·미러볼 전부 끄고 실내등만
+  neonMax: { name: '⚡ 강한 네온등 (어두운 무대)', h0: .78, h1: 1.28, sat: 1, lit: .22, spots: ['#ff1fa0', '#00f0ff', '#b026ff', '#39ff14', '#ff2bd6', '#00c8ff'], laser: false, beam: 2.1, speed: 1.35, led: [280, 330], ledDim: .4, text: '⚡ NEON NIGHT ⚡', haze: ['#ff4fd8', '#4fe8ff', '#b04fff'], fog: '#07040e', glow: ['#ff1fa0', '#00f0ff'], sparkle: true, spotK: 2.8, keyK: .12, ambK: .22, washK: 0, sweep: 'stage' },   // v28 어두운 무대를 강한 네온 무빙라이트가 훑음
   white:   { name: '화이트 스포트라이트 (반짝임 없음)', h0: .1, h1: .12, sat: .08, lit: .34, spots: ['#ffffff', '#fff6ea', '#ffffff', '#f4f0ff', '#ffffff', '#fff6ea'], laser: false, beam: .55, speed: 0, led: [40, 40], ledSat: 10, ledDim: .8, text: 'NOSTALGIA · SPOTLIGHT', haze: ['#f0f0f8', '#e8e8f0', '#ffffff'], fog: '#1e1c24', glow: ['#ffffff', '#f0ecff'], sparkle: false, spotK: 1.15, keyK: 1.6 },
 };
 let TH = THEMES.neon;
@@ -241,7 +246,7 @@ W.ledMessage = (text, sec = 8, color) => { W.ledMsg = { text, until: performance
 W.setTheme = id => { const th = THEMES[id]; if (!th) return; TH = th; W.themeId = id; U.store.set('nc_theme2', id);
   spots.forEach((sp, i) => { const c = col(th.spots[i % th.spots.length]); if (sp.L) sp.L.color.copy(c); sp.beam.material.uniforms.color.value.copy(c); sp.head.children[1] && sp.head.children[1].material && sp.head.children[1].material.color.copy(c).multiplyScalar(6); });
   haze.forEach((h, i) => h.sp.material.color.copy(col(th.haze[i % 3]))); S.fog.color.copy(col(th.fog)); glows[0].color.copy(col(th.glow[0])); glows[1].color.copy(col(th.glow[1]));
-  key.intensity = .75 * (th.keyK || 1); W.stageOff = !!th.nostage; NC.emit && NC.emit('theme', id); };
+  key.intensity = .75 * (th.keyK || 1); ambL.intensity = .34 * (th.ambK ?? 1); hemiL.intensity = .5 * (th.ambK ?? 1); stageWash.intensity = 1.6 * (th.washK ?? 1); W.stageOff = !!th.nostage; NC.emit && NC.emit('theme', id); };
 /* v16 LED 월: 10초마다 10가지 영상 중 하나로 랜덤 전환 (이퀄라이저 · 댄서 실루엣 · 신스웨이브 · 파형 · 별빛 터널 · 하트 펄스 · 만화경 · 전광판 · 불꽃놀이 · 체커+미러볼) */
 const LED_MODES = ['이퀄라이저', '댄서 실루엣', '신스웨이브 선셋', '오실로스코프', '별빛 터널', '하트 펄스', '만화경', '전광판 메시지', '불꽃놀이', '디스코 체커'];
 let ledMode = 0, ledNext = 10, ledFade = 1; const fw = [];
@@ -471,7 +476,7 @@ let corridorLight = null, kdoorLight = null;
   mass(WING.east, ROOM.x, 2.9, WING.z1, -1, '#3dd8ff');               // 동쪽: 화장실 동
   mass(18.4, ROOM.x, -ROOM.z, -14.2, -1, '#ffb35a');                  // 동북: 바 창고
   // 서쪽 동 간판
-  { const big = NC.neonSign('🎤 노래방 KARAOKE', 8, 1.3, { font: '900 110px "Malgun Gothic",sans-serif', color: '#fff2fb', glow: '#ff3dbb', ph: 180 }); big.material.color.setScalar(2.2); big.position.set(WING.west + .1, WH + .9, -1); big.rotation.y = Math.PI / 2; S.add(big); }
+  { const big = NC.neonSign('VIP ROOMS · 2F LOUNGE ▲', 8, 1.3, { font: '900 110px "Malgun Gothic",sans-serif', color: '#fff2fb', glow: '#ff3dbb', ph: 180 }); big.material.color.setScalar(2.2); big.position.set(WING.west + .1, WH + .9, -1); big.rotation.y = Math.PI / 2; S.add(big); }
   // 웨이터 스테이션 (통로 가운데 서쪽, VIP 라운지 파사드 앞 — 북쪽을 바라봄)
   { const wx = -10, wz = 11.5;
     put(new T.Mesh(box(1.4, 1.1, .8), MAT.wood), wx, .55, wz); put(new T.Mesh(box(1.5, .05, .9), MAT.marbleDark), wx, 1.12, wz); put(new T.Mesh(box(1.5, .03, .03), M.emi('#ffd23d', 3)), wx, 1.08, wz - .45);
@@ -480,19 +485,20 @@ let corridorLight = null, kdoorLight = null;
   { const bs = NC.neonSign('BOOKING ROAD · 부킹 통로', 7, 1.1, { font: '800 80px "Malgun Gothic",sans-serif', color: '#ffd1ea', glow: '#ff3d9a' }); bs.material.color.setScalar(2); bs.position.set(0, 3.75, 11.9); bs.rotation.y = Math.PI; S.add(bs); }   // v16: VIP 라운지 파사드 위쪽에 부착(2층 유리를 가리지 않게)
   corridorLight = new T.PointLight(col('#ff9ad0'), .9, 24); corridorLight.position.set(0, 4.5, CZ); S.add(corridorLight);
   W.corridorY = CZ;
-  // ★ 노래방 메인 입구 (서쪽 동 가운데)
+  // ★ v25: 옛 노래방 입구 → VIP 7 룸 문 (노래방은 클럽 밖 별도 건물로 이전)
   const dx = WING.west + .06, dz = -1;
   put(new T.Mesh(box(.2, 3.0, 2.4), MAT.gold), dx, 1.5, dz);
   const door = put(new T.Mesh(new T.PlaneGeometry(2.0, 2.7), pbr('tufted', { repeat: [2, 3], color: '#8a1a4a', gen: { leather: true, cells: 3 } })), dx + .12, 1.35, dz); door.rotation.y = Math.PI / 2;
   put(new T.Mesh(box(.05, .05, 2.2), M.emi('#ff5fa8', 4)), dx + .15, 2.8, dz);
-  const ks = NC.neonSign('🎤 노래방 입구', 3.2, .9, { font: '900 120px "Malgun Gothic",sans-serif', color: '#fff2fb', glow: '#ff3dbb', ph: 256 }); ks.material.color.setScalar(2.4); ks.position.set(dx + .14, 3.45, dz); ks.rotation.y = Math.PI / 2; S.add(ks);
+  const ks = NC.neonSign('VIP 7', 2.4, .9, { font: '900 120px "Malgun Gothic",sans-serif', color: '#fff2fb', glow: '#ff3dbb', ph: 256 }); ks.material.color.setScalar(2.4); ks.position.set(dx + .14, 3.45, dz); ks.rotation.y = Math.PI / 2; S.add(ks);
   kdoorLight = new T.PointLight(col('#ff5fc8'), 1.1, 7); kdoorLight.position.set(dx + 1.2, 2.6, dz); S.add(kdoorLight);
-  W.spots.karaokeDoor = { x: dx + 1.1, z: dz };
+  W.spots.karaokeDoor = { x: dx + 1.1, z: dz };   // (호환용) VIP 7 문 앞
+  W.vipDoors = [{ no: 7, x: dx + 1.1, z: dz, ry: Math.PI / 2, color: '#ff5fc8' }];
   // 노래방 룸 문 (장식 · 번호 네온) — 실제 입장은 메인 입구에서 카운터 안내
   const roomDoor = (z, no) => { put(new T.Mesh(box(.14, 2.5, 1.4), MAT.gold), dx, 1.25, z); const d = put(new T.Mesh(new T.PlaneGeometry(1.15, 2.3), pbr('wood', { repeat: [1, 2], roughness: .5, gen: { a: '#2a0f1e', b: '#5a1e3a' } })), dx + .09, 1.15, z); d.rotation.y = Math.PI / 2;
     put(new T.Mesh(box(.04, .3, .3), M.std('#141018', { roughness: .1, metalness: .5, transparent: true, opacity: .7 })), dx + .1, 1.65, z);   // 작은 유리창
-    const n = NC.neonSign(`${no}호`, .9, .4, { font: '900 120px Arial', color: '#fff', glow: '#ff6fd8', ph: 160 }); n.material.color.setScalar(2); n.position.set(dx + .12, 2.65, z); n.rotation.y = Math.PI / 2; S.add(n); };
-  [[-6.5, 1], [3.6, 2], [7.4, 3], [-13.5, 5]].forEach(([z, no]) => roomDoor(z, no));
+    const n = NC.neonSign(String(no), 1.6, .5, { font: '900 120px Arial', color: '#fff', glow: '#ff6fd8', ph: 160 }); n.material.color.setScalar(2); n.position.set(dx + .12, 2.65, z); n.rotation.y = Math.PI / 2; S.add(n); };
+  roomDoor(-6.5, 'VIP 6'); W.vipDoors.push({ no: 6, x: dx + 1.1, z: -6.5, ry: Math.PI / 2, color: '#ff6fd8' });
   // ★ 화장실 (동쪽 동) · 흡연실 (서쪽 동 북쪽)
   const doorAt = (x, z, ry, label, glow) => { put(new T.Mesh(box(.2, 2.8, 1.8), MAT.gold), x, 1.4, z).rotation.y = ry; const dp = put(new T.Mesh(new T.PlaneGeometry(1.5, 2.5), pbr('wood', { repeat: [1, 2], roughness: .5, gen: { a: '#1a100a', b: '#3e2616' } })), x + Math.sin(ry) * .12, 1.25, z + Math.cos(ry) * .12); dp.rotation.y = ry;
     const sg = NC.neonSign(label, 2.4, .6, { font: '900 110px "Malgun Gothic",sans-serif', color: '#ffffff', glow, ph: 220 }); sg.material.color.setScalar(2.2); sg.position.set(x + Math.sin(ry) * .14, 3.05, z + Math.cos(ry) * .14); sg.rotation.y = ry; S.add(sg); };
@@ -500,6 +506,41 @@ let corridorLight = null, kdoorLight = null;
   doorAt(WING.east - .06, 8.6, -Math.PI / 2, '🚺 여자', '#ff5fb0'); W.spots.wroomDoor = { x: WING.east - 1.1, z: 8.6 };
   doorAt(WING.west + .06, -10, Math.PI / 2, '🚬 흡연실', '#ffb03d'); W.spots.smokeDoor = { x: WING.west + 1.1, z: -10 };
   { const rs = NC.neonSign('RESTROOM · 화장실', 4.2, .8, { font: '800 90px "Malgun Gothic",sans-serif', color: '#e8fbff', glow: '#3dd8ff', ph: 200 }); rs.material.color.setScalar(2); rs.position.set(WING.east - .1, WH + .7, 7); rs.rotation.y = -Math.PI / 2; S.add(rs); }
+}
+
+/* ═════ v25 1층 VIP 4·5 (무대 양옆 북쪽 구석) · 2층 VIP 라운지 계단(서쪽 동 앞) ═════
+ *  룸 안은 karaoke.js 의 프라이빗 룸을 'VIP 모드'로 사용(웨이터 호출·부킹·대화) — viprooms.js 가 문 상호작용 담당 */
+{ const WH = 4.6, CZ0 = -ROOM.z, CZ1 = -14.8;
+  const corner = (x0, x1, no, glow) => {
+    put(new T.Mesh(box(x1 - x0, WH, CZ1 - CZ0), MAT.marbleDark), (x0 + x1) / 2, WH / 2, (CZ0 + CZ1) / 2);
+    const fz = CZ1 + .03, cx = (x0 + x1) / 2, L = x1 - x0;
+    put(new T.Mesh(box(L, 1.2, .06), MAT.wood), cx, .6, fz); put(new T.Mesh(box(L, .05, .08), MAT.gold), cx, 1.22, fz);
+    put(new T.Mesh(box(L, .07, .08), M.emi(glow, 3)), cx, WH - .12, fz); put(new T.Mesh(box(L + .1, .14, .1), MAT.gold), cx, WH, fz);
+    put(new T.Mesh(box(1.5, 2.8, .2), MAT.gold), cx, 1.4, fz);
+    const d = put(new T.Mesh(new T.PlaneGeometry(1.25, 2.55), pbr('tufted', { repeat: [1, 3], color: '#4a1a6a', gen: { leather: true, cells: 3 } })), cx, 1.28, fz + .11);
+    put(new T.Mesh(box(1.3, .05, .05), M.emi(glow, 4)), cx, 2.75, fz + .13);
+    const sg = NC.neonSign(`VIP ${no}`, 2.2, .7, { font: '900 140px Arial', color: '#fff', glow, ph: 220 }); sg.material.color.setScalar(2.2); sg.position.set(cx, 3.45, fz + .14); S.add(sg);
+    W.rects.push([x0, CZ0, x1, CZ1]); W.vipDoors.push({ no, x: cx, z: CZ1 + 1.1, ry: 0, color: glow }); void d;
+  };
+  corner(WING.west, -13.9, 4, '#b07cff'); corner(13.9, 18.4, 5, '#ffc46b');
+  // 2층 VIP 라운지 계단: 서쪽 동 파사드를 따라 남쪽으로 올라감 (z 1.0 → 7.0, 높이 0 → 4.6) + 꼭대기 층계참(z 7.0 → 9.4) + 라운지 문
+  const SX0 = WING.west, SX1 = WING.west + 1.3, SZ0 = 1.0, SZ1 = 7.0, LZ1 = 9.4, N = 14, rise = WH / N, run = (SZ1 - SZ0) / N;
+  for (let k = 0; k < N; k++) { const h = rise * (k + 1); put(new T.Mesh(box(SX1 - SX0, h, run), MAT.stageFloor), (SX0 + SX1) / 2, h / 2, SZ0 + run * (k + .5)); put(new T.Mesh(box(SX1 - SX0, .02, .03), M.emi('#ffb35a', 2.5)), (SX0 + SX1) / 2, h + .01, SZ0 + run * k + .03); }
+  put(new T.Mesh(box(SX1 - SX0, WH, LZ1 - SZ1), MAT.marbleDark), (SX0 + SX1) / 2, WH / 2, (SZ1 + LZ1) / 2);
+  const railG = new T.MeshStandardMaterial({ color: col('#d8c8ff'), transparent: true, opacity: .22, roughness: .05, metalness: .3, depthWrite: false, side: T.DoubleSide });
+  { const rl = new T.Mesh(new T.PlaneGeometry(LZ1 - SZ0, 1.0), railG); rl.rotation.y = Math.PI / 2; const sh = new T.Shape(); sh.moveTo(SZ0, 0); sh.lineTo(SZ1, WH); sh.lineTo(LZ1, WH); sh.lineTo(LZ1, WH + 1); sh.lineTo(SZ1, WH + 1); sh.lineTo(SZ0, 1); sh.lineTo(SZ0, 0);
+    const rg = new T.Mesh(new T.ShapeGeometry(sh), railG); rg.rotation.y = -Math.PI / 2; rg.position.set(SX1, 0, 0); S.add(rg); void rl;
+    const hand = new T.CatmullRomCurve3([new T.Vector3(SX1, 1.0, SZ0), new T.Vector3(SX1, WH + 1.0, SZ1), new T.Vector3(SX1, WH + 1.0, LZ1)]);
+    put(new T.Mesh(new T.TubeGeometry(hand, 24, .03, 8), MAT.gold), 0, 0, 0);
+    put(new T.Mesh(box(SX1 - SX0, 1.0, .05), railG), (SX0 + SX1) / 2, WH + .5, LZ1); }
+  // 2층 라운지 문 (서쪽 동 벽면 2층 높이)
+  put(new T.Mesh(box(.2, 2.8, 1.6), MAT.gold), WING.west + .06, WH + 1.4, 8.2);
+  { const d = put(new T.Mesh(new T.PlaneGeometry(1.3, 2.55), pbr('tufted', { repeat: [1, 3], color: '#6a3a10', gen: { leather: true, cells: 3 } })), WING.west + .18, WH + 1.28, 8.2); d.rotation.y = Math.PI / 2;
+    const sg = NC.neonSign('2F VIP LOUNGE', 2.6, .6, { font: '900 110px Arial', color: '#fff3d6', glow: '#ffb35a', ph: 200 }); sg.material.color.setScalar(2.2); sg.position.set(WING.west + .2, WH + 3.0, 8.2); sg.rotation.y = Math.PI / 2; S.add(sg);
+    const up = NC.neonSign('▲ 2F VIP', 1.8, .5, { font: '900 110px Arial', color: '#fff3d6', glow: '#ffb35a', ph: 200 }); up.material.color.setScalar(2.2); up.position.set(WING.west + .2, 2.4, .2); up.rotation.y = Math.PI / 2; S.add(up); }
+  W.rects.push([SX1, SZ0 + .6, SX1 + .1, LZ1], [SX0, LZ1, SX1 + .1, LZ1 + .15]);   // 난간(계단 입구는 북쪽 끝만 열림)
+  W.stairs2F = { x0: SX0, x1: SX1, z0: SZ0, z1: SZ1, lz1: LZ1, h: WH };
+  W.spots.lounge2F = { x: SX0 + .65, z: 8.3, y: WH };
 }
 
 /* ═════ ③ VIP 룸 ═════ */
@@ -597,7 +638,7 @@ W.terraceY = terraceY;
 const vipFloorY = (x, z) => { if (z < BAL_Z || z > ROOM.z) return -1; const ax = Math.abs(x), sx = ROOM.x - STAIR_RUN; if (z < VIP_Z0 && ax > sx) return VY * U.clamp((ROOM.x - LAND - ax) / (STAIR_RUN - LAND), 0, 1); return VY; };
 W.vipFloorY = vipFloorY;
 const DANCE_Y = .108;   // v24 댄스플로어 LED 타일(0.1m)+강화유리 위를 걷도록 — 발목이 바닥에 잠기던 문제
-NC.groundY = (x, z) => { const vy = vipFloorY(x, z); if (vy >= 0) return vy; if (inR(Z.dj, x, z)) return Z.dj.y; if (x < stg.x0 || x > stg.x1 || z < -ROOM.z || z > ROOM.z) return 0; if (z <= stg.z1) return .5; if (z < stg.z1 + .9 && Math.abs(x) < 3) return .5 * (1 - (z - stg.z1) / .9); return inR(Z.dance, x, z) ? DANCE_Y : 0; };
+NC.groundY = (x, z) => { const vy = vipFloorY(x, z); if (vy >= 0) return vy; const st = W.stairs2F; if (st && x >= st.x0 - .05 && x <= st.x1 + .05 && z >= st.z0 && z <= st.lz1) return z >= st.z1 ? st.h : st.h * (z - st.z0) / (st.z1 - st.z0); /* v25 2층 라운지 계단 */ if (inR(Z.dj, x, z)) return Z.dj.y; if (x < stg.x0 || x > stg.x1 || z < -ROOM.z || z > ROOM.z) return 0; if (z <= stg.z1) return .5; if (z < stg.z1 + .9 && Math.abs(x) < 3) return .5 * (1 - (z - stg.z1) / .9); return inR(Z.dance, x, z) ? DANCE_Y : 0; };
 W.locked = i => (NC.roomLockedForMe ? NC.roomLockedForMe(i) : false);
 /* v18 카메라 벽 회피: 플레이어(t)→카메라(p) 사이에 벽(서쪽·동쪽 동, VIP 2층 아래 매스, 바깥 벽)이 있으면 카메라를 그 앞까지 당김
  *  → 무대 쪽을 바라봐도 뒤쪽 벽이 화면을 가리지 않고 홀 전경이 보임 */
@@ -640,7 +681,7 @@ W.update = function (dt, t, agents) {
   const SPK = TH.sparkle !== false, kick = SPK ? 1 - b.phase : .35;   // v15: 반짝임 없는 테마 = 비트 펄스·반사점·깜빡임 정지
   speckPts.visible = SPK; if (!(W.spotBorrowed && W.spotBorrowed())) ballSpot.intensity = SPK ? 1.2 : 0;   // v18: features.js 가 스팟을 빌린 동안은 건드리지 않음 if (SPK) { ball.rotation.y += dt * .5; updateSpecks(ball.rotation.y); }
   const sp = TH.speed, spK = TH.spotK ?? 1, OFF = !!TH.nostage;
-  spots.forEach(s => { const a = t * .55 * sp + s.k * 1.6; s.tg.position.set(Math.cos(a) * 7, 0, -8 + Math.sin(a * 1.3) * 5.5);
+  spots.forEach(s => { const a = t * .55 * sp + s.k * 1.6; if (TH.sweep === 'stage') s.tg.position.set(Math.cos(a) * 8.5 + Math.sin(t * 1.7 + s.k) * 1.5, 0, -12.5 + Math.sin(a * 1.3) * 4.2); else s.tg.position.set(Math.cos(a) * 7, 0, -8 + Math.sin(a * 1.3) * 5.5);
     const dx = s.tg.position.x - s.pos.x, dy = s.tg.position.y - s.pos.y, dz = s.tg.position.z - s.pos.z;
     s.yoke.rotation.y = Math.atan2(dx, dz); s.head.rotation.x = -Math.atan2(-dy, Math.hypot(dx, dz)) + 0; s.head.rotation.x = Math.atan2(-dy, Math.hypot(dx, dz));
     if (s.L) s.L.intensity = (SPK ? 2.2 + Math.sin(t * 3 * sp + s.k) * .5 + kick * .5 * sp : 2.1) * spK; s.beam.visible = !OFF && TH.beam > 0; s.beam.material.uniforms.time.value = t; s.beam.material.uniforms.intensity.value = ((s.L ? .26 : .2) + kick * .1 * sp) * TH.beam; });
@@ -685,7 +726,7 @@ ball.userData.dyn = true; floor.userData.dyn = true;
     const mm = new T.Mesh(out, list[0].material); list.forEach(m => S.remove(m)); S.add(mm); after++; });
   console.info(`[world] 정적 메시 병합 ${before} → ${after}`);
 })();
-W.setTheme(THEMES[U.store.get('nc_theme2', 'house')] ? U.store.get('nc_theme2', 'house') : 'house');   // v22 기본 = 💡 전등만(무대 조명 끔)
+W.setTheme('house');   // v28 접속할 때마다 기본 = 💡 전등만 (지난번 선택을 이어 쓰지 않음)   // v22 기본 = 💡 전등만(무대 조명 끔)
 // 그림자: 바닥·무대는 받기, 큰 가구는 드리우기
 if (Q.shadows) S.children.forEach(o => { if (o.isMesh && !o.material.transparent && !o.isInstancedMesh && o !== floor && !o.userData.dyn) { o.castShadow = true; o.receiveShadow = true; } });
 })();

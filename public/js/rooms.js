@@ -16,7 +16,7 @@ const hidden = [], saved = {};
 function makeRoom(id, label, cx, cz, hx, hz, h) {
   const G = new T.Group(); G.visible = false; S.add(G);
   const R = { id, label, cx, cz, hx, hz, h, G, rects: [], npcs: [], tick: null, spots: [], add(m, x, y, z) { m.position.set(cx + x, y, cz + z); G.add(m); return m; } };
-  W.extraZones.push({ name: id, test: (x, z) => Math.abs(x - cx) < hx + 1 && Math.abs(z - cz) < hz + 1,
+  W.extraZones.push({ name: id, box: { cx, cz, hx, hz, h }, test: (x, z) => Math.abs(x - cx) < hx + 1 && Math.abs(z - cz) < hz + 1,
     collide(p, r) { W.collideRects(p, r, R.rects); p.x = U.clamp(p.x, cx - hx + r, cx + hx - r); p.z = U.clamp(p.z, cz - hz + r, cz + hz - r); } });
   W.zoneLabel[id] = label; return R;
 }
@@ -115,7 +115,7 @@ function enter(R) {
     if (R.id === 'wroom') { const lk = P.group.userData.look; if (lk && lk.gender === 'm') wrEpisode(); else setTimeout(() => NC.bubble && NC.bubble(WR.ladies[0].g, U.pick(['아까 골든벨 오빠 봤어? 완전 내 스타일 ㅋㅋ', '립 뭐 써요? 색 너무 예쁘다~', '오늘 부킹 몇 번 했어? 나 벌써 세 번 ㅋㅋ']), 3), 800); } });
 }
 function leave(R) {
-  const P = NC.player; NC.ui.fade(() => { if (P.seat) NC.requestStand(); const d = R.id === 'restroom' ? W.spots.restroomDoor : R.id === 'wroom' ? W.spots.wroomDoor : W.spots.smokeDoor; P.x = d.x; P.z = d.z; P.ry = R.id === 'smoke' ? Math.PI / 2 : -Math.PI / 2; P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry;
+  const P = NC.player; NC.ui.fade(() => { if (P.seat) NC.requestStand(); const d = R.exitTo || (R.id === 'restroom' ? W.spots.restroomDoor : R.id === 'wroom' ? W.spots.wroomDoor : W.spots.smokeDoor); P.x = d.x; P.z = d.z; P.ry = R.id === 'smoke' ? Math.PI / 2 : -Math.PI / 2; P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry;
     R.G.visible = false; setClub(true, R); borrow(R, false); cur = null; });
 }
 /* ═════ 🚺 여자 화장실 (v14) — 남자가 들어가면 코믹 소동극, 여자면 파우더룸 수다 ═════ */
@@ -181,7 +181,20 @@ NC.tickers.push(dt => {
   if (cur !== WR) return; const near = true; [...WR.ladies.map(l => l.g), WR.ajumma].forEach(g => { if (g.visible) Mo.update(g, dt, { near, speed: 1 }); });
 });
 NC.on && NC.on('room:enter', () => {});
-NC.Rooms = { restroom: RR, smoke: SM, wroom: WR, enter, leave, current: () => cur, wrEpisode, borrowCig: n => borrowCig(n), borrowFire: n => borrowFire(n), smokeFight: n => smokeFight(n), get SF() { return SF; }, initSmokers: () => initSmokers() };
+/* v25 go(R, spot): 방 ↔ 방 ↔ 클럽 이동을 한 번의 페이드로 (클럽 출입구 → 거리 → 노래방 건물 등)
+ *  R = null 이면 클럽으로(spot = { x, z, ry, y }) */
+function go(R, spot, onArrive) {
+  const P = NC.player; if (NC.Dialog && NC.Dialog.cur) NC.Dialog.close('bye');
+  NC.ui.fade(() => {
+    if (P.seat) NC.requestStand();
+    if (cur) { const o = cur; o.G.visible = false; setClub(true, o); borrow(o, false); cur = null; }
+    if (R) { const e = spot || R.entry; P.x = R.cx + e.x; P.z = R.cz + e.z; P.ry = e.ry || 0; P.y = 0; R.G.visible = true; setClub(false, R); borrow(R, true); cur = R; if (R.label) NC.ui.toast(R.enterMsg || `${R.label}`); }
+    else { const e = spot || { x: 0, z: 10.75, ry: 0 }; P.x = e.x; P.z = e.z; P.ry = e.ry || 0; P.y = e.y || 0; }
+    P.target = null; P.autoPath = null; P.group.position.set(P.x, P.y || 0, P.z); P.group.rotation.y = P.ry;
+    onArrive && setTimeout(onArrive, 50);
+  });
+}
+NC.Rooms = { restroom: RR, smoke: SM, wroom: WR, enter, leave, current: () => cur, wrEpisode, make: makeRoom, shell, go, borrowCig: n => borrowCig(n), borrowFire: n => borrowFire(n), smokeFight: n => smokeFight(n), get SF() { return SF; }, initSmokers: () => initSmokers() };
 
 /* 화장실 행동 */
 function useToilet(kind, st) {
@@ -301,7 +314,7 @@ NC.interactProviders.push(() => {
   const P = NC.player, out = []; if (!P.group || P.seat || P.busy) return out;
   if (!cur) { [[W.spots.restroomDoor, RR, '🚹 남자 화장실 가기 (E)'], [W.spots.wroomDoor, WR, '🚺 여자 화장실 가기 (E)'], [W.spots.smokeDoor, SM, '🚬 흡연실 들어가기 (E)']].forEach(([d, R, lb]) => { if (!d) return; const dist = Math.hypot(P.x - d.x, P.z - d.z); if (dist < 2.3) out.push({ label: lb, dist, run: () => enter(R) }); }); return out; }
   const R = cur, lx = P.x - R.cx, lz = P.z - R.cz, near = (o, r = 1.1) => Math.hypot(lx - o.x, lz - o.z) < r;
-  if (near(R.exit, 1.4)) out.push({ label: '🚪 클럽으로 돌아가기 (E)', dist: .5, run: () => leave(R) });
+  if ([RR, WR, SM].includes(R) && near(R.exit, 1.4)) out.push({ label: '🚪 클럽으로 돌아가기 (E)', dist: .5, run: () => leave(R) });
   if (R === RR) {
     RR.stalls.forEach((st, i) => { if (near(st, 1.0) && !st.busy) out.push({ label: `🚽 ${i + 1}번 칸 이용하기 (E)`, dist: .3, run: () => useToilet('stall', st) }); });
     if (P.group.userData.look && P.group.userData.look.gender === 'm') RR.urinals.forEach(u => { if (near(u, .9)) out.push({ label: '🚹 소변기 이용 (E)', dist: .3, run: () => useToilet('urinal') }); });
@@ -310,7 +323,7 @@ NC.interactProviders.push(() => {
   } else if (R === WR) {
     if (!wrBusy) { WR.ladies.forEach(l => { const d = Math.hypot(lx - l.x, lz - l.z); if (d < 1.6) out.push({ label: `💬 ${l.nm}와 수다 떨기 (E)`, dist: d, run: () => { NC.bubble && NC.bubble(l.g, U.pick(['여기 거울 조명 진짜 잘 받죠?', '저 남자 화장실 줄 엄청 길던데 ㅋㅋ', '오늘 DJ 선곡 미쳤다~', '이따 같이 스테이지 나가요!']), 2.6); Mo.play(l.g, 'laugh'); } }); });
       if (Math.abs(lz + 2.6) < 1.0 && Math.abs(lx) < 2.2) out.push({ label: '💄 거울 보고 화장 고치기 (E)', dist: .4, run: mirror }); }
-  } else {
+  } else if (R === SM) {   // v25 거리·노래방·라운지 등 다른 방에선 흡연실 옵션이 뜨지 않게
     SM.tables.forEach(t => { if (near(t, 1.3)) out.push({ label: '🚬 담배 한 대 피우기 (E)', dist: .6, run: smoke }); });
     /* v24.1 E 버튼에는 가장 가까운 동작 하나만 떠서(재떨이 테이블의 '담배 피우기'가 늘 이김) 손님 옵션이 안 보이던 문제
      *  → 흡연 손님 근처에선 「💬 말 걸기」 하나를 최우선으로 띄우고, 누르면 선택 창에서 대화·담배 빌리기·불 빌리기·라이터 빌려주기를 고름 */

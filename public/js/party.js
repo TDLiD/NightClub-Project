@@ -54,6 +54,7 @@ function eligible() {
 function start(mode) {
   const k = K(); if (k && k.inRoom) return NC.ui.toast('노래방 안에서는 쓸 수 없어요 — 클럽 홀로 나와 주세요');
   const prev = PT.mode, all = (NC.npcs || []).filter(n => n.role === 'crowd' || n.role === 'persona');
+  if (NC.Audio && NC.Audio.playPlaylist && mode !== prev) NC.Audio.playPlaylist(mode === 'blues' ? 'blues' : 'euro');   // v26 디스코 타임 = 유로 7곡 · 블루스 타임 = 블루스 곡 자동 재생
   // 디스코 ↔ 블루스 바로 전환: 손님을 자리로 돌려보내지 않고 짝·동작만 다시 배정 (원래 자리 기록은 유지)
   if (prev) PT.members.forEach(n => { n._pair = null; n.huntWith = null; const u = n.g.userData; u.kissK = 0; u.hideLabel = false; u.bluesLead = false; });
   const list = Array.from(new Set(eligible().concat(prev ? PT.members.filter(n => n.party && n.state !== 'talk' && n.state !== 'blues') : [])));
@@ -101,6 +102,7 @@ function pairReady(pr) {
 
 function stop(reason) {
   if (!PT.mode) return; const mode = PT.mode; PT.mode = null; PT.left = 0;
+  if (mode === 'blues' && NC.Audio && NC.Audio.playPlaylist && NC.Audio.pl === 'blues') NC.Audio.playPlaylist('euro');   // 블루스 타임이 끝나면 유로 댄스로
   const A = NC.Audio, k = K();
   if (W.setTheme && PT.prevTheme) W.setTheme(PT.prevTheme);
   if (k && k.BL && k.BL.n && k.BL.prevTheme) k.BL.prevTheme = PT.prevTheme;   // 플레이어가 부르스 중이면 끝날 때 돌아갈 조명도 원래 것으로

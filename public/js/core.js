@@ -8,7 +8,7 @@ const T = window.THREE;
 if (!T) return;
 
 const NC = window.NC = {
-  VERSION: 'v24.1',   // 화면 왼쪽 위에 표시되는 패키지 버전
+  VERSION: 'v30',   // 화면 왼쪽 위에 표시되는 패키지 버전
   THREE: T, $, version: '14.0.0', mode: 'demo', chatEnabled: false, server: false, config: {},
   settings: { name: '', color: 0xff3d9a, look: null, playMode: 'solo' },
   hooks: { beforeStart: [] }, interactProviders: [], tickers: [],
@@ -36,7 +36,10 @@ const U = NC.util = {
  * 밝은 클럽 연출: sRGB 출력 + ACES 톤매핑 + 노출 1.3. 색상은 sRGB hex로 쓰고 col()로 선형 변환.
  */
 const canvas = $('#c');
-const renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+/* v28 모바일 판별(터치 + 작은 화면) — 화질·UI·메모리 정책의 기준 */
+NC.isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)) || Math.min(screen.width, screen.height) < 600;
+if (NC.isMobile) document.documentElement.classList.add('mobile');
+const renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: NC.isMobile ? 'default' : 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 renderer.outputEncoding = T.sRGBEncoding;
 renderer.toneMapping = T.ACESFilmicToneMapping;
@@ -44,7 +47,10 @@ renderer.toneMappingExposure = 1.3;
 const scene = new T.Scene();
 const camera = new T.PerspectiveCamera(55, 1, 0.1, 180);
 Object.assign(NC, { renderer, scene, camera, canvas });
-function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+/* v28 세로 화면: 세로 시야각을 넓혀 가로 시야 ≥ 52° 유지 (폰 세로 모드에서 캐릭터·주변이 잘리지 않게) */
+function resize() { const w = innerWidth, h = innerHeight, a = w / h; renderer.setSize(w, h, false); camera.aspect = a;
+  camera.fov = a >= 1 ? 55 : Math.min(78, Math.max(55, 2 * Math.atan(Math.tan(26 * Math.PI / 180) / a) * 180 / Math.PI));
+  camera.updateProjectionMatrix(); document.documentElement.classList.toggle('portrait', a < 1); }
 addEventListener('resize', resize); resize();
 
 NC.col = c => new T.Color(typeof c === 'string' ? U.hexNum(c, 0xffffff) : c).convertSRGBToLinear();

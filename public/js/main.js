@@ -54,10 +54,10 @@ addEventListener('wheel', e => { if (e.target === NC.canvas) cam.dist = U.clamp(
   const ver = document.createElement('span'); ver.id = 'verTag'; ver.textContent = NC.VERSION || ''; ver.title = '패키지 버전'; const tt = $('#title'); if (tt) tt.appendChild(ver); }
 const ray = new T.Raycaster(), plane = new T.Plane(new T.Vector3(0, 1, 0), 0), pt = { down: false, moved: 0, id: null, x: 0, y: 0 };
 NC.canvas.addEventListener('pointerdown', e => { pt.down = true; pt.moved = 0; pt.id = e.pointerId; pt.x = e.clientX; pt.y = e.clientY; });
-addEventListener('pointermove', e => { if (!pt.down || e.pointerId !== pt.id) return; const dx = e.clientX - pt.x, dy = e.clientY - pt.y; pt.moved += Math.abs(dx) + Math.abs(dy); pt.x = e.clientX; pt.y = e.clientY; cam.yaw -= dx * .006; cam.pitch = U.clamp(cam.pitch + dy * .003, .35, 1.3); });
+addEventListener('pointermove', e => { if (!pt.down || e.pointerId !== pt.id || NC._pinch) return; const dx = e.clientX - pt.x, dy = e.clientY - pt.y; pt.moved += Math.abs(dx) + Math.abs(dy); pt.x = e.clientX; pt.y = e.clientY; cam.yaw -= dx * .006; cam.pitch = U.clamp(cam.pitch + dy * .003, .35, 1.3); });
 addEventListener('pointerup', e => {
   if (!pt.down || e.pointerId !== pt.id) return; pt.down = false;
-  if (pt.moved < 8 && P.group && !P.busy && e.target === NC.canvas) {
+  if (pt.moved < (NC.isMobile ? 16 : 8) && !NC._pinchEnd && P.group && !P.busy && e.target === NC.canvas) {
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
     const v = new T.Vector3(); if (ray.ray.intersectPlane(plane, v)) clickMove(v, ray.ray);
   }
@@ -168,7 +168,13 @@ function frame() {
       if (innerWidth > 800) { let dx = f.tx - f.cx, dz = f.tz - f.cz; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; camTarget.x += -dz * .95; camTarget.z += dx * .95; camPos.x += -dz * .95; camPos.z += dx * .95; } }   // 오른쪽 대화 패널을 피해 인물을 왼쪽에 배치
     else { const tx = P.group.position.x, tz = P.group.position.z, ty = 1.4 + P.y, inner = P.room >= 0 || P.zone === 'karaoke', dist = ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? Math.min(cam.dist, 4.2) : P.room >= 0 ? Math.min(cam.dist, 8) : cam.dist;
       camTarget.set(tx, ty, tz); camPos.set(tx + Math.sin(cam.yaw) * Math.cos(cam.pitch) * dist, ty + Math.sin(cam.pitch) * dist, tz + Math.cos(cam.yaw) * Math.cos(cam.pitch) * dist); camPos.y = Math.min(camPos.y, ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? 2.75 : W.ROOM.h - .5); void inner;
-      if (W.clampCam && !W.extraZones.some(e => e.test(P.x, P.z))) W.clampCam(camTarget, camPos, P.y > 3); }
+      if (W.clampCam && !W.extraZones.some(e => e.test(P.x, P.z))) W.clampCam(camTarget, camPos, P.y > 3);
+      /* v28 실내(노래방·VIP·흡연실·화장실·로비 등): 카메라를 방 상자 안으로 → 벽에 막혀 캐릭터가 안 보이던 문제(특히 세로 화면) */
+      const K = NC.Karaoke, ez = K && K.inRoom ? null : W.extraZones.find(e => e.box && e.test(P.x, P.z)), bx = K && K.inRoom ? K.box : ez && ez.box;
+      if (bx) { const m = .32; camPos.x = U.clamp(camPos.x, bx.cx - bx.hx + m, bx.cx + bx.hx - m); camPos.z = U.clamp(camPos.z, bx.cz - bx.hz + m, bx.cz + bx.hz - m); camPos.y = Math.min(camPos.y, (bx.h || 3.2) - .22);
+        /* 벽에 막혀 카메라가 너무 붙으면(드래그 중이 아닐 때) 방 가운데 쪽으로 시점을 천천히 돌림 */
+        const hd = Math.hypot(camPos.x - tx, camPos.z - tz), want = Math.cos(cam.pitch) * dist;
+        if (!pt.down && hd < want * .6) cam.yaw = U.lerpAngle(cam.yaw, Math.atan2(bx.cx - tx, bx.cz - tz), Math.min(1, dt * 1.6)); } }
     camera.position.lerp(camPos, Math.min(1, dt * (f ? 3 : 6))); NC._look = NC._look || camTarget.clone(); NC._look.lerp(camTarget, Math.min(1, dt * 6)); camera.lookAt(NC._look);
     const doorOpen = P.room >= 0 ? W.vip[P.room].door.open : 0;
     NC.Audio.update(P, Math.atan2(camera.position.x - P.x, camera.position.z - P.z), P.zone, doorOpen);

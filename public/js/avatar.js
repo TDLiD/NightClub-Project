@@ -57,8 +57,38 @@ function randomLook(seed, gender) {
     else Object.assign(o.face, { eyeSize: .74 + r() * .12, browThick: .7 + r() * 1.0, browTilt: (r() - .5) * .5, jaw: 1.08 + r() * .1, faceW: 1.02 + r() * .06, nose: 1.15 + r() * .2, eyeGap: .03 + r() * .03, mole: r() < .6 ? [(r() - .5) * .9, .2 + r() * .4] : null });
     o.muscle = r() < .3 ? .6 + r() * .4 : r() * .25;
   }
-  // v17 K-pop 스테이지 룩: 여성 45% · 남성 35% 손님이 아이돌 무대 스타일(블랙 스테이지 패션 · 아이돌 헤어 · 무대 메이크업)
-  if (r() < (f ? .45 : .35)) applyIdol(o, r, f);
+  if (!f) {   // v25 남성 실사 의상: 원색 랜덤 대신 실제 남성복 팔레트(네이비·차콜·블랙·베이지·올리브·데님) · 무지 위주 · 청바지/치노/슬랙스 · 가죽 구두/스니커즈
+    const OUTFITS = [
+      { top: 'jacket', tops: ['#1f2a44', '#2b2d33', '#3a3f47', '#4a3b2c', '#20242a'], inner: 'tee', inners: ['#f2f0ea', '#1c1c20', '#d9d4c8'], bots: ['#2c3e5c', '#1d2533', '#141418'], shoes: ['#1a1412', '#3a2418'] },   // 블레이저 + 티 + 청바지
+      { top: 'shirt', tops: ['#f3f1ec', '#cfd8e6', '#e9e2d4', '#2d3e5e', '#1b1b1f'], bots: ['#2c3e5c', '#c2b29a', '#33363c'], shoes: ['#1a1412', '#5a3a22', '#f2f2f2'] },                                             // 셔츠 + 청바지/치노
+      { top: 'tee', tops: ['#f4f4f2', '#1a1a1d', '#3b4a3a', '#6a6f78', '#7a2e33'], bots: ['#2c3e5c', '#1d2533', '#5b5f66'], shoes: ['#f2f2f2', '#1a1a1d'] },                                                     // 무지 티 + 청바지 + 스니커즈
+      { top: 'overshirt', tops: ['#4a5a3a', '#6b4b33', '#2f3b52', '#3a3a3e', '#8a7a5a'], inner: 'tee', inners: ['#f2f0ea', '#1c1c20'], bots: ['#1d2533', '#c2b29a', '#141418'], shoes: ['#3a2418', '#f2f2f2'] },       // 오버셔츠(셔켓) 레이어드
+      { top: 'jacket', setup: true, tops: ['#1b2236', '#26282e', '#3a3c42'], inner: 'tee', inners: ['#f4f2ee'], bots: null, shoes: ['#120e0c'] },                                                                         // 수트 셋업
+    ];
+    const ot = pick(OUTFITS); o.top = ot.top; o.topColor = pick(ot.tops); o.inner = ot.inner || o.inner; if (ot.inners) o.innerColor = pick(ot.inners);
+    o.setup = !!ot.setup; o.bottom = r() < .08 ? 'shorts' : 'pants'; o.bottomColor = ot.bots ? pick(ot.bots) : o.topColor;
+    o.fit = r() < .7 ? 'skinny' : 'wide'; o.oversize = r() < .15; o.set = false; o.pattern = r() < .82 ? 'solid' : pick(['stripe', 'plaid', 'solid']);
+    o.shoes = 'sneakers'; o.shoeColor = pick(ot.shoes); o.hat = r() < .12 ? o.hat : null; o.hatColor = pick(['#1a1a1d', '#2b2d33', '#4a3b2c']); o.necklace = r() < .12; o.realWear = true;
+  }
+  if (f) {   // v28 여성 실사 의상: 원색 랜덤 대신 실제 여성복 조합(블라우스·니트·원피스·트렌치/블레이저·크롭+데님·카디건) · 무광 원단 · 자연스러운 메이크업
+    const OUTFITS_F = [
+      { top: 'shirt', tops: ['#f4efe6', '#e8d9c8', '#cfd8e6', '#f2e2e6', '#2d2a30', '#e6e9df'], bottom: 'skirt', bots: ['#1d2533', '#2b2d33', '#c2b29a', '#6b4b3a', '#8a7a68'] },          // 블라우스 + 스커트
+      { top: 'tee', oversize: true, tops: ['#e9e1d3', '#b9a48a', '#7a8a72', '#c8a8a0', '#3a3a40', '#d8d0e0'], bottom: 'pants', fit: 'wide', bots: ['#2c3e5c', '#1d2533', '#e8e0d0', '#4a4a50'] },   // 니트 + 와이드 팬츠/데님
+      { top: 'dress', tops: ['#1a1a1d', '#5a2a3a', '#2f3b52', '#7a4a3a', '#e8dccb', '#3a4a3a', '#6a5a7a'], bottom: 'skirt', same: true },                                                  // 원피스
+      { top: 'jacket', tops: ['#c8b49a', '#2b2d33', '#e8e2d8', '#4a3b2c', '#6a6f78'], inner: 'tee', inners: ['#f4f2ee', '#1c1c20', '#e8d8c8'], bottom: 'pants', bots: ['#2c3e5c', '#141418', '#e8e0d0'] },   // 트렌치/블레이저 + 팬츠
+      { top: 'crop', tops: ['#f4f4f2', '#1a1a1d', '#c8a0a8', '#a8b8c8'], bottom: 'pants', fit: 'wide', bots: ['#2c3e5c', '#1d2533', '#3a5070'] },                                          // 크롭 탑 + 데님
+      { top: 'overshirt', tops: ['#d8c8b0', '#8a7a5a', '#3a3f47', '#b0a0c0', '#c89a8a'], inner: 'tee', inners: ['#f4f2ee', '#1c1c20'], bottom: 'skirt', bots: ['#1d2533', '#6b4b3a', '#2b2d33'] },     // 카디건/셔켓 + 스커트
+    ];
+    const ot = pick(OUTFITS_F); o.top = ot.top; o.topColor = pick(ot.tops); o.inner = ot.inner || o.inner; if (ot.inners) o.innerColor = pick(ot.inners);
+    o.bottom = ot.bottom === 'pants' && r() < .2 ? 'skirt' : ot.bottom; o.bottomColor = ot.same ? o.topColor : pick(ot.bots || ['#1d2533']); if (ot.fit) o.fit = ot.fit; o.oversize = !!ot.oversize && r() < .7;
+    o.setup = false; o.set = false; o.pattern = r() < .84 ? 'solid' : pick(['stripe', 'plaid']); o.mini = o.bottom === 'skirt' && r() < .35;
+    o.shoes = r() < .55 ? 'boots' : 'sneakers'; o.shoeColor = pick(['#1a1412', '#3a2418', '#f2f2f2', '#141214', '#8a6a4a']); o.hat = r() < .12 ? pick(['beret', 'cap', 'fedora']) : null; o.hatColor = pick(['#1a1a1d', '#c8b49a', '#4a3b2c', '#e8e2d8']);
+    o.necklace = r() < .45; o.realWear = true;
+    if (o.hairColor && VIVID_HAIR.includes(o.hairColor) && r() < .7) o.hairColor = pick(HAIRC);
+    Object.assign(o.face, { eyeSize: .9 + r() * .16, liner: .25 + r() * .45, blush: .14 + r() * .2, lipColor: pick(['#c4646a', '#b85a5e', '#d07a7a', '#a84a52', '#c8706a', '#9a3a4a']), shadow: r() < .6 ? pick(['#b88a74', '#a07a8a', '#c09080', '#8a6a5a']) : null });
+  }
+  // v17 K-pop 스테이지 룩 (v28: 여성 45%→15% · 남성 35%→12% — 나머지는 실사 일상복)
+  if (r() < (f ? .15 : .12)) applyIdol(o, r, f);
   return o;
 }
 const IDOL_F = [   // [상의, 하의, 신발, 모자] — 블랙 톤 무대 의상 조합
@@ -101,12 +131,15 @@ function mergeLook(seed, gender, look) {
   o.face = Object.assign({}, base.face, look && look.face ? plain : {}, (look && look.face) || {});
   if (o.gender === 'm' && look && look.face && typeof look.face.attractive === 'boolean') Object.assign(o.face, look.face.attractive   // v14: 지정한 미남/개성파 얼굴형
     ? { eyeSize: 1.06, browThick: 1.25, browTilt: .05, jaw: 1.03, faceW: .93, nose: .92, eyeGap: 0 } : { eyeSize: .78, browThick: 1.4, browTilt: .2, jaw: 1.14, faceW: 1.06, nose: 1.28, eyeGap: .05 }, look.face);
+  if (o.gender === 'm' && !o.idol && look && (look.topColor || look.bottomColor)) {   // v25 지정 색상도 남성(비아이돌)은 실제 옷감 색으로 차분하게(채도↓)
+    const tame = (hex, maxS = .42, lo = .14, hi = .82) => { if (!hex || typeof hex !== 'string') return hex; const c = new NC.THREE.Color(hex), h = {}; c.getHSL(h); return '#' + c.setHSL(h.h, Math.min(h.s, maxS), Math.max(lo, Math.min(hi, h.l))).getHexString(); };
+    o.topColor = tame(o.topColor); o.bottomColor = tame(o.bottomColor, .35, .1, .7); o.realWear = true; if (o.pattern === 'leopard' || o.pattern === 'graphic') o.pattern = 'solid'; }
   return originalize(o);
 }
 
 /* ───────── 스타일라이즈드(v4) 비율 ─────────
  * 큰 두상·큰 눈·작은 코/입·가는 목·긴 다리의 3D 캐릭터 스타일. TOON=false 로 바꾸면 v3 실사 비율로 돌아감 */
-const TOON = true, HEAD_S = TOON ? 1.15 : 1, EYE_K = TOON ? 1.5 : 1.3;   // v17: 아이돌 비율 — 두상 1.32→1.15 · 다리 6% 길게 (8등신에 가깝게)   // v12: 실사형 글래머 비율(두상 1.8→1.32 · 눈 1.85→1.5)
+const TOON = false, HEAD_S = TOON ? 1.15 : 1.07, EYE_K = TOON ? 1.5 : 1.3;   // v17: 아이돌 비율 — 두상 1.32→1.15 · 다리 6% 길게 (8등신에 가깝게)   // v12: 실사형 글래머 비율(두상 1.8→1.32 · 눈 1.85→1.5)
 /* ───────── 얼굴 텍스처 ───────── */
 const FW = 1024, FH = 512, K = FW / (Math.PI * 2);
 const EXPR = {
@@ -340,8 +373,18 @@ function patternTex(kind, color) {
     const r = U.rng(77); g.fillStyle = color; g.fillRect(0, 0, S, S);
     for (let i = 0; i < 9; i++) { g.strokeStyle = ['#ff5fa8', '#ffffff', '#c8a0ff', '#ff3d6a'][i % 4]; g.lineWidth = 5 + r() * 9; g.lineCap = 'round'; g.globalAlpha = .75; g.beginPath(); g.moveTo(r() * S, r() * S); g.bezierCurveTo(r() * S, r() * S, r() * S, r() * S, r() * S, r() * S); g.stroke(); }
     g.globalAlpha = .95; g.fillStyle = '#ffffff'; g.font = 'italic 900 46px Arial'; g.textAlign = 'center'; g.save(); g.translate(S / 2, S / 2); g.rotate(-.3); g.fillText('WILD', 0, -8); g.fillStyle = '#ff5fa8'; g.fillText('ONE', 10, 40); g.restore(); g.globalAlpha = 1; }
+  else if (kind === 'floral') {   // v30 잔꽃무늬(네이비 바탕 + 분홍·파랑 꽃 + 잎)
+    const r = U.rng(41); g.fillStyle = color; g.fillRect(0, 0, S, S);
+    for (let i = 0; i < 70; i++) { const x = r() * S, y = r() * S, k = r(); g.fillStyle = k < .62 ? ['#e86a9a', '#f08ab0', '#d8508a'][i % 3] : k < .82 ? '#5a8ad8' : '#f4d8e4';
+      for (let p = 0; p < 5; p++) { const a = p / 5 * Math.PI * 2; g.beginPath(); g.arc(x + Math.cos(a) * 3.2, y + Math.sin(a) * 3.2, 2.6, 0, 7); g.fill(); } g.fillStyle = '#ffe9a0'; g.beginPath(); g.arc(x, y, 1.4, 0, 7); g.fill();
+      g.fillStyle = '#4a8a5a'; g.beginPath(); g.ellipse(x + 7, y + 4, 3.5, 1.5, .6, 0, 7); g.fill(); } }
+  else if (kind === 'cord') { g.fillStyle = color; g.fillRect(0, 0, S, S); for (let x = 0; x < S; x += 8) { g.fillStyle = 'rgba(0,0,0,.16)'; g.fillRect(x, 0, 3, S); g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(x + 4, 0, 2, S); } }   // 코듀로이 골
+  else if (kind === 'knit') { g.fillStyle = color; g.fillRect(0, 0, S, S); for (let y = 0; y < S; y += 10) for (let x = 0; x < S; x += 10) { g.fillStyle = 'rgba(0,0,0,.07)'; g.beginPath(); g.ellipse(x + 3, y + 5, 2.4, 4.4, .5, 0, 7); g.fill(); g.beginPath(); g.ellipse(x + 7, y + 5, 2.4, 4.4, -.5, 0, 7); g.fill(); } }   // 니트 짜임
+  else if (kind === 'paisley') { g.fillStyle = color; g.fillRect(0, 0, S, S); g.strokeStyle = '#f4f2ee'; g.fillStyle = '#f4f2ee'; g.lineWidth = 2.2;   // 페이즐리 반다나
+    for (let y = 0; y < S; y += 64) for (let x = (y / 64 % 2) * 32; x < S; x += 64) { g.beginPath(); g.ellipse(x + 20, y + 26, 9, 15, .6, 0, 7); g.stroke(); g.beginPath(); g.arc(x + 14, y + 36, 3, 0, 7); g.fill(); for (let k = 0; k < 6; k++) { g.beginPath(); g.arc(x + 44 + Math.cos(k) * 7, y + 48 + Math.sin(k) * 7, 1.6, 0, 7); g.fill(); } }
+    g.lineWidth = 4; g.strokeRect(4, 4, S - 8, S - 8); }
   const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.encoding = T.sRGBEncoding; t.anisotropy = 4;
-  if (kind === 'monogram') t.repeat.set(3, 3);
+  if (kind === 'monogram') t.repeat.set(3, 3); if (kind === 'floral') t.repeat.set(5, 4); if (kind === 'cord') t.repeat.set(5, 1); if (kind === 'knit') t.repeat.set(5, 5); if (kind === 'paisley') t.repeat.set(1.5, 1.5);
   if (kind === 'plaid' || kind === 'leopard') t.repeat.set(4, 2); else if (kind === 'stripe') t.repeat.set(1, 3); return patCache[key] = t;
 }
 /* v17 무대 의상 재질: 광택 가죽/비닐(클리어코트) · 튤(반투명 망사) */
@@ -470,13 +513,14 @@ function create(o = {}) {
   const body = new T.Group(); fig.add(body);
   const hipH = TOON ? 1.06 : .965, hips = new T.Group(); hips.position.y = hipH; body.add(hips);
   const torso = new T.Group(); hips.add(torso);
-  const shiny = look.top === 'dress' ? { roughness: .32, metalness: .28 } : look.top === 'jacket' ? { roughness: .45, metalness: .1 } : { roughness: .6 };
-  const pat = look.top === 'dress' ? (look.pattern === 'leopard' ? 'leopard' : 'solid') : look.pattern;
+  const shiny = look.realWear ? { roughness: .82, metalness: 0 } : look.top === 'dress' ? { roughness: .32, metalness: .28 } : look.top === 'jacket' ? { roughness: .45, metalness: .1 } : { roughness: .6 };   // v25 남성 실사 의상 = 무광 울·면
+  const pat = look.top === 'dress' ? (['leopard', 'floral'].includes(look.pattern) ? look.pattern : 'solid') : look.pattern;
   const LEATHER_TOP = look.top === 'halter' || look.top === 'stageJacket';
   const mSkin = skinMat(look.skin), mTop = LEATHER_TOP ? leatherMat(look.topColor) : clothMat(look.topColor, look.top === 'dress' ? 'sequin' : 'fabric', Object.assign({ pattern: pat }, shiny)), mBot = look.bottom === 'cargo' ? clothMat(look.bottomColor, 'fabric', { roughness: .85 }) : clothMat(look.bottomColor, 'denim', { roughness: .8 }),
-    mShoe = std(TOON ? (look.shoeColor || '#f4f4f6') : '#141018', { roughness: TOON ? .5 : .22, metalness: TOON ? 0 : .3 }), mHair = std(look.hairColor, { roughness: TOON ? .34 : .42, metalness: .05, side: T.DoubleSide }),
+    mShoe = std(look.shoeColor || (TOON ? '#f4f4f6' : '#141018'), { roughness: look.shoes === 'sandals' ? .25 : .5, metalness: look.shoes === 'sandals' ? .8 : 0 }), mHair = std(look.hairColor, { roughness: TOON ? .34 : .42, metalness: .05, side: T.DoubleSide }),
     mSleeve = look.top === 'vest' ? std('#f4f2ee') : mTop;
   if (look.set && look.pattern && look.pattern !== 'solid' && look.bottom !== 'skirt') { mBot.map = patternTex(look.pattern, look.topColor); mBot.color.setRGB(1, 1, 1); }   // 상하 같은 패턴 셋업
+  if (look.bottomPattern) { mBot.map = patternTex(look.bottomPattern, look.bottomColor); mBot.color.setRGB(1, 1, 1); }   // v30 하의 패턴(코듀로이 등)
   const mRip = look.fit === 'ripped' ? (() => { const m = clothMat(look.bottomColor, 'denim', { roughness: .85 }); m.map = ripTex(look.bottomColor); m.color.setRGB(1, 1, 1); return m; })() : null;
   // 몸통
   const curveK = y => f ? (y > .28 && y < .44 ? 1 + .07 * CV : y > .1 && y < .2 ? 1 - .07 * CV : y > -.08 && y < .06 ? 1 + .09 * CV : 1) : (y > .36 ? 1 + .1 * (CV - .5) + .16 * MU : y > .22 ? 1 + .13 * MU : y > .08 && y < .2 ? 1 - .02 * MU : 1);
@@ -498,12 +542,27 @@ function create(o = {}) {
   if (look.chain) { const cm = G('chainM', () => std('#dcdce6', { metalness: 1, roughness: .18 })); const c1 = mesh(G('chain1', () => new T.TorusGeometry(.085, .0035, 5, 30)), cm, 0, .47, .04); c1.rotation.x = Math.PI / 2 - .55; c1.scale.set(1, 1.2, 1); torso.add(c1);
     torso.add(mesh(G('box', () => new T.BoxGeometry(1, 1, 1)), cm, 0, .395, .1 * B, .016, .022, .005)); }
   if ((look.top === 'jacket' || over) && look.inner === 'turtle') { const tn = mesh(cyl(.05, .056, .1), clothMat(look.innerColor || '#2a2a2e', 'fabric'), 0, .56, .004); torso.add(tn); }
+  if (look.bandana) {   // v30 반다나(목에 묶은 삼각 스카프) — 매듭 + 양쪽 끝자락
+    const bm = clothMat(look.bandana.color || '#1f2a44', 'fabric', { pattern: look.bandana.pattern || 'paisley', roughness: .8 });
+    const ring = mesh(G('bandR', () => new T.TorusGeometry(.058, .016, 8, 26)), bm, 0, .545, .006, 1.05, 1, .9); ring.rotation.x = Math.PI / 2 - .12; torso.add(ring);
+    torso.add(mesh(sph(), bm, 0, .53, .07, .024, .02, .018));
+    for (const sd of [-1, 1]) { const tl = mesh(G('bandT', () => { const sh = new T.Shape(); sh.moveTo(-.022, 0); sh.lineTo(.022, 0); sh.lineTo(0, -.07); sh.closePath(); return new T.ShapeGeometry(sh); }), bm, sd * .022, .525, .084); tl.rotation.set(-.25, 0, sd * .55); tl.material.side = T.DoubleSide; torso.add(tl); } }
+  if (look.sailor && (look.top === 'jacket' || look.top === 'shirt')) {   // v30 세일러 칼라: 뒤판 사각 칼라 + 앞 V 라펠 + 트림 라인
+    const tm = std(look.sailor.trim || '#e8a6c4', { roughness: .6 }), cm = mTop, box = G('box', () => new T.BoxGeometry(1, 1, 1));
+    const back = mesh(box, cm, 0, .47, -.098 * B, .25 * B, .15, .008); back.rotation.x = .28; torso.add(back);
+    const bt = mesh(box, tm, 0, .4, -.118 * B, .22 * B, .006, .009); bt.rotation.x = .28; torso.add(bt);
+    for (const sd of [-1, 1]) { const lp = mesh(box, cm, sd * .06, .45, .108 * B, .05, .19, .008); lp.rotation.set(-.3, sd * .3, sd * .5); torso.add(lp);
+      const tr = mesh(box, tm, sd * .072, .445, .118 * B, .006, .19, .009); tr.rotation.set(-.3, sd * .3, sd * .5); torso.add(tr); } }
+  if (look.bag) {   // v30 크로스백: 대각선 가죽 끈(앞·뒤) + 반대쪽 골반의 작은 가방
+    const lm = std(look.bag.color || '#8a5a2e', { roughness: .55 }), box = G('box', () => new T.BoxGeometry(1, 1, 1));
+    for (const zz of [1, -1]) { const st = mesh(box, lm, 0, .27, zz * .122 * B, .016, .62, .006); st.rotation.z = zz * -.62; torso.add(st); }
+    torso.add(mesh(box, lm, -.19 * B, .03, .03, .035, .13, .1)); }
   if (look.necklace) { const nk = mesh(G('neck', () => new T.TorusGeometry(.068, .004, 6, 28)), G('neckM', () => std('#e8c56a', { metalness: .95, roughness: .2 })), 0, .5, .028); nk.rotation.x = Math.PI / 2 - .5; nk.scale.set(1, 1.15, 1); torso.add(nk); }
   if (over) { const shell = mesh(G('over' + PK, () => new T.LatheGeometry(prof.filter(v => v.y >= -.12).map(v => new T.Vector2(v.x * 1.06, v.y)), 22, Math.PI * .14, Math.PI * 1.72)), mTop); shell.scale.z = .7; shell.material.side = T.DoubleSide; torso.add(shell);
     const col2 = mesh(G('collar', () => new T.TorusGeometry(.06, .014, 6, 14)), mTop, 0, .54, -.005, 1.15, .8, 1); col2.rotation.x = Math.PI / 2; torso.add(col2); }
   if (look.top === 'jacket' || look.top === 'vest' || look.top === 'stageJacket') {   // V넥 안쪽 셔츠
     const vg = G('vneck', () => { const sh = new T.Shape(); sh.moveTo(-.07, .17); sh.lineTo(.07, .17); sh.lineTo(0, -.06); sh.closePath(); return new T.ShapeGeometry(sh); });
-    const inner = mesh(vg, std(look.top === 'vest' ? '#f4f2ee' : look.top === 'stageJacket' ? (look.innerColor || '#141016') : (f ? '#f2e6ee' : '#f4f2ee')), 0, .36, .112); inner.rotation.x = -.22; torso.add(inner); }
+    const inner = mesh(vg, look.sailor ? mSkin : std(look.top === 'vest' ? '#f4f2ee' : look.top === 'stageJacket' ? (look.innerColor || '#141016') : (f ? '#f2e6ee' : '#f4f2ee')), 0, .36, .112); inner.rotation.x = -.22; torso.add(inner); }
   if (look.top === 'vest') { const bt = std('#0d0b10'); for (const s of [-1, 1]) { const w = mesh(G('cone', () => new T.ConeGeometry(1, 1, 4)), bt, s * .028, .5, .12, .022, .04, .012); w.rotation.z = s * Math.PI / 2; w.position.y = .505; w.position.z = .118; torso.add(w); } }
   if (look.top === 'shirt') { const col = mesh(G('collar', () => new T.TorusGeometry(.06, .014, 6, 14)), mTop, 0, .54, .01, 1, .75, 1); col.rotation.x = Math.PI / 2; torso.add(col); }
   if (f) {   // v12: 여성 실루엣 — 가슴 볼륨(의상 재질), 크기는 CV(글래머)
@@ -526,7 +585,7 @@ function create(o = {}) {
     [[.3, .24, 0], [.33, .22, .015], [.36, .2, .03]].forEach(([fl, len, dy], k) => { const m = mesh(G('tutu' + k + B.toFixed(2), () => new T.LatheGeometry([[.17 * B, .04 - dy], [.22 * B, -.04 - dy], [fl * B, -len - dy]].map(([a, b]) => new T.Vector2(a, b)), 26)), tulleMat()); m.scale.z = .82; m.userData.noMerge = true; skirt.add(m); });
     const lin = mesh(G('tutuL' + B.toFixed(2), () => new T.LatheGeometry([[.172 * B, .05], [.2 * B, -.06], [.22 * B, -.14]].map(([a, b]) => new T.Vector2(a, b)), 22)), std('#0d0b10', { roughness: .6, side: T.DoubleSide })); lin.scale.z = .8; lin.userData.noMerge = true; skirt.add(lin); }
   if (look.bottom === 'leather') { skirt = mesh(G('skL' + B.toFixed(2), () => new T.LatheGeometry([[.172 * B, .05], [.2 * B, -.08], [.235 * B, -.2], [.24 * B, -.22]].map(([a, b]) => new T.Vector2(a, b)), 22)), mSkirtL); skirt.material.side = T.DoubleSide; skirt.scale.z = .8; skirt.userData.noMerge = true; hips.add(skirt); }
-  if (look.bottom === 'skirt') { const len = look.top === 'dress' ? (look.mini ? .27 : .44) : (look.mini ? .23 : .34); skirt = mesh(G('sk' + len + B.toFixed(2), () => new T.LatheGeometry([[.172 * B, .05], [.2 * B, -.1], [.25 * B, -len + .04], [.262 * B, -len]].map(([a, b]) => new T.Vector2(a, b)), 22)), look.top === 'dress' ? mTop : std(look.bottomColor, { roughness: .5, side: T.DoubleSide })); skirt.material.side = T.DoubleSide; skirt.scale.z = .8; skirt.userData.noMerge = true; hips.add(skirt); }
+  if (look.bottom === 'skirt') { const len = look.top === 'dress' ? (look.maxi ? .7 : look.mini ? .27 : .44) : (look.mini ? .23 : look.maxi ? .6 : .34); skirt = mesh(G('sk' + len + B.toFixed(2), () => new T.LatheGeometry([[.172 * B, .05], [.2 * B, -.1], [(len > .5 ? .29 : .25) * B, -len + .04], [(len > .5 ? .305 : .262) * B, -len]].map(([a, b]) => new T.Vector2(a, b)), 22)), look.top === 'dress' ? mTop : std(look.bottomColor, { roughness: .5, side: T.DoubleSide })); skirt.material.side = T.DoubleSide; skirt.scale.z = .8; skirt.userData.noMerge = true; hips.add(skirt); }
   // 목 · 머리
   const neck = new T.Group(); neck.position.y = .55; torso.add(neck);
   neck.add(TOON ? mesh(cyl(f ? .036 : .044 * (1 + .3 * MU), f ? .046 : .054 * (1 + .3 * MU), .15), mSkin, 0, .05, .005) : mesh(cyl(.046, .054, .12), mSkin, 0, .04, .005));
@@ -549,7 +608,7 @@ function create(o = {}) {
   const mHair2 = look.hair2 ? std(look.hair2, { roughness: .32, metalness: .05, side: T.DoubleSide }) : null;   // v17 투톤(브릿지) 헤어
   buildHair(skull, look, mHair, r, mHair2);
   if (F.glasses) {
-    const gm = std('#141418', { metalness: .6, roughness: .3 }), gl = new T.Group(); head.add(gl); gl.position.set(0, .095, .012);
+    const gm = std(F.glassesColor || '#141418', { metalness: F.glassesColor ? .1 : .6, roughness: .3 }), gl = new T.Group(); head.add(gl); gl.position.set(0, .095, .012);
     const ex = EXL, ls = TOON ? 1.45 : 1;
     for (const s of [-1, 1]) { const p = onHead(s * ex, EYL, 1); const ring = mesh(G('lens', () => new T.TorusGeometry(.024, .0028, 6, 22)), gm, p.x * sx, p.y * sy, p.z * sz + .012); ring.scale.set(1.15 * ls, .85 * ls, 1); gl.add(ring);
       const arm = mesh(G('box', () => new T.BoxGeometry(1, 1, 1)), gm, s * .052, .004, -.03, .003, .004, .1); gl.add(arm); }
@@ -560,16 +619,22 @@ function create(o = {}) {
     for (const s of [-1, 1]) { const p = onHead(s * EXL, EYL, 1.0); const lens = mesh(sph(), lm, p.x * sx, p.y * sy, p.z * sz + .012, .027, .017, .005); gl.add(lens); gl.add(mesh(G('box', () => new T.BoxGeometry(1, 1, 1)), fm, s * .08, p.y * sy + .01, -.01, .004, .005, .1)); }
     gl.add(mesh(G('box', () => new T.BoxGeometry(1, 1, 1)), fm, 0, onHead(0, EYL).y * sy + .012, r * sz + .014, .03, .005, .004));
   }
-  if (look.hat && TOON) {   // 모자 (두개골 그룹 안 → 머리 비율 그대로)
+  if (look.hat) {   // 모자 (v30: 실사 비율에서도 표시) (두개골 그룹 안 → 머리 비율 그대로)
     const hm = std(look.hatColor || '#222', { roughness: .75 }), hg = new T.Group(); skull.add(hg);
     if (look.hat === 'cap') { hg.add(mesh(G('capd', () => new T.SphereGeometry(r * 1.14, 28, 14, 0, Math.PI * 2, 0, Math.PI * .5)), hm)); const brim = mesh(G('capb', () => new T.CylinderGeometry(r * .78, r * .78, r * .06, 24, 1, false, -Math.PI / 2, Math.PI)), hm, 0, r * .1, r * .72); brim.scale.set(1, 1, 1.15); brim.rotation.x = .32; hg.add(brim); hg.rotation.x = -.18; hg.position.y = r * .08; hg.add(mesh(sph(), hm, 0, r * 1.12, 0, r * .07, r * .05, r * .07)); }
+    else if (look.hat === 'bucket') {   // v30 버킷햇: 원통 크라운 + 아래로 처진 챙
+      hg.add(mesh(G('bkC', () => new T.CylinderGeometry(r * .9, r * 1.13, r * .78, 26)), hm, 0, r * .58, -r * .02)); hg.add(mesh(sph(), hm, 0, r * .97, -r * .02, r * .9, r * .12, r * .9));
+      const br = mesh(G('bkB', () => new T.CylinderGeometry(r * 1.12, r * 1.6, r * .42, 30, 1, true)), hm, 0, r * .05, 0); br.material.side = T.DoubleSide; hg.add(br); hg.rotation.x = -.06; }
+    else if (look.hat === 'visor') {   // v30 선 바이저: 머리띠 + 앞챙 (로고 없음)
+      const band = mesh(G('vsB', () => new T.CylinderGeometry(r * 1.1, r * 1.12, r * .3, 28, 1, true)), hm, 0, r * .42, 0); band.material.side = T.DoubleSide; hg.add(band);
+      const brim = mesh(G('capb', () => new T.CylinderGeometry(r * .78, r * .78, r * .06, 24, 1, false, -Math.PI / 2, Math.PI)), hm, 0, r * .32, r * .74); brim.scale.set(1.05, 1, 1.2); brim.rotation.x = .3; hg.add(brim); }
     else if (look.hat === 'beanie') { const d = mesh(G('bean', () => new T.SphereGeometry(r * 1.15, 26, 14, 0, Math.PI * 2, 0, Math.PI * .55)), hm); d.scale.y = 1.15; hg.add(d); const band = mesh(G('beanb', () => new T.TorusGeometry(r * 1.1, r * .1, 8, 30)), hm, 0, r * .08, 0); band.rotation.x = Math.PI / 2; hg.add(band); hg.add(mesh(sph(), hm, 0, r * 1.38, 0, r * .16, r * .16, r * .16)); hg.position.y = r * .05; }
     else if (look.hat === 'beret') { const b = mesh(G('beret', () => new T.SphereGeometry(r * 1.22, 26, 12)), hm, r * .1, r * .62, -r * .05, 1, .38, 1); b.rotation.z = -.2; hg.add(b); hg.add(mesh(sph(), hm, r * .12, r * 1.08, 0, r * .06, r * .06, r * .06)); }
     else if (look.hat === 'newsboy') { const c = mesh(G('newsC', () => new T.SphereGeometry(r * 1.2, 26, 12, 0, Math.PI * 2, 0, Math.PI * .5)), hm, 0, r * .05, -r * .04, 1, .78, 1.05); hg.add(c); const br = mesh(G('capb', () => new T.CylinderGeometry(r * .78, r * .78, r * .06, 24, 1, false, -Math.PI / 2, Math.PI)), hm, 0, r * .12, r * .8); br.scale.set(.9, 1, .7); br.rotation.x = .25; hg.add(br); hg.add(mesh(sph(), hm, 0, r * .98, 0, r * .07, r * .04, r * .07)); hg.rotation.x = -.12; }
     else if (look.hat === 'fedora') { hg.add(mesh(G('fedc', () => new T.CylinderGeometry(r * .82, r * 1.0, r * .75, 24)), hm, 0, r * .88, 0)); hg.add(mesh(G('fedb', () => new T.CylinderGeometry(r * 1.75, r * 1.75, r * .04, 32)), hm, 0, r * .52, 0)); hg.add(mesh(G('fedr', () => new T.CylinderGeometry(r * 1.005, r * 1.005, r * .14, 24, 1, true)), std('#141014', { roughness: .5 }), 0, r * .6, 0)); hg.rotation.x = -.1; hg.position.y = r * .02; }
   }
   // 팔
-  const bare = ['tee', 'dress', 'crop', 'halter', 'meshCrop'].includes(look.top);
+  const bare = ['tee', 'dress', 'crop', 'halter', 'meshCrop'].includes(look.top) && !look.longSleeve;   // v30 긴소매 티·니트
   const arm = s => {
     const sh = new T.Group(); sh.position.set(s * (f ? .172 : .198 * (1 + .12 * (CV - .5) + .1 * MU)) * B * (TOON ? 1.02 : 1), .45, 0); torso.add(sh);
     sh.add(mesh(sph(), look.top === 'dress' || look.top === 'halter' || strap ? mSkin : mSleeve, 0, -.01, 0, .052 * B * (1 + .4 * MU), .052, .052));
@@ -580,6 +645,7 @@ function create(o = {}) {
     el.add(mesh(cyl(.042 * LIMB * (1 + .35 * MU), .033 * LIMB * (1 + .2 * MU), .25), bare || look.top === 'overshirt' ? mSkin : mSleeve, 0, -.125, 0));
     if (look.top === 'overshirt') el.add(mesh(cyl(.05, .048, .05), mSleeve, 0, -.01, 0));
     const hand = new T.Group(); hand.position.y = -.27; el.add(hand);
+    if (look.sailor) { const cf = mesh(G('cuffT', () => new T.TorusGeometry(.036, .004, 5, 18)), std(look.sailor.trim || '#e8a6c4', { roughness: .6 }), 0, -.225, 0); cf.rotation.x = Math.PI / 2; el.add(cf); }
     const mHand = look.gloves ? G('gloveM', () => leatherMat('#0c0a0e', true)) : mSkin;
     if (look.gloves) el.add(mesh(cyl(.036, .036, .06), mHand, 0, -.235, 0));
     const hk = TOON ? 1.12 : 1; hand.scale.setScalar(hk); hand.add(mesh(G('palm', () => new T.SphereGeometry(1, 12, 8)), mHand, 0, -.035, .004, .03, .045, .016));
@@ -603,11 +669,16 @@ function create(o = {}) {
     kn.add(mesh(cyl(wide ? .08 : .058 * LIMB, wide ? .1 : .044 * LIMB, TL2), legMat, 0, -TL2 / 2, 0));
     if (look.shoes === 'boots' && !PANTS) kn.add(mesh(cyl(.054, .05, .3), bootM, 0, -TL2 + .12, .005));
     const BOOT = look.shoes === 'boots' || look.shoes === 'thigh';
-    if (TOON && BOOT) {   // v17 부츠: 광택 블랙 + 굽 있는 밑창
+    if (look.shoes === 'sandals') {   // v30 샌들: 맨발 + 금색 얇은 밑창·스트랩
+      kn.add(mesh(sph(), mSkin, 0, -TL2 - .005, .045, .04, .03, .105)); kn.add(mesh(G('sdS', () => new T.BoxGeometry(.085, .014, .23)), mShoe, 0, -TL2 - .035, .045));
+      for (const zz of [.02, .085]) kn.add(mesh(G('sdT', () => new T.BoxGeometry(.09, .008, .012)), mShoe, 0, -TL2 - .008, zz)); kn.add(mesh(G('sdA', () => new T.TorusGeometry(.036, .004, 5, 16)), mShoe, 0, -TL2 + .02, -.01));
+    } else if (look.shoes === 'flats') {   // v30 플랫 슈즈
+      kn.add(mesh(sph(), mShoe, 0, -TL2 - .012, .045, .045, .03, .115)); kn.add(mesh(G('flS', () => new T.BoxGeometry(.088, .012, .22)), G('bsoleM', () => std('#08070a', { roughness: .5 })), 0, -TL2 - .038, .045));
+    } else if (BOOT) {   // v17 부츠: 광택 블랙 + 굽 있는 밑창
       kn.add(mesh(sph(), bootM, 0, -TL2 - .005, .045, f ? .05 : .06, .05, f ? .115 : .135));
       kn.add(mesh(G('bsole' + look.gender, () => new T.BoxGeometry(f ? .095 : .115, .04, f ? .24 : .28)), G('bsoleM', () => std('#08070a', { roughness: .5 })), 0, -TL2 - .045, .045));
       if (f) kn.add(mesh(G('heel', () => new T.BoxGeometry(.045, .07, .05)), G('bsoleM', () => std('#08070a', { roughness: .5 })), 0, -TL2 - .03, -.045));
-    } else if (TOON) {   // 청키 스니커즈: 컬러 어퍼 + 흰 밑창 + 끈
+    } else if (look.shoes === 'sneakers' || TOON) {   // 청키 스니커즈: 컬러 어퍼 + 흰 밑창 + 끈
       kn.add(mesh(sph(), mShoe, 0, -TL2 - .005, .05, f ? .05 : .058, .045, f ? .12 : .135));
       kn.add(mesh(G('sole' + look.gender, () => new T.BoxGeometry(f ? .1 : .115, .035, f ? .25 : .28)), G('soleM', () => std('#f8f8f8', { roughness: .6 })), 0, -TL2 - .04, .05));
       kn.add(mesh(G('box', () => new T.BoxGeometry(1, 1, 1)), G('laceM', () => std('#2a2a2a', { roughness: .8 })), 0, -TL2 + .02, .1, .05, .008, .05));

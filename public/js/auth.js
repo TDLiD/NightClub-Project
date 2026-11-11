@@ -310,7 +310,7 @@ async function adminPanel() {
 function logoutUi() {
   const tb = document.getElementById('topbtns'); if (!tb) return; let b = document.getElementById('btnLogout');
   if (!b) { b = document.createElement('button'); b.id = 'btnLogout'; b.className = 'ibtn'; b.title = '로그아웃'; b.innerHTML = '🚪<span class="lbl"> 로그아웃</span>'; tb.appendChild(b);
-    b.onclick = () => NC.ui.modal('<h3>🚪 로그아웃할까요?</h3><p style="font-size:13px">처음 입장 화면으로 돌아가요.</p>', [['로그아웃', 'ok', true], ['취소', 0]]).then(r => { if (r.val !== 'ok') return; restoreGuestCoins(); setSession(null); location.reload(); }); }
+    b.onclick = () => NC.ui.modal('<h3>🚪 로그아웃할까요?</h3><p style="font-size:13px">처음 입장 화면으로 돌아가요.</p>', [['로그아웃', 'ok', true], ['취소', 0]]).then(r => { if (r.val !== 'ok') return; restoreGuestCoins(); setSession(null); NC.Resume && NC.Resume.clear(); location.reload(); }); }
   b.style.display = NC.account ? '' : 'none';
 }
 NC.on && NC.on('start', logoutUi);
@@ -324,7 +324,7 @@ if (qm) { const sep = document.createElement('div'); sep.className = 'qsep'; qm.
   const bc = document.createElement('button'); bc.id = 'qChar'; qm.appendChild(bc);
   const refresh = () => { const a = NC.account; bc.textContent = a ? `🧍 내 캐릭터 변경 (No.${a.characterNo})` : '🧍 캐릭터 변경은 로그인 후 가능'; bc.disabled = !a; };
   const bo = document.createElement('button'); bo.id = 'qLogout'; bo.textContent = '🚪 로그아웃'; qm.appendChild(bo);
-  bo.onclick = () => { qm.style.display = 'none'; NC.ui.modal('<h3>🚪 로그아웃할까요?</h3><p style="font-size:13px">처음 입장 화면으로 돌아가요.</p>', [['로그아웃', 'ok', true], ['취소', 0]]).then(r => { if (r.val !== 'ok') return; restoreGuestCoins(); setSession(null); location.reload(); }); };
+  bo.onclick = () => { qm.style.display = 'none'; NC.ui.modal('<h3>🚪 로그아웃할까요?</h3><p style="font-size:13px">처음 입장 화면으로 돌아가요.</p>', [['로그아웃', 'ok', true], ['취소', 0]]).then(r => { if (r.val !== 'ok') return; restoreGuestCoins(); setSession(null); NC.Resume && NC.Resume.clear(); location.reload(); }); };
   bc.onclick = () => { qm.style.display = 'none'; changeCharacter().then(refresh); };
   const refresh2 = () => { refresh(); bo.style.display = NC.account ? '' : 'none'; }; $('#btnQuality').addEventListener('click', refresh2); refresh2(); }
 

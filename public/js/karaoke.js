@@ -330,8 +330,8 @@ function drawScreen(t) {
       g.fillStyle = '#fff'; g.fillRect(199, y0, 2, hh); if (st.detected > 0) { let m = st.detected; while (m < lo) m += 12; while (m > hi) m -= 12; g.fillStyle = '#ff4fa8'; g.beginPath(); g.arc(200, Y(m), 9, 0, 7); g.fill(); } }
     g.save(); g.translate(0, h * .58); lyricsDraw(g, w, h * .4, st, pos); g.restore();
   } else {
-    g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '900 80px "Malgun Gothic",sans-serif'; g.fillStyle = '#fff'; g.shadowColor = '#ff3dbb'; g.shadowBlur = 30; g.fillText('추억의 노래방', w / 2, 90); g.shadowBlur = 0;
-    g.font = '700 26px "Malgun Gothic",sans-serif'; g.fillStyle = '#ffd6f0'; g.fillText('🎵 노래 고르기 버튼을 눌러 곡을 선택하세요', w / 2, 150);
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '900 80px "Malgun Gothic",sans-serif'; g.fillStyle = '#fff'; g.shadowColor = '#ff3dbb'; g.shadowBlur = 30; g.fillText(K.mode === 'vip' ? `✨ ${K.label || 'VIP ROOM'} ✨` : (K.label ? `🎤 ${K.label}` : '추억의 노래방'), w / 2, 90); g.shadowBlur = 0;
+    g.font = '700 26px "Malgun Gothic",sans-serif'; g.fillStyle = '#ffd6f0'; g.fillText(K.mode === 'vip' ? '🔔 웨이터 호출로 주문·부킹 · 💬 소파에서 대화' : '🎵 노래 고르기 버튼을 눌러 곡을 선택하세요', w / 2, 150);
     SONGS.forEach((s, i) => { const y = 205 + i * 56, on = i === screen.sel; g.fillStyle = on ? 'rgba(255,79,168,.45)' : 'rgba(0,0,0,.35)'; g.fillRect(110, y - 24, w - 220, 48);
       g.textAlign = 'left'; g.font = '800 28px "Malgun Gothic",sans-serif'; g.fillStyle = '#ffe28a'; g.fillText(s.no, 130, y); g.fillStyle = '#fff'; g.fillText(s.title, 260, y); g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '600 24px "Malgun Gothic",sans-serif'; g.fillText(s.artist, 520, y);
       g.textAlign = 'right'; g.fillText(`${s.genre}${K.best[s.no] ? ' · 최고 ' + K.best[s.no] + '점' : ''}`, w - 130, y); });
@@ -410,31 +410,41 @@ function setClubVisible(on) {
   if (!on) { hidden.length = 0; S.children.forEach(o => { if (o === G || o.isLight || o === NC.player.group || (K.companion && o === K.companion.g) || !o.visible) return; if (o.userData && o.userData.remote) return; hidden.push(o); o.visible = false; }); }
   else { hidden.forEach(o => { o.visible = true; }); hidden.length = 0; }
 }
-async function enter() {
-  const P = NC.player; if (P.busy) return;
+/* v25 enter(opts): 같은 프라이빗 룸을 'VIP 룸'(클럽 안 VIP 4~13)과 '노래방 룸'(밖 노래방 건물)으로 함께 사용
+ *  opts = { mode: 'vip' | 'karaoke', label, exit: { x, z, ry, y }, comp: 함께 온 손님, inviteAsk: true(기존 2차 초대 창) } */
+async function enter(opts = {}) {
+  const P = NC.player; if (P.busy || K.inRoom) return;
   if (NC.Dialog && NC.Dialog.cur) NC.Dialog.close('bye');
-  const comp = await inviteCompanion();
+  const comp = opts.comp !== undefined ? opts.comp : (opts.inviteAsk ? await inviteCompanion() : null);
+  K.mode = opts.mode || 'karaoke'; K.label = opts.label || ''; K.exit = opts.exit || null; K.onLeave = opts.onLeave || null;
+  W.zoneLabel.karaoke = K.mode === 'vip' ? `✨ ${K.label}` : `🎤 ${K.label || '노래방'}`;
   NC.ui.fade(() => {
     if (P.seat) NC.requestStand();
-    P.x = ENTRY.x; P.z = ENTRY.z; P.ry = Math.PI * 1.15; P.target = null; P.autoPath = null; P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry;
+    P.x = ENTRY.x; P.z = ENTRY.z; P.ry = Math.PI * 1.15; P.target = null; P.autoPath = null; P.group.position.set(P.x, 0, P.z); P.y = 0; P.group.rotation.y = P.ry;
     K.companion = comp; if (comp) { comp.karaoke = true; comp.booked = true; seatCompanion(); }
     G.visible = true; setClubVisible(false); borrowLights(true); K.inRoom = true; bar.style.display = 'flex'; screen.mode = 'menu';
-    NC.ui.toast('🎤 2차 노래방에 오신 걸 환영해요! 「🎵 노래 고르기」로 곡을 골라 보세요'); panelState();
+    NC.ui.toast(K.mode === 'vip' ? `✨ ${K.label}에 들어왔어요 — 🔔 웨이터 호출로 주문·부킹, 소파에 앉아 대화해 보세요` : `🎤 ${K.label || '노래방'}에 들어왔어요! 🔔 웨이터 호출로 술·안주 주문, 「🎵 노래 고르기」로 곡 선택`); panelState();
+    NC.emit && NC.emit('room:enter', K.mode);
   });
 }
+/* 퇴장 후 손님을 내려놓을 클럽 안 위치(밖 건물·2층 라운지에서 나와도 손님은 클럽 통로로) */
+const clubDrop = () => { const e = K.exit; return e && e.club ? e : { x: -6, z: W.corridorY || 10.75 }; };
 function leave() {
   const P = NC.player; stop(true);
   NC.ui.fade(() => {
     if (P.seat) NC.requestStand();
-    const d = W.spots.karaokeDoor; P.x = d.x + .6; P.z = d.z; P.ry = Math.PI / 2; P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry;
+    const e = K.exit || { x: W.spots.karaokeDoor.x + .6, z: W.spots.karaokeDoor.z, ry: Math.PI / 2, club: true }, d = clubDrop(); P.x = e.x; P.z = e.z; P.ry = e.ry != null ? e.ry : Math.PI / 2; P.y = e.y || 0; P.group.position.set(P.x, P.y, P.z); P.group.rotation.y = P.ry;
     const n = K.companion; if (n) { occ.forEach((o, k) => { if (o === n) occ[k] = null; }); n.karaoke = false; n.x = d.x + 1.6; n.z = d.z + .8; NC.NPC.release(n); n.booked = false; n.g.position.set(n.x, 0, n.z); n.g.visible = n.state !== 'off'; }
     K.guests.forEach((g, k) => { if (g === n || g.leftRoom) return; occ.forEach((o, i) => { if (o === g) occ[i] = null; }); g.karaoke = false; g.x = d.x + 1.6 + k * .7; g.z = d.z - .8; NC.NPC.release(g); g.booked = false; g.g.position.set(g.x, 0, g.z); g.g.visible = g.state !== 'off'; });
     K.guests.length = 0; if (BL.n) endBlues('leave'); if (kw) { const o = kw.o; o.x = kw.x; o.z = kw.z; o.g.position.set(o.x, 0, o.z); o.busy = false; o.state = 'idle'; o.done = null; o.path = []; kw = null; }
     K.companion = null; G.visible = false; setClubVisible(true); borrowLights(false); K.inRoom = false; bar.style.display = 'none'; panel.style.display = 'none'; lyricEl.style.display = 'none';
+    const cb = K.onLeave; K.onLeave = null; K.mode = null; if (cb) try { cb(); } catch (err) { console.error(err); } NC.emit && NC.emit('room:leave');
   });
 }
+K.serveItem = it => serveK(it, '사장님');   // v25 노래방 건물 카운터에서 미리 주문한 술·안주를 방에 들여옴
+K.isGuest = n => isGuest(n);
 K.stand = s => { occ[s.s] = null; const seat = SEATS[s.s]; return { x: seat.x + Math.sin(seat.ry) * .9, z: seat.z + Math.cos(seat.ry) * .9 }; };
-K.enter = enter; K.leave = leave; K.play = play; K.stop = stop;
+K.enter = enter; K.leave = leave; K.play = play; K.stop = stop; K.box = { cx: KX, cz: KZ, hx: HX, hz: HZ, h: H };   // v28 카메라가 방 벽 밖으로 나가지 않게
 NC.on && NC.on('music:user', () => { const st = K.playing; if (st && !K.inRoom && (st.singer === 'band' || st.singer === 'blues')) stop(true); BL.prevVol = null; });   // v20.1 사용자가 고른 스테이지 음악이 우선
 
 /* ═════════ v9: 🙋 웨이터 호출 · 💃 부킹 · 🕺 부르스 ═════════
@@ -483,7 +493,8 @@ function waiterMenu(o) {
   const order = it => { if (NC.goldenFree && NC.goldenFree()) NC.ui.toast('🔔 골든벨 ALL PAY — 무료!'); else if (!NC.Wallet.spend(it.price)) return NC.ui.toast(`🪙 코인이 부족해요 (${it.price} 필요)`); done(); serveK(it, name); waiterOut(); };
   NC.ui.showDlg({ name, tag: '🤵 노래방 서비스', job: `🪙 ${NC.Wallet.get()}`, say: K.guests.length ? '네 손님~ 더 필요하신 거 있으세요? 😊' : '부르셨어요? 주문이든 부킹이든 말씀만 하세요! 😄',
     opts: KMENU.map(it => ({ t: `${it.icon} ${it.name}  🪙${it.price}`, run: () => order(it) })).concat([
-      { t: '💃 부킹 부탁해요', run: () => bookStyle(o) },
+      { t: '👥 손님 리스트에서 골라 부킹', run: () => { NC.ui.hideDlg(); P.busy = false; NC.Service && NC.Service.pickBooking(n => bookSpecific(n, o), () => waiterOut()); } },
+      { t: '💃 부킹 부탁해요 (웨이터 추천)', run: () => bookStyle(o) },
       { t: '🧾 팁 드릴게요 (🪙5)', run: () => { if (NC.Wallet.spend(5)) { tipBonus = Math.min(.15, tipBonus + .05); say(name, '감사합니다! 부킹 들어오면 제일 먼저 챙겨 드릴게요 😄'); } else NC.ui.toast('코인이 부족해요'); done(); waiterOut(); } },
       { t: '괜찮아요, 그냥 불렀어요', run: () => { done(); waiterOut(); } }]) });
 }
@@ -531,6 +542,22 @@ function book(o, traits, tip, p) {
     guestEnter(n, tip);
   }, 7000);
 }
+/* v27 지목 부킹: 리스트에서 고른 손님을 웨이터가 어디서든 데려옴(성공률 = 호감·팁) */
+function bookSpecific(n, o) {
+  const P = NC.player, name = o ? o.def.title : '웨이터';
+  if (!K.inRoom) return; if (isGuest(n)) { NC.ui.toast(`${n.name}님은 이미 이 방에 있어요`); return o && waiterOut(); }
+  if (K.guests.length >= 3) { say(name, '이 방은 이미 꽉 찼어요 ㅎㅎ'); return o && waiterOut(); }
+  const tip = 15; if (!NC.Wallet.spend(tip)) { NC.ui.toast(`🪙 코인이 부족해요 (${tip} 필요)`); return o && waiterOut(); }
+  say(name, `${n.name} 님이요? 알겠습니다! ${NC.Service ? NC.Service.whereOf(n) : ''}에서 모셔 올게요 😄`); if (o) waiterOut();
+  setTimeout(() => {
+    if (!K.inRoom) { NC.Wallet.add(tip, '부킹 취소 환불'); return; }
+    const ok = NC.Service ? NC.Service.willCome(n, tip) : Math.random() < .7;
+    if (!ok) { NC.Wallet.add(Math.floor(tip / 2), '부킹 거절 반환'); NC.ui.toast(`🤵 웨이터: "${n.name} 님이 지금은 어렵다고 하시네요… 팁 절반 돌려드릴게요 🙇"`); return; }
+    if (NC.Service) NC.Service.detach(n); guestEnter(n, tip + 15);
+  }, 6500);
+}
+K.bookSpecific = (n, o) => bookSpecific(n, o || null);
+K.callWaiter = () => callWaiter();
 function seatGuest(n) {
   occ.forEach((o, k) => { if (o === n) occ[k] = null; });
   let i = occ.findIndex((o, k) => !o && k >= 1); if (i < 0) i = occ.findIndex(o => !o); if (i < 0) i = 3;
@@ -554,7 +581,7 @@ function guestLeave(n, line) {
     occ.forEach((o, k) => { if (o === n) occ[k] = null; }); NC.unseatAvatar(n.g, n.x, n.z); n.state = 'karaoke';
     NC.NPC.goTo(n, { x: WDOOR.x, z: KZ + HZ - .3 }, () => {
       n.leftRoom = true; n.karaoke = false; const i = K.guests.indexOf(n); if (i >= 0) K.guests.splice(i, 1); if (K.companion === n) K.companion = K.guests[0] || null;
-      const d = W.spots.karaokeDoor; n.x = d.x + 1.8; n.z = d.z + 1; n.g.position.set(n.x, 0, n.z); NC.NPC.release(n); n.cool = 180; n.rejectedAt = Date.now(); n.g.visible = !K.inRoom && n.state !== 'off'; panelState();
+      const d = clubDrop(); n.x = d.x + 1.8; n.z = d.z + .5; n.g.position.set(n.x, 0, n.z); NC.NPC.release(n); n.cool = 180; n.rejectedAt = Date.now(); n.g.visible = !K.inRoom && n.state !== 'off'; panelState();
     }, 2.6);
   }, 1900);
 }
@@ -571,11 +598,15 @@ function startBlues(n) {
   const D = NC.Dialog, P = NC.player; if (BL.n) return;
   n.bl = n.bl || { kissed: false, warned: 0 };
   if (n.aff < 45) { D.npcSay(U.pick(['부르스요? 음… 아직 좀 어색해요. 조금 더 얘기해요 ㅎㅎ', '헉 벌써요? 조금만 더 친해지고요~', '…부르스는 좀. 짠부터 해요.']), 'shy'); NC.Motion.play(n.g, 'headshake'); aff(n, -1); return; }
-  BL.where = K.inRoom ? 'karaoke' : 'club';
+  /* v28 어느 장소에서나: 노래방 룸 · 스테이지/댄스플로어(DJ 블루스 타임 연출) · 그 밖의 곳(테이블·VIP·바·통로·흡연실·라운지·거리·로비 등)은 두 사람 사이 빈자리에서 */
+  BL.where = K.inRoom ? 'karaoke' : CLUB_ZONES.includes(P.zone) ? 'club' : 'any';
   if (BL.where === 'karaoke') BL.c = { x: KX + .9, z: KZ - .1 };
-  else { const Z = W.zones, st = P.zone === 'stage' ? Z.stage : Z.dance; BL.c = { x: U.clamp((P.x + n.x) / 2, st.x0 + 1.5, st.x1 - 1.5), z: U.clamp((P.z + n.z) / 2, st.z0 + 1.6, st.z1 - 1.2) }; }
+  else if (BL.where === 'club') { const Z = W.zones, st = P.zone === 'stage' ? Z.stage : Z.dance; BL.c = { x: U.clamp((P.x + n.x) / 2, st.x0 + 1.5, st.x1 - 1.5), z: U.clamp((P.z + n.z) / 2, st.z0 + 1.6, st.z1 - 1.2) }; }
+  else { const sa = P.seat && P.seat.kind === 'table' && NC.standPos ? NC.standPos(P.seat.t, P.seat.s) : null; const bx = sa || { x: (P.x + n.x) / 2, z: (P.z + n.z) / 2 }; BL.c = { x: bx.x, z: bx.z }; }
+  n.bl.reseat = (BL.where !== 'karaoke' && n.state === 'seated' && n._seatArgs) ? n._seatArgs.slice() : null;
+  BL.music = null; if (BL.where !== 'karaoke' && NC.Audio && NC.Audio.pl !== 'blues' && NC.Audio.playPlaylist) { BL.music = NC.Audio.pl || 'euro'; NC.Audio.playPlaylist('blues'); }   // 블루스 곡으로 전환, 끝나면 원래 곡으로
   if (K.playing) stop(true);
-  if (P.seat) { const s = P.seat; if (s.kind === 'karaoke') occ[s.s] = null; NC.unseatAvatar(P.group, BL.c.x, BL.c.z); P.seat = null; }
+  if (P.seat) { const s = P.seat; if (s.kind === 'karaoke') { occ[s.s] = null; NC.unseatAvatar(P.group, BL.c.x, BL.c.z); P.seat = null; } else NC.standLocal(); }
   occ.forEach((o, k) => { if (o === n) occ[k] = null; }); NC.unseatAvatar(n.g, BL.c.x, BL.c.z);
   BL.n = n; BL.t = 0; BL.t0 = performance.now(); BL.kiss = 0; n.state = 'blues'; n.g.userData.lookAt = null; P.group.userData.lookAt = null;
   BL.glass = [P.group.userData.holdGlass, n.g.userData.holdGlass]; P.group.userData.holdGlass = n.g.userData.holdGlass = false;
@@ -596,8 +627,11 @@ function endBlues(reason) {
     P.x = BL.c.x + 1; P.z = BL.c.z + .4;
     if (reason !== 'leave') { seatGuest(n); n.state = 'seated'; }
   } else {
-    clubMood(false); P.x = BL.c.x - .55; P.z = BL.c.z + .25; n.x = BL.c.x + .55; n.z = BL.c.z - .1;
-    if (reason !== 'leave') { n.state = talking ? 'talk' : 'wander'; n.pause = 2; n.wp = null; }
+    if (BL.where === 'club') clubMood(false); P.x = BL.c.x - .55; P.z = BL.c.z + .25; n.x = BL.c.x + .55; n.z = BL.c.z - .1;
+    if (BL.music && NC.Audio && NC.Audio.pl === 'blues') NC.Audio.playPlaylist(BL.music); BL.music = null;
+    const rs = n.bl && n.bl.reseat; if (n.bl) n.bl.reseat = null;
+    if (reason !== 'leave') { if (rs) { if (talking) NC.NPC.sit(n, rs[0], rs[1], rs[2], rs[3]); else NC.NPC.goTo(n, { x: rs[0] + Math.sin(rs[2]) * 1.1, z: rs[1] + Math.cos(rs[2]) * 1.1 }, () => NC.NPC.sit(n, rs[0], rs[1], rs[2], rs[3]), 2.4); }
+      else { n.state = talking ? 'talk' : 'wander'; n.pause = 2; n.wp = null; } }
   }
   if (talking && reason !== 'leave') { P.group.userData.lookAt = n.g.position; n.g.userData.lookAt = P.group.position; }
   if (reason === 'song' && NC.Dialog.cur) NC.Dialog.npcSay(U.pick(['노래 끝났다… 생각보다 설렜어요 ㅎㅎ', '부르스 잘 추시네요? 다음엔 신나는 거 해요!']), 'smile');
@@ -729,16 +763,16 @@ NC.dialogChipsOverride = (n, CHIP) => {
   CHIPS.forEach(([l, k]) => CHIP(l, () => bluesAct(k), k === 'kiss' ? 'pri' : ''));
   if (n.g.userData.undressed) CHIP('👕 옷 다시 입혀 주기', () => bluesAct('dress'));
   if (BL.where === 'karaoke' || K.inRoom) PREMIUM.forEach(([l, k]) => CHIP(`${NC.account ? '💎' : '🔒'} ${l} 🪙${PREMIUM_COST}`, () => premium(k)));
-  CHIP('⏹ 부르스 그만', () => endBlues('stop'));
+  CHIP('⏹ 브루스 그만', () => endBlues('stop'));
   return true;
 };
 (NC.dialogChips = NC.dialogChips || []).push((n, CHIP) => {
   if (BL.n) return; const P = NC.player;
   if (K.inRoom) { if (!isGuest(n)) return;
-    CHIP('🕺 부르스 출래요?', () => startBlues(n), 'pri');
+    CHIP('🕺 브루스 추실래요?', () => startBlues(n), 'pri');
     CHIP('🎤 한 곡 불러 줄래요?', () => { NC.Dialog.close('bye'); K.companion = n; npcSing(); });
     CHIP('🙋 웨이터 부르기', () => callWaiter()); return; }
-  if (CLUB_ZONES.includes(P.zone) && !P.seat && n.state !== 'seated' && (n.role === 'persona' || n.role === 'crowd')) CHIP('🕺 부르스 출래요?', () => startBlues(n), 'pri');
+  if (n.role === 'persona' || n.role === 'crowd' || n.role === 'guest' || n.booked) CHIP('🕺 브루스 추실래요?', () => startBlues(n), 'pri');   // v28 어느 장소에서나(앉아 있어도 함께 일어나서)
 });
 NC.on('dialog:close', n => { if (BL.n && BL.n === n) endBlues('stop'); });
 const sm = (a, b, x) => U.clamp((x - a) / (b - a), 0, 1);
@@ -756,13 +790,13 @@ NC.tickers.push(dt => {
   P.group.position.set(P.x, NC.groundY(P.x, P.z), P.z); n.g.position.set(n.x, NC.groundY(n.x, n.z), n.z);
 });
 $('#kCall').onclick = () => callWaiter();
-K.G = G; K.dims = { KX, KZ, HX, HZ, H }; K.playSong = (song, mode) => play(song, mode); K.stopSong = () => stop(true); K.callWaiter = callWaiter; K.startBlues = startBlues; K.endBlues = endBlues; K.BL = BL; K.ACT = ACT;
+K.G = G; K.dims = { KX, KZ, HX, HZ, H }; K.playSong = (song, mode) => play(song, mode); K.stopSong = () => stop(true); K.callWaiter = callWaiter; K.startBlues = startBlues; K.endBlues = endBlues; K.BL = BL; K.ACT = ACT; K.bluesAct = (k, f) => bluesAct(k, f);
 
 /* 상호작용 후보 */
 NC.interactProviders.push(() => {
   const P = NC.player, out = []; if (!P.group) return out;
-  if (!K.inRoom) { const d = W.spots.karaokeDoor; if (d) { const dist = Math.hypot(P.x - d.x, P.z - d.z); if (dist < 2.4) out.push({ label: '🎤 2차 노래방 가기 (E)', dist, run: enter }); } return out; }
-  const de = Math.hypot(P.x - EXIT.x, P.z - EXIT.z); if (de < 1.6) out.push({ label: '🚪 클럽으로 돌아가기 (E)', dist: de, run: leave });
+  if (!K.inRoom) return out;   // v25 클럽 안 노래방 입구 없음(VIP 문은 viprooms.js · 노래방은 밖 건물)
+  const de = Math.hypot(P.x - EXIT.x, P.z - EXIT.z); if (de < 1.6) out.push({ label: K.mode === 'vip' ? `🚪 ${K.label} 나가기 (E)` : '🚪 방에서 나가기 (E)', dist: de, run: leave });
   const dt = Math.hypot(P.x - KX, P.z - (KZ - 2.6)); if (dt < 2.2 && !K.playing) out.push({ label: '🎵 노래 고르기 (E)', dist: dt + .2, run: () => { renderList(); panelState(); panel.style.display = 'flex'; } });
   SEATS.forEach((s, i) => { const d = Math.hypot(P.x - s.x, P.z - s.z); if (d < 1.3 && !occ[i] && !K.playing) out.push({ label: '🛋 소파에 앉기 (E)', dist: d + .3, run: () => NC.ui.fade(() => { occ[i] = 'me'; NC.sitPlayer({ kind: 'karaoke', s: i }, s); }) }); });
   const n = K.companion; if (n && n.state === 'seated') { const d = Math.hypot(P.x - n.x, P.z - n.z); if (d < 2.4) out.push({ label: `💬 ${n.name}와 대화 (E)`, dist: d + .1, run: () => NC.Dialog.open(n, { intro: U.pick(['여기 분위기 너무 좋다~ 다음 곡 뭐 할래요?', '노래방 오니까 신나요 ㅎㅎ', '목 좀 풀었어요? 저 다음에 부를래요!']) }) }); }
