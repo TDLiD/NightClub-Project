@@ -6,3 +6,6 @@ Firebase realtime.json
 
 public/Claude outputs/
 public.zip
+/data/
+.env
+Firebase realtime.json
