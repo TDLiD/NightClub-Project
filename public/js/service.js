@@ -185,6 +185,7 @@ btn.onclick = () => call();
 
 /* ═════ ③ 부킹 상대 프로필 카드 ═════ */
 const card = document.createElement('div'); card.id = 'profCard'; card.style.display = 'none'; document.body.appendChild(card);
+card.addEventListener('click', e => { if (!e.target.closest('.pcPh')) return; const n = NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.n; if (n && n.photo && NC.Profile) { const f = profile(n); NC.Profile.view(n.photo, `${f.name} · ${f.age}세`, `${f.job} · ${f.mbti}`); } });
 const PICK = (h, a) => a[h % a.length];
 const HOBBY = ['필라테스', '맛집 탐방', '캠핑', '골프', '넷플릭스 정주행', '여행 브이로그', '와인 공부', '러닝 크루', '사진 찍기', '홈카페', '보드게임', '등산', '클라이밍', '전시회 관람', '노래방'];
 const SKILL = ['요리', '노래', '춤', '운전', '외국어', '피아노', '수영', '그림', '메이크업', '기타 연주', '술자리 게임', '분위기 메이커', '타로 보기', '드럼', '농구'];
@@ -205,7 +206,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 let cardFor = null; const v3 = new T.Vector3();
 function fillCard(n) {
   const f = profile(n), aff = Math.round(n.aff || 0);
-  card.innerHTML = `<div class="pcHead"><b>${esc(f.name)}</b> <span>${n.gender === 'f' ? '♀' : '♂'} ${f.age}세</span>${f.tag ? `<i>${esc(f.tag)}</i>` : ''}</div>
+  card.innerHTML = (n.photo && NC.Profile ? `<img class="pcPh" src="${NC.Profile.url(n.photo)}" alt="">` : '') + `<div class="pcHead"><b>${esc(f.name)}</b> <span>${n.gender === 'f' ? '♀' : '♂'} ${f.age}세</span>${f.tag ? `<i>${esc(f.tag)}</i>` : ''}</div>
     <div class="pcRow"><em>💼 직업</em>${esc(f.job)} · ${esc(f.mbti)}</div>
     <div class="pcRow"><em>💍 결혼</em>${esc(f.married)}</div>
     <div class="pcRow"><em>🎯 취미</em>${esc(f.hobby)}</div>

@@ -34,7 +34,13 @@ try { if (process.env.ICE_SERVERS) ICE = JSON.parse(process.env.ICE_SERVERS); } 
 const app = express();
 if (process.env.TRUST_PROXY) app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? true : process.env.TRUST_PROXY);
 app.use((req, res, next) => { res.set('X-Content-Type-Options', 'nosniff'); res.set('Referrer-Policy', 'no-referrer'); next(); });
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+/* v33 프로필 사진 목록: public/profile/boy|girl 폴더를 그대로 읽어 줌(새 사진을 넣으면 자동 반영) */
+app.get('/api/profiles', (req, res) => {
+  const out = {}; const IMG = /\.(jpe?g|jfif|png|webp|avif|gif)$/i;
+  for (const g of ['boy', 'girl']) { try { out[g] = fs.readdirSync(path.join(__dirname, 'public', 'profile', g)).filter(f => IMG.test(f)).sort(); } catch (e) { out[g] = []; } }
+  res.set('Cache-Control', 'no-cache').json(out);
+});
+app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'], setHeaders: (res, p) => { if (/\.jfif$/i.test(p)) res.setHeader('Content-Type', 'image/jpeg'); else if (/\.avif$/i.test(p)) res.setHeader('Content-Type', 'image/avif'); } }));
 // three.js 로컬 사본 (CDN 차단·오프라인 대비 폴백)
 const THREE_DIR = path.join(__dirname, 'node_modules', 'three', 'build');
 if (fs.existsSync(THREE_DIR)) app.use('/vendor', express.static(THREE_DIR, { maxAge: '7d' }));

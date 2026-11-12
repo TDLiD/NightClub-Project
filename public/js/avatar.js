@@ -801,8 +801,9 @@ function create(o = {}) {
     const em = (EXPR[u.expr] || EXPR.neutral).eyes; corneaMesh.visible = !u.blink && em !== 'happy' && em !== 'wink'; void corneas; };
   u.setExpr = (name, dur = 0) => { if (!EXPR[name]) name = 'neutral'; u.expr = name; u.exprUntil = dur ? performance.now() + dur * 1000 : 0; if (!dur) u.baseExpr = name; u.faceDirty = true; };
   u.say = sec => { u.talkUntil = performance.now() + sec * 1000; };
-  u.setName = n => { root.remove(u.label); u.label = makeLabel(n, look.topColor); if (NC.LABEL_LAYER) u.label.layers.set(NC.LABEL_LAYER); u.label.position.y = look.height + (TOON ? .36 : .32); root.add(u.label); };
+  u.setName = n => { root.remove(u.label); u.label = makeLabel(n, look.topColor); if (NC.LABEL_LAYER) u.label.layers.set(NC.LABEL_LAYER); u.label.position.y = look.height + (TOON ? .36 : .32); root.add(u.label); if (look.photo && NC.Profile) NC.Profile.decorate(root); };
   u.redraw();
+  if (look.photo && NC.Profile) NC.Profile.decorate(root);   // v33 이름표에 프로필 사진
   return root;
 }
 

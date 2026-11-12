@@ -102,7 +102,7 @@ function bindLogin() {
       }
       U.store.set(LOCK_KEY, { n: 0, until: 0 });
       if ($('#lgSave').checked) U.store.set('nc_saved_id', id); else U.store.set('nc_saved_id', '');
-      const [uid, u] = hit; setSession({ uid, id: u.id, nickname: u.nickname, gender: u.gender, characterNo: u.characterNo || 1, email: u.email });
+      const [uid, u] = hit; setSession({ uid, id: u.id, nickname: u.nickname, gender: u.gender, characterNo: u.characterNo || 1, email: u.email, photo: u.photo || null });
       NC.ui.toast(`🎉 ${u.nickname}님, 어서 오세요!`); show('login'); syncAccount();
     } catch (e) { err(e.message); }
     finally { if (document.body.contains(go)) { go.disabled = false; go.textContent = '🔑 로그인'; } }
@@ -129,7 +129,7 @@ function findDialog(kind) {
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ───── 회원가입 ───── */
-const J = { id: null, email: null, nick: null, gender: '남성', characterNo: 1 };       // 중복 확인 통과한 값 기록
+const J = { id: null, email: null, nick: null, gender: '남성', characterNo: 1, photo: null };       // 중복 확인 통과한 값 기록
 function joinHtml() {
   return `<div class="authBox join">
     <label class="af"><span>아이디</span><div class="ar"><input id="jnId" placeholder="영문으로 시작 4~16자 (영문·숫자·_)" autocomplete="off"><button type="button" class="chk" data-k="id">중복확인</button></div><small id="jnId_m"></small></label>
@@ -138,12 +138,15 @@ function joinHtml() {
     <label class="af"><span>이메일</span><div class="ar"><input id="jnEmail" type="email" placeholder="example@email.com" autocomplete="off"><button type="button" class="chk" data-k="email">중복확인</button></div><small id="jnEmail_m"></small></label>
     <label class="af"><span>성별</span><div class="seg" id="jnGender"><button type="button" data-g="남성" class="on">👨 남성</button><button type="button" data-g="여성">👩 여성</button></div></label>
     <label class="af"><span>닉네임</span><div class="ar"><input id="jnNick" placeholder="2~10자 (한글·영문·숫자)" autocomplete="off"><button type="button" class="chk" data-k="nick">중복확인</button></div><small id="jnNick_m"></small></label>
+    <label class="af"><span>프로필 사진</span><div class="ar jnPh"><img id="jnPhImg" alt=""><small id="jnPhTxt">성별에 맞는 사진이 자동으로 정해져요</small><button type="button" id="jnPhBtn" class="chk">고르기</button></div></label>
     <label class="af"><span>캐릭터 <em>(선택)</em></span><div class="ar"><div id="jnChar" class="charPick">No.1 기본 캐릭터</div><button type="button" id="jnCharBtn" class="chk">고르기</button></div></label>
     <label class="ck"><input type="checkbox" id="jnAgree"> 만 19세 이상이며 <a href="#" id="jnTerms">이용약관·개인정보 수집</a>에 동의합니다 (필수)</label>
     <button id="jnGo" class="pri wide">📝 가입하기</button><div id="jnErr" class="aerr"></div></div>`;
 }
 function bindJoin() {
-  Object.assign(J, { id: null, email: null, nick: null, gender: '남성', characterNo: 1 });
+  Object.assign(J, { id: null, email: null, nick: null, gender: '남성', characterNo: 1, photo: null });
+  const PR = NC.Profile, phShow = () => { if (!PR) return; if (!J.photo || !J.photo.startsWith(PR.gk(genderCode(J.gender)) + '/')) J.photo = PR.defaultFor(genderCode(J.gender), Math.random()); const im = $('#jnPhImg'); if (im) im.src = J.photo ? PR.url(J.photo) : ''; };
+  if (PR) { PR.ready.then(phShow); setTimeout(() => { const b = $('#jnPhBtn'); if (b) b.onclick = () => PR.pick(genderCode(J.gender), J.photo).then(p => { if (p) { J.photo = p; phShow(); } }); }, 0); }
   const pw = $('#jnPw'), pw2 = $('#jnPw2');
   const pwCheck = () => { const r = pwRules(pw.value); document.querySelectorAll('#pwRule i').forEach(i => i.classList.toggle('ok', !!r[i.dataset.r]));
     msg('jnPw', pw.value ? (pwOk(r) ? '사용 가능한 비밀번호예요' + (r.sp ? ' (강함)' : '') : '조건을 모두 만족해야 해요') : '', pwOk(r));
@@ -152,10 +155,10 @@ function bindJoin() {
   // 입력이 바뀌면 중복확인 무효화
   [['jnId', 'id'], ['jnEmail', 'email'], ['jnNick', 'nick']].forEach(([el, k]) => $('#' + el).addEventListener('input', () => { J[k] = null; msg(el, ''); }));
   pane.querySelectorAll('.chk[data-k]').forEach(b => b.onclick = () => dupCheck(b.dataset.k, b));
-  $('#jnGender').onclick = e => { const b = e.target.closest('button'); if (!b) return; J.gender = b.dataset.g; J.characterNo = 1; $('#jnGender').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); charLabel(); };
+  $('#jnGender').onclick = e => { const b = e.target.closest('button'); if (!b) return; J.gender = b.dataset.g; J.characterNo = 1; J.photo = null; $('#jnGender').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); charLabel(); phShow(); };
   $('#jnCharBtn').onclick = () => pickCharacter(genderCode(J.gender), J.characterNo).then(no => { if (no) { J.characterNo = no; charLabel(); } });
   $('#jnTerms').onclick = e => { e.preventDefault(); NC.ui.modal(`<h3>이용약관 · 개인정보 수집 안내</h3><div style="font-size:12px;line-height:1.7;max-height:50vh;overflow:auto;text-align:left">
-    1. 본 서비스는 만 19세 이상을 위한 가상공간 오락 콘텐츠입니다.<br>2. 수집 항목: 아이디, 비밀번호, 이메일, 닉네임, 성별, 캐릭터 번호, 가입일시.<br>3. 이용 목적: 회원 식별, 로그인, 아이디·비밀번호 찾기, 캐릭터 저장.<br>
+    1. 본 서비스는 만 19세 이상을 위한 가상공간 오락 콘텐츠입니다.<br>2. 수집 항목: 아이디, 비밀번호, 이메일, 닉네임, 성별, 캐릭터 번호, 프로필 사진(제공 이미지 중 선택), 가입일시.<br>3. 이용 목적: 회원 식별, 로그인, 아이디·비밀번호 찾기, 캐릭터 저장.<br>
     4. 보관 기간: 회원 탈퇴 시까지. 탈퇴를 원하시면 운영자에게 요청하세요.<br>5. 🪙 코인은 현금 가치가 없는 게임 재화입니다.<br>6. 다른 이용자를 괴롭히거나 불법적인 행위를 하면 이용이 제한될 수 있습니다.</div>`, [['확인', 1, true]]); };
   $('#jnGo').onclick = submitJoin; charLabel();
 }
@@ -189,10 +192,10 @@ async function submitJoin() {
   try {
     // 제출 직전 재확인 (그 사이 다른 사람이 가입했을 수 있음)
     for (const [f, v, t] of [['id', id, '아이디'], ['email', email, '이메일'], ['nickname', nick, '닉네임']]) if (await findBy(f, v)) { J[{ id: 'id', email: 'email', nickname: 'nick' }[f]] = null; return fail(`방금 다른 분이 같은 ${t}로 가입했어요. 다른 ${t}를 입력해 주세요.`); }
-    const uid = newUid(), rec = { id, password: pw, email, nickname: nick, gender: J.gender, characterNo: J.characterNo || 1, createdAt: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'), coins: DEFAULT_COINS, role: ADMIN_IDS.includes(id) ? 'admin' : 'user' };
+    const uid = newUid(), rec = { id, password: pw, email, nickname: nick, gender: J.gender, characterNo: J.characterNo || 1, photo: J.photo || null, createdAt: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'), coins: DEFAULT_COINS, role: ADMIN_IDS.includes(id) ? 'admin' : 'user' };
     await req(`users/${uid}.json`, { method: 'PUT', body: JSON.stringify(rec) });
     const back = await req(`users/${uid}.json`); if (!back || back.id !== id) throw new Error('저장 확인에 실패했어요. 잠시 후 다시 시도해 주세요.');
-    setSession({ uid, id, nickname: nick, gender: J.gender, characterNo: rec.characterNo, email }); syncAccount();
+    setSession({ uid, id, nickname: nick, gender: J.gender, characterNo: rec.characterNo, email, photo: rec.photo }); syncAccount();
     NC.ui.modal(`<h3>🎉 회원가입 완료!</h3><div class="findRes"><b>${esc(nick)}</b>님 환영합니다.<br>캐릭터 No.${rec.characterNo} · ${esc(E.styleName(genderCode(J.gender), rec.characterNo))}<br><small>입장 후에도 ⚙ 설정에서 캐릭터를 바꿀 수 있어요.</small></div>`, [['입장 준비', 1, true]]);
     show('login');
   } catch (e) { fail(e.status === 401 || e.status === 403 ? '서버가 저장을 거부했어요 (DB 규칙 확인 필요).' : e.message); }
@@ -213,11 +216,13 @@ function pickCharacter(g, cur) {
 
 /* ───── 로그인 상태 ───── */
 function loggedHtml(a) {
-  return `<div class="authBox logged"><div class="who">✅ <b>${esc(a.nickname)}</b>님 로그인됨 <small>(${esc(a.id)})</small></div>
+  return `<div class="authBox logged"><div class="who"><span id="lgPhoto" title="프로필 사진 바꾸기"><img alt="" src="${a.photo && NC.Profile ? NC.Profile.url(a.photo) : ''}"></span>✅ <b>${esc(a.nickname)}</b>님 로그인됨 <small>(${esc(a.id)})</small></div>
     <div class="who2">${a.gender} · 캐릭터 No.${a.characterNo} ${esc(E.styleName(genderCode(a.gender), a.characterNo))}</div>
-    <div class="alinks"><button type="button" id="lgChar">🧍 캐릭터 변경</button><span>|</span><button type="button" id="lgOut">로그아웃</button></div></div>`;
+    <div class="alinks"><button type="button" id="lgPh">📷 사진 변경</button><span>|</span><button type="button" id="lgChar">🧍 캐릭터 변경</button><span>|</span><button type="button" id="lgOut">로그아웃</button></div></div>`;
 }
-function bindLogged() { $('#lgOut').onclick = () => { restoreGuestCoins(); setSession(null); E.cfg.full = null; E.cfg.styleName = ''; E.renderCustom(); NC.ui.toast('로그아웃했어요'); show('guest'); };
+function bindLogged() { const ph = () => NC.Profile && NC.Profile.pick(genderCode(NC.account.gender), NC.Profile.mine()).then(async p => { if (!p) return; try { await NC.Profile.saveMine(p); NC.ui.toast('📷 프로필 사진을 바꿨어요'); show('login'); NC.Profile.refreshChip(); } catch (e) { NC.ui.toast(e.message); } });
+  if ($('#lgPh')) $('#lgPh').onclick = ph; if ($('#lgPhoto')) $('#lgPhoto').onclick = ph; if (NC.Profile && !NC.account.photo) NC.Profile.ready.then(() => { const im = $('#lgPhoto img'); const p = NC.Profile.mine() || NC.Profile.defaultFor(genderCode(NC.account.gender), NC.account.id); if (im && p) im.src = NC.Profile.url(p); });
+  $('#lgOut').onclick = () => { restoreGuestCoins(); setSession(null); E.cfg.full = null; E.cfg.styleName = ''; E.renderCustom(); NC.ui.toast('로그아웃했어요'); show('guest'); };
   $('#lgChar').onclick = () => changeCharacter(); }
 function applyAccount(a) {
   const g = genderCode(a.gender); E.cfg.gender = g; E.cfg.full = E.lookByNo(g, a.characterNo); E.cfg.styleName = E.styleName(g, a.characterNo);
@@ -247,7 +252,7 @@ async function syncAccount() {
   try {
     const u = await req(`users/${a.uid}.json`); if (!u) return;
     if (U.store.get('nc_coins_guest', null) == null) U.store.set('nc_coins_guest', NC.Wallet.get());
-    const patch = {};
+    const patch = {}; if ((u.photo || null) !== (a.photo || null)) { a.photo = u.photo || null; setSession(a); NC.Profile && NC.Profile.refreshChip && NC.Profile.refreshChip(); }
     if (typeof u.coins === 'number' && isFinite(u.coins)) { applying = true; U.store.set('nc_coins', u.coins); NC.emit('coins', u.coins, 0); applying = false; }
     else patch.coins = NC.Wallet.get();
     const role = ADMIN_IDS.includes(u.id) ? 'admin' : (u.role || 'user'); if (u.role !== role) patch.role = role;
