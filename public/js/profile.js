@@ -32,7 +32,7 @@ async function load() {
   console.info(`[profile] 남 ${P.list.boy.length} · 여 ${P.list.girl.length}장`);
 }
 P.ready = load().then(() => { P.loaded = true; });
-P.pool = g => P.list[gk(g)].filter(e => !e.dup);
+P.pool = g => P.list[gk(g)].filter(e => !e.dup && !e.res);   // res = 특정 캐릭터 전용 사진(v34.1)
 P.url = (path, big) => { if (!path) return null; const e = P.byPath[path]; if (big === 'mini') return BASE + (e && (e.m || e.t) || path); return BASE + (big || !e || !e.t ? path : e.t); };   // v34 'mini' = 128x160 (리스트·이름표·카드 — 모바일 메모리 절약)
 const imgCache = {};
 P.img = (path, big) => { const u = P.url(path, big); if (!u) return Promise.reject(); return imgCache[u] || (imgCache[u] = new Promise((res, rej) => { const im = new Image(); im.decoding = 'async'; im.onload = () => res(im); im.onerror = () => { delete imgCache[u]; rej(new Error('img ' + u)); }; im.src = u; })); };

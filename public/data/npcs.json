@@ -1454,7 +1454,8 @@
           "earring": false,
           "glassesColor": "#e8a2b6"
         }
-      }
+      },
+      "photo": "girl/재숙.png"
     },
     {
       "id": "jo",
@@ -1512,7 +1513,8 @@
           "sunglasses": false,
           "earring": false
         }
-      }
+      },
+      "photo": "girl/조여사.jpg"
     },
     {
       "id": "sophia",
@@ -1817,7 +1819,8 @@
           "sunglasses": false,
           "earring": false
         }
-      }
+      },
+      "photo": "girl/Lena.jpeg"
     },
     {
       "id": "hyejung",
@@ -1870,7 +1873,8 @@
           "sunglasses": false,
           "earring": false
         }
-      }
+      },
+      "photo": "girl/혜정.webp"
     },
     {
       "id": "mikyung",

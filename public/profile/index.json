@@ -1,7 +1,8 @@
 {
  "_설명": [
   "v33.1 프로필 사진 목록 — node tools/build_profiles.js 로 다시 만들 수 있어요 (새 사진을 boy/girl 폴더에 넣고 실행)",
-  "f: 원본 파일(profile/boy|girl/), t: 썸네일(320x400 JPG), eth: east/west/black/south/latin, age: y(20대)/m(30~40대)/old(50대+), style: photo/art/anime/cartoon/fantasy, dup: 같은 사진(자동 배정·고르기 창 제외) · m: 작은 썸네일(128x160, 리스트·이름표용)"
+  "f: 원본 파일(profile/boy|girl/), t: 썸네일(320x400 JPG), eth: east/west/black/south/latin, age: y(20대)/m(30~40대)/old(50대+), style: photo/art/anime/cartoon/fantasy, dup: 같은 사진(자동 배정·고르기 창 제외) · m: 작은 썸네일(128x160, 리스트·이름표용)",
+  "res: 특정 캐릭터 전용 사진(npcs.json \"photo\" 로 지정) — 자동 배정·사진 고르기 창에서 제외"
  ],
  "boy": [
   {
@@ -781,6 +782,42 @@
   {
    "f": "girl/image-046.avif",
    "dup": "girl/image-026.avif"
+  },
+  {
+   "f": "girl/Lena.jpeg",
+   "t": "thumb/girl/res_lena.jpg",
+   "m": "mini/girl/res_lena.jpg",
+   "eth": "east",
+   "age": "y",
+   "style": "art",
+   "res": "lena"
+  },
+  {
+   "f": "girl/재숙.png",
+   "t": "thumb/girl/res_jaesuk.jpg",
+   "m": "mini/girl/res_jaesuk.jpg",
+   "eth": "east",
+   "age": "old",
+   "style": "art",
+   "res": "jaesuk"
+  },
+  {
+   "f": "girl/조여사.jpg",
+   "t": "thumb/girl/res_jo.jpg",
+   "m": "mini/girl/res_jo.jpg",
+   "eth": "east",
+   "age": "old",
+   "style": "art",
+   "res": "jo"
+  },
+  {
+   "f": "girl/혜정.webp",
+   "t": "thumb/girl/res_hyejung.jpg",
+   "m": "mini/girl/res_hyejung.jpg",
+   "eth": "east",
+   "age": "m",
+   "style": "art",
+   "res": "hyejung"
   }
  ]
 }
