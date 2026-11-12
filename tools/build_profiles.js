@@ -15,9 +15,12 @@ let sharp = null; try { sharp = require('sharp'); } catch (e) { }
   for (const g of ['boy', 'girl']) {
     const dir = path.join(ROOT, g); if (!fs.existsSync(dir)) continue;
     const prev = new Map((old[g] || []).map(e => [e.f, e]));
+    const crypto = require('crypto'), seen = new Map();   // 내용이 똑같은 파일은 dup 로 표시
     for (const fn of fs.readdirSync(dir).filter(f => IMG.test(f)).sort()) {
       const f = `${g}/${fn}`, e = Object.assign({}, prev.get(f) || { f }); e.f = f;
-      const tn = `thumb/${g}/${fn.replace(/\.[^.]+$/, '')}.jpg`, tp = path.join(ROOT, tn);
+      const h = crypto.createHash('md5').update(fs.readFileSync(path.join(dir, fn))).digest('hex');
+      if (seen.has(h)) { e.dup = seen.get(h); delete e.t; out[g].push(e); continue; } seen.set(h, f); if (e.dup && !prev.get(f)) delete e.dup;
+      const tn = `thumb/${g}/${fn.replace(/\.([^.]+)$/, '_$1')}.jpg`   /* 확장자까지 넣음: image-001.jpg 와 image-001.webp 가 섞여 있어도 안 겹침 */, tp = path.join(ROOT, tn);
       if (sharp && !fs.existsSync(tp)) { fs.mkdirSync(path.dirname(tp), { recursive: true }); try { await sharp(path.join(dir, fn)).resize(320, 400, { fit: 'cover', position: 'north' }).jpeg({ quality: 84 }).toFile(tp); } catch (er) { console.warn('썸네일 실패', fn, er.message); } }
       e.t = fs.existsSync(tp) ? tn : null;
       out[g].push(e);

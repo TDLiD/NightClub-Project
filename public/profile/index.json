@@ -1,329 +1,704 @@
 {
  "_설명": [
-  "v33 프로필 사진 목록 — tools/build_profiles.js 로 다시 만들 수 있어요 (새 사진을 boy/girl 폴더에 넣고 실행)",
-  "f: 원본 파일(profile/boy|girl/), t: 썸네일(320px JPG), eth: east/west/black/south/latin, age: y(20대)/m(30~40대)/old(50대+), style: photo/art/anime/cartoon/fantasy, dup: 중복(자동 배정 제외)"
+  "v33.1 프로필 사진 목록 — node tools/build_profiles.js 로 다시 만들 수 있어요 (새 사진을 boy/girl 폴더에 넣고 실행)",
+  "f: 원본 파일(profile/boy|girl/), t: 썸네일(320x400 JPG), eth: east/west/black/south/latin, age: y(20대)/m(30~40대)/old(50대+), style: photo/art/anime/cartoon/fantasy, dup: 같은 사진(자동 배정·고르기 창 제외)"
  ],
  "boy": [
   {
    "f": "boy/image-001.webp",
-   "t": "thumb/boy/image-001.jpg",
    "eth": "east",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-001_webp.jpg"
   },
   {
-   "f": "boy/image-002.jpg",
-   "t": "thumb/boy/image-002.jpg",
+   "f": "boy/image-002.webp",
+   "eth": "east",
+   "age": "m",
+   "style": "photo",
+   "t": "thumb/boy/image-002_webp.jpg"
+  },
+  {
+   "f": "boy/image-003.webp",
+   "eth": "east",
+   "age": "m",
+   "style": "photo",
+   "t": "thumb/boy/image-003_webp.jpg"
+  },
+  {
+   "f": "boy/image-004.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-004_webp.jpg"
+  },
+  {
+   "f": "boy/image-005.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-005_webp.jpg"
+  },
+  {
+   "f": "boy/image-006.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-006_webp.jpg"
+  },
+  {
+   "f": "boy/image-007.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-007_webp.jpg"
+  },
+  {
+   "f": "boy/image-008.webp",
+   "eth": "east",
+   "age": "m",
+   "style": "photo",
+   "t": "thumb/boy/image-008_webp.jpg"
+  },
+  {
+   "f": "boy/image-009.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-009_webp.jpg"
+  },
+  {
+   "f": "boy/image-010.webp",
+   "eth": "east",
+   "age": "m",
+   "style": "photo",
+   "t": "thumb/boy/image-010_webp.jpg"
+  },
+  {
+   "f": "boy/image-011.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-011_webp.jpg"
+  },
+  {
+   "f": "boy/image-012.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-012_webp.jpg"
+  },
+  {
+   "f": "boy/image-013.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-013_webp.jpg"
+  },
+  {
+   "f": "boy/image-014.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-014_webp.jpg"
+  },
+  {
+   "f": "boy/image-015.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-015_webp.jpg"
+  },
+  {
+   "f": "boy/image-016.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-016_webp.jpg"
+  },
+  {
+   "f": "boy/image-017.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-017_webp.jpg"
+  },
+  {
+   "f": "boy/image-018.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-018_webp.jpg"
+  },
+  {
+   "f": "boy/image-019.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-019_webp.jpg"
+  },
+  {
+   "f": "boy/image-020.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-020_webp.jpg"
+  },
+  {
+   "f": "boy/image-021.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/boy/image-021_webp.jpg"
+  },
+  {
+   "f": "boy/image-022.jpg",
    "eth": "west",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-022_jpg.jpg"
   },
   {
-   "f": "boy/image-003.png",
-   "t": "thumb/boy/image-003.jpg",
+   "f": "boy/image-023.png",
    "eth": "west",
    "age": "old",
-   "style": "art"
+   "style": "art",
+   "t": "thumb/boy/image-023_png.jpg"
   },
   {
-   "f": "boy/image-004.jpg",
-   "t": "thumb/boy/image-004.jpg",
+   "f": "boy/image-024.jpg",
    "eth": "east",
    "age": "y",
-   "style": "anime"
+   "style": "anime",
+   "t": "thumb/boy/image-024_jpg.jpg"
   },
   {
-   "f": "boy/image-005.jpg",
-   "t": "thumb/boy/image-005.jpg",
+   "f": "boy/image-025.jpg",
    "eth": "west",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-025_jpg.jpg"
   },
   {
-   "f": "boy/image-006.jfif",
-   "t": "thumb/boy/image-006.jpg",
+   "f": "boy/image-026.jfif",
    "eth": "west",
    "age": "m",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-026_jfif.jpg"
   },
   {
-   "f": "boy/image-007.jfif",
-   "t": "thumb/boy/image-007.jpg",
+   "f": "boy/image-027.jfif",
    "eth": "south",
    "age": "m",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-027_jfif.jpg"
   },
   {
-   "f": "boy/image-008.jfif",
-   "t": "thumb/boy/image-008.jpg",
-   "dup": "boy/image-001"
+   "f": "boy/image-028.jfif",
+   "dup": "boy/image-021.webp"
   },
   {
-   "f": "boy/image-009.jfif",
-   "t": "thumb/boy/image-009.jpg",
+   "f": "boy/image-029.jfif",
    "eth": "east",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-029_jfif.jpg"
   },
   {
-   "f": "boy/image-010.jfif",
-   "t": "thumb/boy/image-010.jpg",
+   "f": "boy/image-030.jfif",
    "eth": "east",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-030_jfif.jpg"
   },
   {
-   "f": "boy/image-011.jfif",
-   "t": "thumb/boy/image-011.jpg",
+   "f": "boy/image-031.jfif",
    "eth": "east",
    "age": "m",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-031_jfif.jpg"
   },
   {
-   "f": "boy/image-012.jfif",
-   "t": "thumb/boy/image-012.jpg",
+   "f": "boy/image-032.jfif",
    "eth": "east",
    "age": "m",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-032_jfif.jpg"
   },
   {
-   "f": "boy/image-013.jfif",
-   "t": "thumb/boy/image-013.jpg",
+   "f": "boy/image-033.jfif",
    "eth": "east",
    "age": "m",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-033_jfif.jpg"
   },
   {
-   "f": "boy/image-014.jfif",
-   "t": "thumb/boy/image-014.jpg",
+   "f": "boy/image-034.jfif",
    "eth": "east",
    "age": "y",
-   "style": "anime"
+   "style": "anime",
+   "t": "thumb/boy/image-034_jfif.jpg"
   },
   {
-   "f": "boy/image-015.jfif",
-   "t": "thumb/boy/image-015.jpg",
+   "f": "boy/image-035.jfif",
    "eth": "east",
    "age": "y",
-   "style": "anime"
+   "style": "anime",
+   "t": "thumb/boy/image-035_jfif.jpg"
   },
   {
-   "f": "boy/image-016.jfif",
-   "t": "thumb/boy/image-016.jpg",
+   "f": "boy/image-036.jfif",
    "eth": "west",
    "age": "old",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-036_jfif.jpg"
   },
   {
-   "f": "boy/image-017.jfif",
-   "t": "thumb/boy/image-017.jpg",
+   "f": "boy/image-037.jfif",
    "eth": "east",
    "age": "m",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-037_jfif.jpg"
   },
   {
-   "f": "boy/image-018.jfif",
-   "t": "thumb/boy/image-018.jpg",
+   "f": "boy/image-038.jfif",
    "eth": "east",
    "age": "m",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-038_jfif.jpg"
   },
   {
-   "f": "boy/image-019.jfif",
-   "t": "thumb/boy/image-019.jpg",
+   "f": "boy/image-039.jfif",
    "eth": "latin",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-039_jfif.jpg"
   },
   {
-   "f": "boy/image-020.jfif",
-   "t": "thumb/boy/image-020.jpg",
+   "f": "boy/image-040.jfif",
    "eth": "west",
    "age": "m",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-040_jfif.jpg"
   },
   {
-   "f": "boy/image-021.avif",
-   "t": "thumb/boy/image-021.jpg",
+   "f": "boy/image-041.avif",
    "eth": "west",
    "age": "m",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/boy/image-041_avif.jpg"
   }
  ],
  "girl": [
   {
-   "f": "girl/image-001.jpg",
-   "t": "thumb/girl/image-001.jpg",
+   "f": "girl/image-000.webp",
    "eth": "east",
    "age": "y",
-   "style": "art"
+   "style": "photo",
+   "t": "thumb/girl/image-000_webp.jpg"
+  },
+  {
+   "f": "girl/image-001.jpg",
+   "eth": "east",
+   "age": "y",
+   "style": "art",
+   "t": "thumb/girl/image-001_jpg.jpg"
+  },
+  {
+   "f": "girl/image-001.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-001_webp.jpg"
   },
   {
    "f": "girl/image-002.jpg",
-   "t": "thumb/girl/image-002.jpg",
    "eth": "east",
    "age": "y",
-   "style": "art"
+   "style": "art",
+   "t": "thumb/girl/image-002_jpg.jpg"
+  },
+  {
+   "f": "girl/image-002.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-002_webp.jpg"
   },
   {
    "f": "girl/image-003.webp",
-   "t": "thumb/girl/image-003.jpg",
    "eth": "west",
    "age": "y",
-   "style": "fantasy"
+   "style": "fantasy",
+   "t": "thumb/girl/image-003_webp.jpg"
   },
   {
    "f": "girl/image-004.jfif",
-   "t": "thumb/girl/image-004.jpg",
    "eth": "west",
    "age": "y",
-   "style": "art"
+   "style": "art",
+   "t": "thumb/girl/image-004_jfif.jpg"
+  },
+  {
+   "f": "girl/image-004.webp",
+   "eth": "east",
+   "age": "m",
+   "style": "photo",
+   "t": "thumb/girl/image-004_webp.jpg"
   },
   {
    "f": "girl/image-005.jfif",
-   "t": "thumb/girl/image-005.jpg",
    "eth": "west",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/girl/image-005_jfif.jpg"
+  },
+  {
+   "f": "girl/image-005.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-005_webp.jpg"
   },
   {
    "f": "girl/image-006.jfif",
-   "t": "thumb/girl/image-006.jpg",
    "eth": "west",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/girl/image-006_jfif.jpg"
+  },
+  {
+   "f": "girl/image-006.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-006_webp.jpg"
   },
   {
    "f": "girl/image-007.jfif",
-   "t": "thumb/girl/image-007.jpg",
    "eth": "west",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/girl/image-007_jfif.jpg"
+  },
+  {
+   "f": "girl/image-007.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-007_webp.jpg"
   },
   {
    "f": "girl/image-008.jfif",
-   "t": "thumb/girl/image-008.jpg",
    "eth": "west",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/girl/image-008_jfif.jpg"
+  },
+  {
+   "f": "girl/image-008.webp",
+   "eth": "east",
+   "age": "m",
+   "style": "photo",
+   "t": "thumb/girl/image-008_webp.jpg"
   },
   {
    "f": "girl/image-009.jfif",
-   "t": "thumb/girl/image-009.jpg",
-   "dup": "girl/image-006"
+   "dup": "girl/image-006.jfif"
+  },
+  {
+   "f": "girl/image-009.webp",
+   "eth": "east",
+   "age": "m",
+   "style": "photo",
+   "t": "thumb/girl/image-009_webp.jpg"
   },
   {
    "f": "girl/image-010.jfif",
-   "t": "thumb/girl/image-010.jpg",
    "eth": "west",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/girl/image-010_jfif.jpg"
+  },
+  {
+   "f": "girl/image-010.webp",
+   "eth": "east",
+   "age": "old",
+   "style": "photo",
+   "t": "thumb/girl/image-010_webp.jpg"
   },
   {
    "f": "girl/image-011.jfif",
-   "t": "thumb/girl/image-011.jpg",
    "eth": "west",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/girl/image-011_jfif.jpg"
+  },
+  {
+   "f": "girl/image-011.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-011_webp.jpg"
   },
   {
    "f": "girl/image-012.jfif",
-   "t": "thumb/girl/image-012.jpg",
    "eth": "west",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/girl/image-012_jfif.jpg"
+  },
+  {
+   "f": "girl/image-012.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-012_webp.jpg"
   },
   {
    "f": "girl/image-013.jfif",
-   "t": "thumb/girl/image-013.jpg",
    "eth": "black",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/girl/image-013_jfif.jpg"
+  },
+  {
+   "f": "girl/image-013.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-013_webp.jpg"
   },
   {
    "f": "girl/image-014.jfif",
-   "t": "thumb/girl/image-014.jpg",
    "eth": "black",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/girl/image-014_jfif.jpg"
+  },
+  {
+   "f": "girl/image-014.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-014_webp.jpg"
   },
   {
    "f": "girl/image-015.jfif",
-   "t": "thumb/girl/image-015.jpg",
    "eth": "west",
    "age": "y",
-   "style": "fantasy"
+   "style": "fantasy",
+   "t": "thumb/girl/image-015_jfif.jpg"
+  },
+  {
+   "f": "girl/image-015.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-015_webp.jpg"
   },
   {
    "f": "girl/image-016.jfif",
-   "t": "thumb/girl/image-016.jpg",
    "eth": "black",
    "age": "m",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/girl/image-016_jfif.jpg"
+  },
+  {
+   "f": "girl/image-016.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-016_webp.jpg"
   },
   {
    "f": "girl/image-017.jfif",
-   "t": "thumb/girl/image-017.jpg",
    "eth": "latin",
    "age": "y",
-   "style": "art"
+   "style": "art",
+   "t": "thumb/girl/image-017_jfif.jpg"
+  },
+  {
+   "f": "girl/image-017.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-017_webp.jpg"
   },
   {
    "f": "girl/image-018.jfif",
-   "t": "thumb/girl/image-018.jpg",
    "eth": "south",
    "age": "y",
-   "style": "cartoon"
+   "style": "cartoon",
+   "t": "thumb/girl/image-018_jfif.jpg"
+  },
+  {
+   "f": "girl/image-018.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-018_webp.jpg"
   },
   {
    "f": "girl/image-019.jfif",
-   "t": "thumb/girl/image-019.jpg",
    "eth": "east",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/girl/image-019_jfif.jpg"
+  },
+  {
+   "f": "girl/image-019.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-019_webp.jpg"
   },
   {
    "f": "girl/image-020.jfif",
-   "t": "thumb/girl/image-020.jpg",
    "eth": "east",
    "age": "y",
-   "style": "photo"
+   "style": "photo",
+   "t": "thumb/girl/image-020_jfif.jpg"
+  },
+  {
+   "f": "girl/image-020.webp",
+   "eth": "east",
+   "age": "y",
+   "style": "photo",
+   "t": "thumb/girl/image-020_webp.jpg"
   },
   {
    "f": "girl/image-021.jfif",
-   "t": "thumb/girl/image-021.jpg",
-   "dup": "girl/image-001"
+   "dup": "girl/image-001.jpg"
+  },
+  {
+   "f": "girl/image-021.jpg",
+   "dup": "girl/image-001.jpg"
   },
   {
    "f": "girl/image-022.jfif",
-   "t": "thumb/girl/image-022.jpg",
-   "dup": "girl/image-002"
+   "dup": "girl/image-002.jpg"
+  },
+  {
+   "f": "girl/image-022.jpg",
+   "dup": "girl/image-002.jpg"
   },
   {
    "f": "girl/image-023.jfif",
-   "t": "thumb/girl/image-023.jpg",
    "eth": "east",
    "age": "y",
-   "style": "cartoon"
+   "style": "cartoon",
+   "t": "thumb/girl/image-023_jfif.jpg"
+  },
+  {
+   "f": "girl/image-023.webp",
+   "dup": "girl/image-003.webp"
   },
   {
    "f": "girl/image-024.jfif",
-   "t": "thumb/girl/image-024.jpg",
    "eth": "west",
    "age": "y",
-   "style": "fantasy"
+   "style": "fantasy",
+   "t": "thumb/girl/image-024_jfif.jpg"
+  },
+  {
+   "f": "girl/image-025.jfif",
+   "dup": "girl/image-005.jfif"
   },
   {
    "f": "girl/image-025.png",
-   "t": "thumb/girl/image-025.jpg",
-   "dup": "girl/image-018"
+   "dup": "girl/image-018.jfif"
   },
   {
    "f": "girl/image-026.avif",
-   "t": "thumb/girl/image-026.jpg",
    "eth": "east",
    "age": "y",
-   "style": "art"
+   "style": "art",
+   "t": "thumb/girl/image-026_avif.jpg"
+  },
+  {
+   "f": "girl/image-026.jfif",
+   "dup": "girl/image-006.jfif"
+  },
+  {
+   "f": "girl/image-027.jfif",
+   "dup": "girl/image-007.jfif"
+  },
+  {
+   "f": "girl/image-028.jfif",
+   "dup": "girl/image-008.jfif"
+  },
+  {
+   "f": "girl/image-029.jfif",
+   "dup": "girl/image-006.jfif"
+  },
+  {
+   "f": "girl/image-030.jfif",
+   "dup": "girl/image-010.jfif"
+  },
+  {
+   "f": "girl/image-031.jfif",
+   "dup": "girl/image-011.jfif"
+  },
+  {
+   "f": "girl/image-032.jfif",
+   "dup": "girl/image-012.jfif"
+  },
+  {
+   "f": "girl/image-033.jfif",
+   "dup": "girl/image-013.jfif"
+  },
+  {
+   "f": "girl/image-034.jfif",
+   "dup": "girl/image-014.jfif"
+  },
+  {
+   "f": "girl/image-035.jfif",
+   "dup": "girl/image-015.jfif"
+  },
+  {
+   "f": "girl/image-036.jfif",
+   "dup": "girl/image-016.jfif"
+  },
+  {
+   "f": "girl/image-037.jfif",
+   "dup": "girl/image-017.jfif"
+  },
+  {
+   "f": "girl/image-038.jfif",
+   "dup": "girl/image-018.jfif"
+  },
+  {
+   "f": "girl/image-039.jfif",
+   "dup": "girl/image-019.jfif"
+  },
+  {
+   "f": "girl/image-040.jfif",
+   "dup": "girl/image-020.jfif"
+  },
+  {
+   "f": "girl/image-041.jfif",
+   "dup": "girl/image-021.jfif"
+  },
+  {
+   "f": "girl/image-042.jfif",
+   "dup": "girl/image-022.jfif"
+  },
+  {
+   "f": "girl/image-043.jfif",
+   "dup": "girl/image-023.jfif"
+  },
+  {
+   "f": "girl/image-044.jfif",
+   "dup": "girl/image-024.jfif"
+  },
+  {
+   "f": "girl/image-045.png",
+   "dup": "girl/image-025.png"
+  },
+  {
+   "f": "girl/image-046.avif",
+   "dup": "girl/image-026.avif"
   }
  ]
 }

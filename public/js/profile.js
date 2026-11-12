@@ -168,7 +168,7 @@ P.ready.then(() => { startChip(); });
 document.addEventListener('click', e => { if (e.target.closest('#cGender button, #authTabs button, #lgOut')) setTimeout(refreshChip, 60); }, true);
 
 /* 입장 직전: 내 look 에 사진 경로를 넣음(온라인이면 다른 접속자에게도 전달) */
-NC.hooks.beforeStart.push(async () => { try { await P.ready; } catch (e) { } const g = myGender(); let p = P.mine(); if (!p || !p.startsWith(gk(g) + '/')) p = P.defaultFor(g, NC.settings.name); if (NC.settings.look) NC.settings.look.photo = p || null; });
+NC.hooks.beforeStart.push(async () => { try { await P.ready; } catch (e) { } const g = myGender(); let p = P.mine(); if (!p || !p.startsWith(gk(g) + '/') || !P.byPath[p]) p = P.defaultFor(g, NC.settings.name); /* 파일명이 바뀌어 없어진 사진이면 새로 고름 */ if (NC.settings.look) NC.settings.look.photo = p || null; });
 NC.on && NC.on('player:look', () => { const pg = NC.player && NC.player.group; if (pg && NC.settings.look && !pg.userData.look.photo) { pg.userData.look.photo = NC.settings.look.photo || P.mine(); P.decorate(pg); } });
 NC.on && NC.on('profile:mine', p => { const pg = NC.player && NC.player.group; if (pg) { pg.userData.look.photo = p; if (NC.settings.look) NC.settings.look.photo = p; P.decorate(pg); } });
 
