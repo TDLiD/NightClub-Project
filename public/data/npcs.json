@@ -5,7 +5,8 @@
     "look.face 값을 바꾸면 얼굴이 바뀝니다: eyeSize(0.7~1.3) eyeTilt(-0.2~0.2, +면 눈꼬리 올라감) liner(아이라인) blush(볼터치) lipColor lipFull browThick browTilt beard(stubble/goatee) glasses freckles",
     "likes/dislikes 의 kw 는 호감도 규칙 엔진이 플레이어 발언에서 찾는 키워드입니다. 색은 '#RRGGBB'.",
     "v5: 페르소나 외형은 오리지널 스타일라이즈드 디자인(크롭·셋업 수트·오버셔츠·쇼츠·모자)",
-    "v32: 90년대 클럽 실사 캐릭터 8명(v32:true) — look.body(slim/average/soft/athletic/stocky/curvy)·belly·metallic·sequin·leather·polo·platform, pose(dance/drink/talk/lean)"
+    "v32: 90년대 클럽 실사 캐릭터 8명(v32:true) — look.body(slim/average/soft/athletic/stocky/curvy)·belly·metallic·sequin·leather·polo·platform, pose(dance/drink/talk/lean)",
+    "always:true — 모바일 인원 제한·온라인 모드에서도 항상 등장(입장 시 무대 앞에 배치)"
   ],
   "personas": [
     {
@@ -1454,7 +1455,9 @@
           "earring": false,
           "glassesColor": "#e8a2b6"
         }
-      }
+      },
+      "always": true,
+      "pose": "dance"
     },
     {
       "id": "jo",
@@ -1512,7 +1515,9 @@
           "sunglasses": false,
           "earring": false
         }
-      }
+      },
+      "always": true,
+      "pose": "dance"
     },
     {
       "id": "sophia",
@@ -1818,7 +1823,9 @@
           "earring": false
         }
       },
-      "photo": "girl/Lena.jpeg"
+      "photo": "girl/Lena.jpeg",
+      "always": true,
+      "pose": "dance"
     },
     {
       "id": "hyejung",
@@ -1872,7 +1879,9 @@
           "earring": false
         }
       },
-      "photo": "girl/혜정.webp"
+      "photo": "girl/혜정.webp",
+      "always": true,
+      "pose": "dance"
     },
     {
       "id": "mikyung",

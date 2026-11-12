@@ -121,7 +121,11 @@ if (MOB) {
   const help = $('#help'); if (help) help.innerHTML = '👆 탭: 이동 · 드래그: 시점 · 핀치: 확대';
 }
 const css = `
-html.mobile *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}   /* v34 모바일: 반투명 블러 끄기(합성 비용↓ → 패널 열고 닫을 때 버벅임 감소) */
+html.mobile *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html.mobile button,html.mobile .glRow,html.mobile select,html.mobile input{touch-action:manipulation;-webkit-tap-highlight-color:transparent}   /* v36 탭 지연 제거 */
+html.mobile button:active{transform:scale(.96);filter:brightness(1.18)}   /* 누르는 순간 바로 눌린 표시 */
+#enterOv{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,#3a1a6a,#0b0518);color:#fff;text-align:center;font-size:15px;line-height:1.7}#enterOv div{font-size:40px}#enterOv b{font-size:17px}#enterOv small{font-size:12px;opacity:.75}
+html.mobile #start{background:radial-gradient(circle at 50% 20%,#3a1a6a 0%,#1a0b33 55%,#0b0518 100%)}   /* 입장 화면 3D 배경 대신 */   /* v34 모바일: 반투명 블러 끄기(합성 비용↓ → 패널 열고 닫을 때 버벅임 감소) */
 html.mobile #help{display:none!important}
 html.mobile #title{font-size:14px}html.mobile #badge{display:none}
 html.mobile .ibtn{min-width:34px;height:34px;font-size:15px;padding:0 6px}

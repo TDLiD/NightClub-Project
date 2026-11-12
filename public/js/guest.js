@@ -81,7 +81,7 @@ css.textContent = `#guestBanner{position:fixed;left:50%;top:calc(env(safe-area-i
   padding:5px 6px 5px 12px;border-radius:999px;background:rgba(20,12,36,.82);border:1px solid rgba(255,95,210,.45);color:#f3e9ff;font-size:12px;backdrop-filter:blur(6px)}
 #guestBanner button{border:0;border-radius:999px;padding:4px 10px;background:linear-gradient(90deg,#ff5fd2,#8a5bff);color:#fff;font-weight:700;font-size:12px;cursor:pointer}
 body.guest #act{opacity:.85}
-html.mobile #guestBanner{top:calc(env(safe-area-inset-top,0px) + 46px);font-size:11px}`;
+html.mobile #guestBanner{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 168px);font-size:11px;padding:3px 4px 3px 10px}   /* v36 모바일: 위쪽 위치 표시를 가리지 않게 아래(상호작용 버튼 위)로 */`;
 document.head.appendChild(css);
 NC.on('start', () => { NC.started = true; banner(); document.body.classList.toggle('guest', isGuest());
   if (isGuest()) setTimeout(() => NC.ui.toast('👤 손님 모드예요 — 자유롭게 둘러보세요. 대화·부킹·춤은 회원가입 후 이용할 수 있어요'), 2600); });

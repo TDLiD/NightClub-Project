@@ -136,12 +136,14 @@ let idleAcc = 1;
 function frame() {
   requestAnimationFrame(frame);
   if (!P.group && startEl && startEl.style.display !== 'none') {
-    const d = clock.getDelta(); idleAcc += d; if (idleAcc < (LITE_START ? 1 : 1 / 20)) return; if (LITE_START && (NC._idleShots = (NC._idleShots || 0) + 1) > 2) return;   // 모바일: 배경은 처음 두 번만 그리고 멈춤(입장 화면이 거의 가림)
+    const d = clock.getDelta(); idleAcc += d; if (NC.isMobile) return;   // v36 모바일: 입장 화면에서는 3D 배경을 아예 그리지 않음(셰이더 컴파일·텍스처 업로드가 수 초간 터치를 막던 원인) → 입장 후 첫 프레임에서 처리
+    if (idleAcc < (LITE_START ? 1 : 1 / 20)) return; if (LITE_START && (NC._idleShots = (NC._idleShots || 0) + 1) > 2) return;   // 모바일: 배경은 처음 두 번만 그리고 멈춤(입장 화면이 거의 가림)
     const dt0 = Math.min(idleAcc, .05); idleAcc = 0; tAcc += dt0;
     const a = tAcc * .12; camera.position.set(Math.sin(a) * 18, 7.5, -4 + Math.cos(a) * 12); camera.lookAt(0, 2, -9);
     if (!LITE_START) W.update(dt0, tAcc, []);
     (NC.render || ((s, c) => NC.renderer.render(s, c)))(NC.scene, camera); return;
   }
+  if (NC._enterWait) { NC._enterWait--; clock.getDelta(); if (!NC._enterWait) setTimeout(() => requestAnimationFrame(() => { const o = document.getElementById('enterOv'); if (o) o.remove(); }), 0); if (NC._enterWait) return; }   // v36 모바일: 첫 3D 화면(셰이더 준비)을 그리기 전에 '입장 중' 화면을 먼저 보여 줌
   const dt = Math.min(clock.getDelta(), .05); tAcc += dt; const t = tAcc;
   const agents = []; if (P.group) agents.push({ x: P.x, z: P.z, me: true });
   (NC.npcs || []).forEach(n => { if (n.g.visible) agents.push(n); }); (NC.Waiters ? NC.Waiters.list : []).forEach(o => agents.push(o)); NC.remotes.forEach(r => agents.push({ x: r.g.position.x, z: r.g.position.z }));
@@ -232,6 +234,7 @@ NC.begin = function () {
   const look = NC.settings.look;
   P.group = NC.Avatar.create({ name: NC.settings.name + ' (나)', look, seed: cfg.seed, expr: 'smile', hiRes: true });
   if (NC.VRMKit && NC.VRMKit.playerUrl) NC.VRMKit.attach(P.group, NC.VRMKit.playerUrl); P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry; NC.scene.add(P.group);
+  if (NC.isMobile) { const o = document.createElement('div'); o.id = 'enterOv'; o.innerHTML = '<div>🪩<br><b>입장 중…</b><br><small>조명과 무대를 준비하고 있어요</small></div>'; document.body.appendChild(o); NC._enterWait = 2; }
   cam.yaw = 0; $('#start').style.display = 'none'; $('#hud').style.display = ''; $('#emotes').style.display = '';
   NC.Audio.init(); NC.emit('start');
   NC.ui.toast(NC.mode === 'online' ? '입장했어요! 🪩 근처 사람에게 E로 부킹 초대 · 🤵 웨이터에게 AI 부킹' : '입장했어요! 🪩 손님 근처에서 E로 말 걸기 · 🤵 웨이터에게 팁 부킹');
@@ -249,10 +252,11 @@ $('#go').onclick = async () => {
   if (!/^[가-힣a-zA-Z0-9_ ]{2,10}$/.test(nm)) { $('#err').textContent = '닉네임은 2~10자(한글·영문·숫자)로 입력해 주세요.'; return; }
   const look = buildLook(); NC.settings.name = nm; NC.settings.look = look; NC.settings.color = U.hexNum(look.topColor, 0xff3d9a);
   U.store.set('nc_look', cfg); try { localStorage.setItem('nc_nick', nm); } catch (e) { }
-  $('#go').disabled = true;
-  try { await NC.dataReady; } catch (e) { return; }
-  try { for (const h of NC.hooks.beforeStart) await h(); } catch (e) { $('#err').textContent = e.message || String(e); $('#go').disabled = false; return; }
-  NC.begin(); $('#go').disabled = false;
+  $('#go').disabled = true; const goTxt = $('#go').textContent; if (NC.isMobile) $('#go').textContent = '⏳ 입장 준비 중…';   // v36 누르자마자 반응 표시
+  await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));   // 버튼 글자가 먼저 화면에 그려지게
+  try { await NC.dataReady; } catch (e) { $('#go').textContent = goTxt; return; }
+  try { for (const h of NC.hooks.beforeStart) await h(); } catch (e) { $('#err').textContent = e.message || String(e); $('#go').disabled = false; $('#go').textContent = goTxt; return; }
+  NC.begin(); $('#go').disabled = false; $('#go').textContent = goTxt;
 };
 $('#nick').addEventListener('keydown', e => { if (e.key === 'Enter') $('#go').click(); });
 { const qm = document.createElement('div'); qm.id = 'qmenu'; const Lv = [['high', '🎬 고화질 (그림자·블룸·필름)'], ['mid', '✨ 중간 (블룸)'], ['low', '⚡ 저사양 (모바일)']];

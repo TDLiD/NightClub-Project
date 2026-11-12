@@ -8,7 +8,7 @@ const T = window.THREE;
 if (!T) return;
 
 const NC = window.NC = {
-  VERSION: 'v35',   // 화면 왼쪽 위에 표시되는 패키지 버전
+  VERSION: 'v36',   // 화면 왼쪽 위에 표시되는 패키지 버전
   THREE: T, $, version: '14.0.0', mode: 'demo', chatEnabled: false, server: false, config: {},
   settings: { name: '', color: 0xff3d9a, look: null, playMode: 'solo' },
   hooks: { beforeStart: [] }, interactProviders: [], tickers: [],
@@ -39,7 +39,8 @@ const canvas = $('#c');
 /* v28 모바일 판별(터치 + 작은 화면) — 화질·UI·메모리 정책의 기준 */
 NC.isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)) || Math.min(screen.width, screen.height) < 600;
 if (NC.isMobile) document.documentElement.classList.add('mobile');
-const renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: NC.isMobile ? 'default' : 'high-performance' });
+const renderer = new T.WebGLRenderer({ canvas, antialias: !NC.isMobile, powerPreference: NC.isMobile ? 'default' : 'high-performance' });
+renderer.debug.checkShaderErrors = !NC.isMobile;   // v36 모바일: 셰이더마다 컴파일 완료를 동기로 기다리며 오류를 검사하던 단계 생략(입장 첫 화면 수 초 멈춤 원인) · 안티앨리어싱 끔(픽셀 비용↓)
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 renderer.outputEncoding = T.sRGBEncoding;
 renderer.toneMapping = T.ACESFilmicToneMapping;

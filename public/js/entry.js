@@ -35,7 +35,15 @@ function draw(look, w, h, ry = .35, target) {
   return r.renderer.domElement.toDataURL('image/png');
 }
 // 시작 화면 미리보기 = 전신 3D
-E.preview = look => { try { draw(look, 240, 276, .4, $('#facePrev')); } catch (e) { console.warn(e); NC.Avatar.preview($('#facePrev'), look, 'smile'); } };
+const previewNow = look => { try { draw(look, 240, 276, .4, $('#facePrev')); } catch (e) { console.warn(e); NC.Avatar.preview($('#facePrev'), look, 'smile'); } };
+/* v36 모바일: 3D 미리보기는 버튼 반응이 먼저 그려진 뒤(디바운스 120ms), 처음 한 번은 브라우저가 한가할 때 → 성별·스타일 버튼 터치가 즉시 반응 */
+let pvT = null, pvFirst = true;
+E.preview = look => {
+  if (!NC.isMobile) return previewNow(look);
+  clearTimeout(pvT); const run = () => { pvT = null; if (NC.started) return; previewNow(look); };
+  if (pvFirst) { pvFirst = false; (window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 2500 }) : f => setTimeout(f, 1200))(run); return; }
+  pvT = setTimeout(() => requestAnimationFrame(run), 120);
+};
 
 /* ───── 1. 닉네임 샘플 ───── */
 const NICKS = ['밤의황제', '부킹왕', '춤신춤왕', '나이트여신', '불금러버', '골드미스', '강남제비', '블루스킹', '홍대여우', '압구정공주', '디스코킹', '청담스타', '미러볼요정', '샴페인걸', '로맨티스트', '야간비행', '네온나비', '추억소환', '금요일밤', '무대장악',

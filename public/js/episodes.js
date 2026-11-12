@@ -167,7 +167,7 @@ function setupGroups() {
     const step = () => { if (k < NG) { makeGuests(k < NG / 2 ? 1 : 0, k < NG / 2 ? 0 : 1, k); k++; idle(step); } else { makeGuests.done = true; setupGroups(); } }; idle(step); return; }
   if (low && makeGuests.done !== true) return;
   if (!low) makeGuests(16, 16);
-  const crowd = (NC.npcs || []).filter(n => n.role === 'crowd' && !n.stay && n.enabled), guests = crowd.filter(n => n.guest), rest = crowd.filter(n => !n.guest);
+  const crowd = (NC.npcs || []).filter(n => n.role === 'crowd' && !n.stay && n.enabled && !n.always),   /* v36 always 손님은 테이블에 앉히지 않고 무대 쪽에 둠 */ guests = crowd.filter(n => n.guest), rest = crowd.filter(n => !n.guest);
   const pool = guests.concat(rest.slice(0, 6)), F = pool.filter(n => n.gender === 'f'), M = pool.filter(n => n.gender === 'm');
   const take = gd => (gd === 'f' ? F : gd === 'm' ? M : (F.length > M.length ? F : M)).shift();
   // VIP 2·3번 룸 (VIP 1번은 플레이어 예약용으로 비워 둠)

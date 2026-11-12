@@ -29,8 +29,9 @@ function spawn(def, role) {
     mood: Number.isFinite(+def.mood) ? +def.mood : ((Math.random() * 3 | 0) - 1), aff: def.baseAffinity || 40, history: [], topicHits: {}, recentDeltas: [],
     enabled: true, stuck: 0, path: null, speed: 2.1, greeted: false, rejectedAt: 0, secretsShown: {},
   };
+  if (def.always) { const Z = W.zones.dance; n.x = Z.x0 + 1 + Math.random() * (Z.x1 - Z.x0 - 2); n.z = Z.z0 + .8 + Math.random() * 1.6; n.always = true; }   // v36 입장하면 무대 앞 댄스플로어에
   g.position.set(n.x, 0, n.z); NC.scene.add(g); npcs.push(n);
-  if (!crowdOn && role === 'crowd') { n.enabled = false; g.visible = false; n.state = 'off'; }   // 늦게 생성돼도 온라인 모드 설정을 따름
+  if (!crowdOn && role === 'crowd' && !def.always) { n.enabled = false; g.visible = false; n.state = 'off'; }   // 늦게 생성돼도 온라인 모드 설정을 따름
   return n;
 }
 
@@ -107,15 +108,16 @@ NC.NPC = {
   list: npcs, spawn, goTo, planPath,
   byId: id => npcs.find(n => n.id === id),
   personas: () => npcs.filter(n => n.role === 'persona'),
-  setCrowdEnabled(on) { crowdOn = on; npcs.forEach(n => { if (n.state === 'seated' || n.booked) return; n.enabled = on; n.g.visible = on; n.state = on ? 'wander' : 'off'; }); },
+  setCrowdEnabled(on) { crowdOn = on; npcs.forEach(n => { if (n.state === 'seated' || n.booked || (n.always && !on)) return;   /* v36 always 손님은 온라인 모드에서도 남김 */ n.enabled = on; n.g.visible = on; n.state = on ? 'wander' : 'off'; }); },
   show(n, on = true) { n.enabled = on; n.g.visible = on; if (on && n.state === 'off') n.state = 'wander'; if (!on) n.state = 'off'; },
   sit(n, x, z, ry, h) { n._seatArgs = [x, z, ry, h]; n.state = 'seated'; n.x = x; n.z = z; NC.seatAvatar(n.g, x, z, ry, h); },
-  release(n) { const u = n.g.userData; NC.unseatAvatar(n.g); n.state = (crowdOn || !NC.isOnline()) ? 'wander' : 'off'; n.booked = false; n.wp = null; n.pause = 1; u.lookAt = null; u.talk = false; if (n.state === 'off') { n.g.visible = false; n.enabled = false; } },
+  release(n) { const u = n.g.userData; NC.unseatAvatar(n.g); n.state = (crowdOn || n.always || !NC.isOnline()) ? 'wander' : 'off'; n.booked = false; n.wp = null; n.pause = 1; u.lookAt = null; u.talk = false; if (n.state === 'off') { n.g.visible = false; n.enabled = false; } },
   init(data) {
     // v17: 모바일/저사양은 로그인 화면에서 아바타를 하나도 만들지 않음(아바타 1명 생성 = 수백 ms 작업) →
     //      입장 버튼을 누른 뒤 한 명씩 '입장'하듯 나눠 생성 → 로그인 화면 입력·버튼 반응이 즉시
     let crowdDefs = (data.npcs || []).filter(d => d.enabled !== false);
-    if (NC.isMobile) { const cap = innerWidth * innerHeight > 900000 ? 16 : 12; crowdDefs = crowdDefs.filter(d => d.v32).concat(crowdDefs.filter(d => !d.v32)).slice(0, cap); }   // v34 모바일: 돌아다니는 손님 수 제한(폰 12 · 태블릿 16)
+    crowdDefs = crowdDefs.filter(d => d.always).concat(crowdDefs.filter(d => !d.always));   // v36 always(재숙·혜정·조여사·Lena) 먼저 → 저사양에서도 가장 먼저 생성
+    if (NC.isMobile) { const cap = innerWidth * innerHeight > 900000 ? 16 : 12, al = crowdDefs.filter(d => d.always), rest = crowdDefs.filter(d => !d.always); crowdDefs = al.concat(rest.filter(d => d.v32), rest.filter(d => !d.v32)).slice(0, Math.max(cap, al.length)); }   // v34 모바일 인원 제한(폰 12 · 태블릿 16) — v36 always 는 항상 포함
     const list = (data.personas || []).map(d => [d, 'persona']).concat(crowdDefs.map(d => [d, 'crowd']));
     const lite = (NC.quality && NC.quality.level === 'low') || matchMedia('(pointer:coarse)').matches;
     if (lite) { NC.NPC.ready = false; let i = 0; const idle = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 250 }) : f => setTimeout(f, 30);
