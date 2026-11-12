@@ -26,14 +26,16 @@ const HAIR = { long: 'long straight', wavy: 'long softly wavy', bob: 'chin-lengt
   short: 'short neat', twoblock: 'two-block undercut', slick: 'slicked-back', curly: 'short curly', spiky: 'textured spiky', side: 'side-parted', buzz: 'buzz-cut', comma: 'comma-style fringe', wolf: 'layered wolf-cut' };
 const PAT = { floral: 'small ditsy floral print', stripe: 'striped', plaid: 'plaid', leopard: 'leopard print', graphic: 'graphic print', monogram: 'diamond monogram pattern', paisley: 'paisley print', knit: 'chunky knit', cord: 'corduroy' };
 const HAT = { cap: 'baseball cap', beanie: 'knit beanie', beret: 'wool beret', newsboy: 'newsboy cap', fedora: 'felt fedora', bucket: 'bucket hat', visor: 'sun visor without logo' };
-const SHOE = { sneakers: 'sneakers with visible mesh and stitching', boots: 'leather ankle boots with natural creases', thigh: 'glossy thigh-high boots', sandals: 'strappy sandals', flats: 'ballet flats' };
+const BODYW = { slim: 'slim, lean build with narrow shoulders and visible collarbones', average: 'average everyday build', soft: 'slightly chubby build with a soft belly and fuller upper arms', athletic: 'fit athletic build with natural muscle definition', stocky: 'stocky, broad-shouldered build with thick arms and a little belly', curvy: 'curvy build with fuller hips' };
+const SHOE = { platform: 'chunky 1990s platform shoes with 6-7 cm soles', sneakers: 'sneakers with visible mesh and stitching', boots: 'leather ankle boots with natural creases', thigh: 'glossy thigh-high boots', sandals: 'strappy sandals', flats: 'ballet flats' };
+const POSEW = { dance: 'caught mid-dance on a crowded dance floor', drink: 'holding a drink glass at chest height, mid-conversation at the bar', talk: 'talking and gesturing with one hand', lean: 'leaning against a wall with weight on one leg, arms crossed', pocket: 'standing with hands in pockets' };
 const MOOD = { cool: 'composed, confident expression with a faint knowing smile', shy: 'gentle, slightly shy smile', outgoing: 'bright, warm genuine smile with natural smile lines', playful: 'playful grin with crinkled eyes' };
-const ETH = { east: 'East Asian (Korean)', west: 'Caucasian', black: 'Black' };
+const ETH = { east: 'East Asian (Korean)', jp: 'East Asian (Japanese)', west: 'Caucasian', black: 'Black' };
 const ageWord = (a, f) => { a = +a || 28; const d = a < 23 ? 'early 20s' : a < 27 ? 'mid-20s' : a < 30 ? 'late 20s' : a < 34 ? 'early 30s' : a < 37 ? 'mid-30s' : a < 40 ? 'late 30s' : a < 44 ? 'early 40s' : a < 47 ? 'mid-40s' : a < 50 ? 'late 40s' : a < 54 ? 'early 50s' : a < 57 ? 'mid-50s' : 'late 50s'; return `${f ? 'woman' : 'man'} in her ${d}`.replace('her', f ? 'her' : 'his'); };
 
 function describe(look, meta) {
   const f = look.gender === 'f', F = look.face || {}, age = meta.age, out = {};
-  out.subject = `${ETH[meta.ethnic || look.ethnic] || ETH.east} ${ageWord(age, f)}, ${f ? 'height about ' + Math.round((look.height || 1.63) * 100) + ' cm' : 'height about ' + Math.round((look.height || 1.76) * 100) + ' cm'}, natural relaxed standing pose, ${MOOD[meta.trait] || MOOD.outgoing}`;
+  out.subject = `${ETH[meta.ethnic || look.ethnic] || ETH.east} ${ageWord(age, f)}, ${f ? 'height about ' + Math.round((look.height || 1.63) * 100) + ' cm' : 'height about ' + Math.round((look.height || 1.76) * 100) + ' cm'}${look.body ? ', ' + BODYW[look.body] : ''}, realistic adult proportions about 7.5-8 heads tall, ${meta.pose ? POSEW[meta.pose] || 'natural relaxed standing pose' : 'natural relaxed standing pose'}, ${MOOD[meta.trait] || MOOD.outgoing}`;
   const extras = [];
   if (F.freckles) extras.push('light freckles across the nose'); if (F.mole) extras.push('a small beauty mole'); if (!f && F.beard) extras.push(F.beard === 'goatee' ? 'neatly trimmed goatee' : 'light stubble shadow');
   if (+age >= 40) extras.push('natural crow\'s feet and fine forehead lines appropriate to age'); else extras.push('very fine lines only when smiling');
@@ -42,13 +44,13 @@ function describe(look, meta) {
   out.hair = hair;
   const top = (() => { const c = cname(look.topColor), p = look.pattern && look.pattern !== 'solid' ? PAT[look.pattern] + ' ' : '';
     switch (look.top) {
-      case 'tee': return look.pattern === 'knit' ? `oversized ${c} chunky knit crew-neck sweater with visible knit stitches` : `${c} ${p}${look.longSleeve ? 'long-sleeve fitted athletic top with fine jersey knit' : 'cotton crew-neck T-shirt'}`;
+      case 'tee': if (look.polo) return `${c} cotton piqué polo shirt with a soft collar and two-button placket${look.belly ? ', tucked in, pulling slightly over the belly' : ''}`; return look.pattern === 'knit' ? `oversized ${c} chunky knit crew-neck sweater with visible knit stitches` : `${c} ${p}${look.longSleeve ? 'long-sleeve fitted athletic top with fine jersey knit' : 'cotton crew-neck T-shirt'}`;
       case 'shirt': return `${c} ${p}button-up ${f ? 'silk-cotton blouse' : 'cotton shirt'} with visible weave and stitching`;
-      case 'jacket': return look.sailor ? `${c} wool sailor-collar jacket with ${cname(look.sailor.trim)} piping on collar and cuffs` : `${c} ${p}tailored wool blazer${look.inner === 'turtle' ? ' over a ' + cname(look.innerColor) + ' turtleneck' : look.innerColor ? ' over a ' + cname(look.innerColor) + ' tee' : ''}`;
-      case 'dress': return `${c} ${p}${look.maxi ? 'sleeveless ankle-length maxi dress' : look.mini ? 'mini dress' : 'midi dress'} in light flowing fabric`;
-      case 'crop': return `${c} ${p}fitted cropped top`;
+      case 'jacket': if (look.leather) return `${c} worn leather biker jacket with creased elbows over a white tee`; return look.sailor ? `${c} wool sailor-collar jacket with ${cname(look.sailor.trim)} piping on collar and cuffs` : `${c} ${p}tailored wool blazer${look.inner === 'turtle' ? ' over a ' + cname(look.innerColor) + ' turtleneck' : look.innerColor ? ' over a ' + cname(look.innerColor) + ' tee' : ''}`;
+      case 'dress': if (look.sequin) return `${c} sequined ${look.mini ? 'mini ' : ''}slip dress with thin straps, sequins catching the light`; return `${c} ${p}${look.maxi ? 'sleeveless ankle-length maxi dress' : look.mini ? 'mini dress' : 'midi dress'} in light flowing fabric`;
+      case 'crop': return `${c} ${p}${look.metallic ? 'metallic ' : look.sequin ? 'sequined ' : ''}ribbed cropped top`;
       case 'overshirt': return `${c} ${p}knit cardigan / overshirt over a ${cname(look.innerColor)} tee`;
-      case 'halter': return `${c} halter-neck top`; case 'blazerCrop': return `${c} cropped blazer with gold buttons`; case 'meshCrop': return `${c} sheer mesh crop top`; case 'vest': return `${c} tailored vest over a white shirt`; case 'stageJacket': return `${c} leather rider jacket with silver hardware`;
+      case 'halter': return `${c} ${look.metallic ? 'metallic foil ' : look.sequin ? 'sequined ' : ''}halter-neck top`; case 'blazerCrop': return `${c} cropped blazer with gold buttons`; case 'meshCrop': return `${c} sheer mesh crop top`; case 'vest': return `${c} tailored vest over a white shirt`; case 'stageJacket': return `${c} leather rider jacket with silver hardware`;
       default: return `${c} top`; } })();
   const bot = look.top === 'dress' ? '' : (() => { const c = cname(look.bottomColor), bp = look.bottomPattern ? PAT[look.bottomPattern] + ' ' : '';
     switch (look.bottom) {
@@ -115,7 +117,7 @@ function close() { box.style.display = 'none'; cur = null; }
 function open(target) {
   let g, meta;
   if (target === 'me' || !target) { g = NC.player && NC.player.group; meta = { age: (NC.account && NC.account.age) || 28, trait: 'outgoing', name: (NC.settings.name || '나'), ethnic: 'east' }; }
-  else { g = target.g; const d = target.def || {}, pr = NC.Service && NC.Service.profile ? NC.Service.profile(target) : null; meta = { age: d.age || (pr && pr.age) || 28, trait: target.trait || d.trait, name: target.name, ethnic: (d.look && d.look.ethnic) || (/[가-힣]/.test(target.name) || target.name === 'Lena' ? 'east' : null) }; }
+  else { g = target.g; const d = target.def || {}, pr = NC.Service && NC.Service.profile ? NC.Service.profile(target) : null; meta = { age: d.age || (pr && pr.age) || 28, trait: target.trait || d.trait, name: target.name, pose: d.pose, ethnic: (d.look && d.look.ethnic) || (/[가-힣]/.test(target.name) || target.name === 'Lena' ? 'east' : null) }; }
   if (!g || !g.userData || !g.userData.look) return NC.ui.toast('캐릭터 정보를 찾지 못했어요');
   cur = { look: g.userData.look, meta }; $('#p3Name').textContent = '— ' + meta.name; $('#p3Extra').value = ''; render(); box.style.display = 'flex';
 }

@@ -155,7 +155,16 @@ function CHOREO(p, u, b, A) {
 
 /* ── 베이스 루프 ── */
 const BASE = {
-  idle(p, t, u) { const s = Math.sin(t * 1.7 + u.seed * 9), w = Math.sin(t * .42 + u.seed * 7); p.bodyX = .022 * w; p.legL = [0, 0, -.03 + .03 * w]; p.legR = [0, 0, .03 + .03 * w]; p.knL = [Math.max(0, w) * .12, 0, 0]; p.knR = [Math.max(0, -w) * .12, 0, 0]; p.hipsY = u.hipH - .008 * Math.abs(w); p.torso = [.02 * s, 0, -.02 * w]; p.head = [.03 * Math.sin(t * .9 + u.seed * 5), .22 * Math.sin(t * .23 + u.seed * 13), 0]; p.shL = [.03 * s, 0, -.12]; p.shR = [-.03 * s, 0, .12]; },
+  idle(p, t, u) { const s = Math.sin(t * 1.7 + u.seed * 9), w = Math.sin(t * .42 + u.seed * 7); p.bodyX = .022 * w; p.legL = [0, 0, -.03 + .03 * w]; p.legR = [0, 0, .03 + .03 * w]; p.knL = [Math.max(0, w) * .12, 0, 0]; p.knR = [Math.max(0, -w) * .12, 0, 0]; p.hipsY = u.hipH - .008 * Math.abs(w); p.torso = [.02 * s, 0, -.02 * w]; p.head = [.03 * Math.sin(t * .9 + u.seed * 5), .22 * Math.sin(t * .23 + u.seed * 13), 0]; p.shL = [.03 * s, 0, -.12]; p.shR = [-.03 * s, 0, .12];
+    /* v32 자연스러운 대기 포즈(사람마다 다름): lean 한쪽 다리에 체중+팔짱 · drink 잔을 가슴 높이에 · talk 손짓하며 대화 · pocket 손 넣고 서 있기 */
+    const ip = u.idlePose;
+    if (ip === 'lean') { p.bodyX = .045 + .01 * w; p.hipsY = u.hipH - .014; p.legL = [0, 0, -.07]; p.legR = [-.14, 0, .12]; p.knL = [.02, 0, 0]; p.knR = [.34, 0, 0]; p.torso = [-.03, .06, .06];
+      p.shL = [-.28, .75, .16]; p.elL = [-1.6, 0, 0]; p.shR = [-.24, -.75, -.18]; p.elR = [-1.55, 0, 0]; p.head = [.02, .25 * Math.sin(t * .2 + u.seed * 9), -.05]; }
+    else if (ip === 'drink') { p.shR = [-.42 - .02 * s, 0, .14]; p.elR = [-1.55, 0, 0]; p.shL = [.04, 0, -.1]; p.elL = [-.18, 0, 0]; p.torso = [.03, -.08, -.02]; }
+    else if (ip === 'talk') { const g1 = Math.sin(t * 2.2 + u.seed * 4), g2 = Math.sin(t * 1.3 + u.seed); p.shR = [-.38 - .14 * Math.max(0, g1), .1, .18]; p.elR = [-1.05 - .35 * g2, 0, 0];
+      p.shL = [.12, 0, -.42]; p.elL = [-1.35, 0, 0]; p.head = [.04 * g1, .18 * Math.sin(t * .5 + u.seed * 3), .05 * g2]; p.torso = [.02, .06 * g2, .02]; }
+    else if (ip === 'pocket') { p.shL = [.18, 0, -.1]; p.elL = [-.3, 0, 0]; p.shR = [.18, 0, .1]; p.elR = [-.3, 0, 0]; }
+  },
   walk(p, t, u) {
     const ph = u.walkPh, s = Math.sin(ph), c = Math.cos(ph);
     p.legL = [s * .5, 0, -.02]; p.legR = [-s * .5, 0, .02]; p.knL = [Math.max(0, -c) * .9 + .05, 0, 0]; p.knR = [Math.max(0, c) * .9 + .05, 0, 0];

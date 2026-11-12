@@ -18,6 +18,7 @@ function spawn(def, role) {
     const u = g.userData; u.danceStyle = def.dance || pk(f ? ['hipSway', 'bodyRoll', 'hairFlip', 'vogue', 'hipCircle', 'disco', 'breaking', 'techno', 'shimmy'] : ['pump', 'runMan', 'disco', 'techno', 'breaking', 'robot', 'bounceRock', 'stepTouch']);
     u.walkStyle = def.walk || pk(f ? ['model', 'bouncy', 'shy', 'model', null] : ['swagger', 'bouncy', 'shy', 'swagger', null]);
     u.habit = def.habit || pk(['drinker', 'none', 'flirt', 'phone', 'none', 'drinker']);
+    u.idlePose = def.pose && def.pose !== 'dance' ? def.pose : (def.pose ? null : pk([null, null, 'talk', 'drink', 'lean', 'pocket', null]));   // v32 대기 포즈
   }
   if (def.model && NC.VRMKit && NC.VRMKit.ok) NC.VRMKit.attach(g, def.model, { tint: def.tint });
   const n = {
@@ -32,8 +33,9 @@ function spawn(def, role) {
   return n;
 }
 
-function pickWaypoint() {
-  const r = Math.random(), Z = W.zones;
+function pickWaypoint(n) {
+  const pz = n && n.def && n.def.pose; let r = Math.random(); const Z = W.zones;
+  if (pz === 'dance') r = r < .75 ? r * .6 : r; else if (pz === 'drink') r = r < .5 ? .6 + r * .3 : r;   // v32 춤꾼은 댄스플로어, 술꾼은 바 쪽을 자주 감
   if (r < .45) return { x: Z.dance.x0 + .8 + Math.random() * (Z.dance.x1 - Z.dance.x0 - 1.6), z: Z.dance.z0 + .8 + Math.random() * (Z.dance.z1 - Z.dance.z0 - 1.6), act: 'dance' };
   if (r < .57) return { x: -8 + Math.random() * 16, z: -15.8 + Math.random() * 2.2, act: 'stage' };
   if (r < .75) return { x: 19.2, z: -12 + Math.random() * 13.5, act: 'bar' };
@@ -72,13 +74,13 @@ function update(n, dt) {
   if (n.state === 'wander') {
     if (n.pause > 0) {
       n.pause -= dt; u.moving = false;
-      if (n.wp && n.wp.act === 'bar' && Math.random() < dt * .12) Mo.play(n.g, 'drink');
-      if (n.pause <= 0) { n.wp = pickWaypoint(); n.stuck = 0; u.dance = null; u.holdGlass = false; }
+      if (n.wp && (n.wp.act === 'bar' || u.holdGlass) && Math.random() < dt * .12) Mo.play(n.g, 'drink');
+      if (n.pause <= 0) { n.wp = pickWaypoint(n); n.stuck = 0; u.dance = null; u.holdGlass = false; }
     } else {
-      if (!n.wp) n.wp = pickWaypoint();
+      if (!n.wp) n.wp = pickWaypoint(n);
       if (stepToward(n, n.wp.x, n.wp.z, dt) || n.stuck > 2.5) {
         n.pause = 4 + Math.random() * 9; u.moving = false;
-        u.dance = n.wp.act === 'stage' ? 'stageDance' : n.wp.act === 'dance' ? 'groove' : null; u.holdGlass = n.wp.act === 'bar';
+        u.dance = n.wp.act === 'stage' ? 'stageDance' : n.wp.act === 'dance' ? 'groove' : null; u.holdGlass = n.wp.act === 'bar' || (u.idlePose === 'drink' && !u.dance);
         if (n.wp.act === 'bar') n.g.rotation.y = Math.PI / 2;
       }
     }

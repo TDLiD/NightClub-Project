@@ -69,8 +69,8 @@ function show(tab) {
   if (modeSel && NC.server) modeSel.style.display = goBtn.style.display === 'none' ? 'none' : '';
   $('#nick').closest('.copts') && ($('#nick').style.display = acc ? 'none' : '', $('#nickSamples') && ($('#nickSamples').style.display = acc ? 'none' : ''));
   if (acc) { pane.innerHTML = loggedHtml(acc); bindLogged(); goBtn.textContent = `${acc.nickname}(으)로 입장하기`; tabs.style.display = 'none'; applyAccount(acc); return; }
-  tabs.style.display = ''; goBtn.textContent = '손님으로 입장하기';
-  if (guest) { pane.innerHTML = '<p class="authHint">로그인 없이 바로 입장해요. 닉네임과 스타일을 고르세요 · 회원이 되면 닉네임·캐릭터가 저장돼요</p>'; return; }
+  tabs.style.display = ''; goBtn.textContent = '👀 손님으로 둘러보기';
+  if (guest) { pane.innerHTML = '<p class="authHint">손님은 <b>나이트 내부 둘러보기</b>만 가능해요. 대화·부킹·춤·노래방·게임은 <b>회원가입</b> 후 이용할 수 있어요</p>'; return; }
   if (tab === 'login') { pane.innerHTML = loginHtml(); bindLogin(); }
   if (tab === 'join') { pane.innerHTML = joinHtml(); bindJoin(); }
 }
@@ -331,5 +331,6 @@ if (qm) { const sep = document.createElement('div'); sep.className = 'qsep'; qm.
 /* ───── 입장 가드: 로그인 상태면 계정 닉네임·캐릭터 강제 ───── */
 NC.hooks.beforeStart.unshift(async () => { const a = NC.account; if (a) { applyAccount(a); NC.settings.name = a.nickname; NC.settings.look = E.buildLook(); } });
 goBtn.addEventListener('click', () => { const a = NC.account; if (a) $('#nick').value = a.nickname; }, true);
-show(NC.account ? 'login' : 'guest');
+{ let t = null; try { t = localStorage.getItem('nc_auth_tab'); localStorage.removeItem('nc_auth_tab'); } catch (e) { }
+  show(NC.account ? 'login' : (t === 'join' || t === 'login') ? t : 'guest'); }
 })();

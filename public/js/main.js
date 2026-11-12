@@ -27,7 +27,7 @@ NC.walkPlayer = (path, done) => { if (P.seat) standLocal(); P.autoPath = path.sl
 const typing = NC.ui.typing;
 const EMOTE_KEYS = { z: 'stageDance', x: 'groove', c: 'cheers', v: 'drink', b: 'wave', n: 'clap', m: 'bow' };
 function emote(name) {
-  if (!P.group) return;
+  if (!P.group) return; if (NC.memberGate && !NC.memberGate('이모트 · 춤')) return;
   if (name === 'stageDance' || name === 'groove') { P.group.userData.dance = name; P.danceUntil = performance.now() + 8000; }
   else Mo.play(P.group, name);
   NC.net && NC.mode === 'online' && NC.net.send({ type: 'emote', name });
@@ -36,8 +36,8 @@ NC.emote = emote;
 addEventListener('keydown', e => {
   if (typing() || !P.group) return; if (NC.Games && NC.Games.active) return;
   const k = (e.key || '').toLowerCase(); keys[k] = true;
-  if (k === 'e' || (k === 'enter' && !NC.chatEnabled)) { if (curAct) curAct.run(); e.preventDefault(); }
-  if (k === 'enter' && NC.chatEnabled) { $('#chatin').focus(); e.preventDefault(); }
+  if (k === 'e' || (k === 'enter' && !NC.chatEnabled)) { runAct(curAct); e.preventDefault(); }
+  if (k === 'enter' && NC.chatEnabled) { if (NC.memberGate && !NC.memberGate('채팅')) return; $('#chatin').focus(); e.preventDefault(); }
   if (EMOTE_KEYS[k] && !NC.ui.dlgOpen() && !NC.Dialog.cur) emote(EMOTE_KEYS[k]);
   if (k === 'escape' && NC.Dialog.cur) NC.Dialog.close('bye');
 });
@@ -78,7 +78,7 @@ function clickMove(v, r) {
   if (P.seat) NC.requestStand();
   const path = !inExtra && NC.Path ? NC.Path.find(P, to) : null;
   if (path) { sitAfter = path.snapped; const end = path[path.length - 1];
-    NC.walkPlayer(path, () => { if (!sitAfter) return; const a = computeAct(x => /앉기/.test(x.label)); if (a) a.run(); });
+    NC.walkPlayer(path, () => { if (!sitAfter) return; const a = computeAct(x => /앉기/.test(x.label)); if (a && !(NC.isGuest && NC.isGuest())) a.run(); });
     P.autoSpeed = P.speed; marker.position.set(end.x, NC.groundY(end.x, end.z) + .03, end.z); marker.material.opacity = .9; }
   else { P.autoPath = null; P.target = to; marker.position.set(to.x, .03, to.z); marker.material.opacity = .9; }
 }
@@ -107,7 +107,9 @@ function computeAct(filter) {
   }
   c.sort((a, b) => a.dist - b.dist); return (filter ? c.filter(filter) : c)[0] || null;
 }
-actBtn.onclick = () => curAct && curAct.run();
+/* v32 손님 모드: 상호작용은 회원 전용 → 버튼엔 🔒 표시, 누르면 가입 팝업 */
+function runAct(a) { if (!a) return; if (NC.memberGate && !NC.memberGate(a.label.replace(/\s*\(E\)\s*/, '').replace(/^\S+\s/, ''))) return; a.run(); }
+actBtn.onclick = () => runAct(curAct);
 
 /* ───────── 구역 판정 (모션 트리거 · 사운드 댐핑 · 코인) ───────── */
 const zoneEl = $('#zone');
@@ -178,7 +180,7 @@ function frame() {
     camera.position.lerp(camPos, Math.min(1, dt * (f ? 3 : 6))); NC._look = NC._look || camTarget.clone(); NC._look.lerp(camTarget, Math.min(1, dt * 6)); camera.lookAt(NC._look);
     const doorOpen = P.room >= 0 ? W.vip[P.room].door.open : 0;
     NC.Audio.update(P, Math.atan2(camera.position.x - P.x, camera.position.z - P.z), P.zone, doorOpen);
-    curAct = computeAct(); if (curAct) { actBtn.style.display = 'block'; if (actBtn.textContent !== curAct.label) actBtn.textContent = curAct.label; } else actBtn.style.display = 'none';
+    curAct = computeAct(); if (curAct) { actBtn.style.display = 'block'; const lb = (NC.isGuest && NC.isGuest() ? '🔒 ' : '') + curAct.label; if (actBtn.textContent !== lb) actBtn.textContent = lb; } else actBtn.style.display = 'none';
   } else { const a = t * .12; camera.position.set(Math.sin(a) * 18, 7.5, -4 + Math.cos(a) * 12); camera.lookAt(0, 2, -9); }
   NC.tickers.forEach(fn => { try { fn(dt, t); } catch (e) { console.error(e); } });
   (NC.render || ((s, c) => NC.renderer.render(s, c)))(NC.scene, camera);

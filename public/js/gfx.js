@@ -107,7 +107,7 @@ const GEN = {
   // 시퀸 드레스: 조명 받으면 반짝이는 스케일
   sequin() { const s = 256, c = cnv(s), g = c.getContext('2d'), r = U.rng(95); g.fillStyle = 'rgb(128,128,255)'; g.fillRect(0, 0, s, s); const st = s / 24; for (let y = 0; y < 26; y++) for (let x = 0; x < 25; x++) { const nx = (r() - .5) * 200 + 128, ny = (r() - .5) * 200 + 128; g.fillStyle = `rgb(${nx | 0},${ny | 0},230)`; g.beginPath(); g.arc(x * st + (y % 2) * st / 2, y * st * .86, st * .52, 0, 7); g.fill(); } return { size: s, normal: c, rough: fieldCanvas(s, () => [70, 70, 70]) }; },
   // 피부 미세 모공
-  skin() { const s = 256, n = fbm(s, 64, 2, 101), m = fbm(s, 16, 3, 102); return { size: s, normal: normalFrom(n.map((v, i) => v * .7 + m[i] * .3), s, 2.5) }; },
+  skin() { const s = 256, n = fbm(s, 64, 2, 101), m = fbm(s, 16, 3, 102); return { size: s, normal: normalFrom(n.map((v, i) => v * .7 + m[i] * .3), s, 2.5), rough: fieldCanvas(s, (x, y) => { const v = 120 + m[y * s + x] * 90 + n[y * s + x] * 30; return [v, v, v]; }) }; },   // v31 피지 광택 변화(러프니스)
   // 헤어 결 (세로 줄무늬)
   hair() { const s = 256, r = U.rng(111), col = new Float32Array(s); for (let x = 0; x < s; x++) col[x] = r(); const n = fbm(s, 8, 3, 112), h = new Float32Array(s * s);
     for (let y = 0; y < s; y++) for (let x = 0; x < s; x++) { const xx = (x + Math.floor(n[y * s + x] * 18)) % s; h[y * s + x] = col[xx] * .7 + col[(xx + 1) % s] * .3; }
@@ -143,7 +143,7 @@ NC.TexLib = {
     if (o.emissive) { m.emissive = NC.col(o.emissive); m.emissiveIntensity = o.emissiveIntensity ?? 1; }
     return m;
   },
-  texture(name, kind, o = {}, rep) { if (LITE && (kind === 'normal' || kind === 'rough')) return null; const set = this.get(name, o); return texFrom(set[kind], kind === 'map', rep); },
+  texture(name, kind, o = {}, rep) { if (LITE && (kind === 'rough' || (kind === 'normal' && name !== 'skin'))) return null; const set = this.get(name, o); if (!set || !set[kind]) return null; return texFrom(set[kind], kind === 'map', rep); },   // v31 모바일도 피부 모공 노멀은 유지(공유 1장)
   stats: () => ({ shared: texCache.size }),
 };
 NC.mat.pbr = (name, o) => NC.TexLib.material(name, o);
