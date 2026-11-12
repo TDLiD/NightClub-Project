@@ -270,6 +270,8 @@ const GEST = {
   vomit: { dur: 3.2, expr: 'sad', f(p, t) { const k = Math.min(1, t / .5, (3.2 - t) / .5), h = Math.sin(t * 9) * Math.max(0, Math.min(1, (t - .8) * 2)) * (t < 2.6 ? 1 : 0);   // v14: 허리 숙여 무릎 짚고 우웩
     p.torso = [1.0 * k, 0, 0]; p.head = [.3 * k + .15 * h, 0, 0]; p.hipsY = (p.hipsY || 0) - .08 * k; p.knL = [.4 * k, 0, 0]; p.knR = [.4 * k, 0, 0]; p.legL = [-.35 * k, 0, -.08]; p.legR = [-.35 * k, 0, .08];
     p.shL = [-.9 * k, 0, -.1]; p.elL = [-.3, 0, 0]; p.shR = [-.9 * k, 0, .1]; p.elR = [-.3, 0, 0]; } },
+  vomitSit: { dur: 3.4, expr: 'sad', f(p, t) { const k = Math.min(1, t / .5, (3.4 - t) / .5), h = Math.sin(t * 9) * Math.max(0, Math.min(1, (t - .8) * 2)) * (t < 2.8 ? 1 : 0);   // v37 앉은 채로 고개 숙여 우웩(다리·엉덩이는 앉은 자세 유지)
+    p.torso = [.75 * k, 0, 0]; p.head = [.35 * k + .15 * h, 0, 0]; p.shL = [-.6 * k, 0, -.12]; p.elL = [-.6 * k, 0, 0]; p.shR = [-1.2 * k, 0, .15]; p.elR = [-1.6 * k, 0, 0]; } },
   pickup: { dur: 1.6, expr: 'joy', f(p, t) { const k = Math.sin(Math.min(1, t / 1.4) * PI); p.torso = [.9 * k, 0, 0]; p.knL = [.9 * k, 0, 0]; p.knR = [.9 * k, 0, 0]; p.legL = [-.6 * k, 0, -.1]; p.legR = [-.6 * k, 0, .1]; p.hipsY = (p.hipsY || 0) - .25 * k; p.shR = [-1.3 * k, 0, .1]; p.elR = [-.2, 0, 0]; } },
   aegyo: { dur: 2.2, expr: 'joy', f(p, t) { const k = Math.min(1, t / .3, (2.2 - t) / .3), s = Math.sin(t * 8); p.shL = [-2.3 * k, 0, .9 * k]; p.elL = [-2.2 * k, 0, 0]; p.shR = [-2.3 * k, 0, -.9 * k]; p.elR = [-2.2 * k, 0, 0]; p.head = [.05, 0, .25 * s * k]; p.bodyX = .03 * s * k; p.torso = [.05, 0, .1 * s * k]; } },
   /* v35 몸싸움(과장된 실랑이 — 멱살 잡고 밀치기·헛손질, 맞는 장면 묘사 없음) */

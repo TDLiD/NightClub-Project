@@ -245,6 +245,44 @@ function buyDrinkFor(n) {
     n.aff = U.clamp((n.aff ?? 40) + d, 0, 100); NC.ui.chatAdd(n.name, line); NC.ui.toast(`💗 ${n.name} 호감도 +${d} (${n.aff})`); n.g.userData.say && n.g.userData.say(2);
   }, 1100);
 }
+/* ═════ v37 ⑤ 바 옆자리 손님: 앉으면 옆자리 손님(없으면 잠시 뒤 누군가 와서 앉음)에게 술 사기 · 대화 · 건배 · 칭찬 ═════ */
+function barNeighbor() { const p = P(); if (!p.seat || p.seat.kind !== 'bar') return null; const i = p.seat.s; return [barOcc[i + 1], barOcc[i - 1]].find(o => o && o !== 'me' && o.g && o.g.visible && (o.state === 'seated' || o.g.userData.seated)) || null; }
+let nbTimer = null; const summoned = [];
+function summonNeighbor() {
+  const p = P(); if (!p.seat || p.seat.kind !== 'bar' || barNeighbor()) return;
+  const i = p.seat.s, j = [i + 1, i - 1].find(k => k >= 0 && k < BAR_SEATS.length && !barOcc[k]); if (j == null) return;
+  const my = (NC.settings && NC.settings.look && NC.settings.look.gender) || 'm', want = my === 'm' ? 'f' : 'm', s = BAR_SEATS[j];
+  const pool = (NC.npcs || []).filter(n => (n.role === 'crowd' || n.role === 'persona') && n.enabled && n.state === 'wander' && !n.booked && !n.stay && !n.karaoke && !n.g.userData.vrm && n.g.visible && !(NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.n === n));
+  const dist = o => Math.hypot(o.x - s.x, o.z - s.z), n = pool.filter(o => o.gender === want).sort((a, b) => dist(a) - dist(b))[0] || pool.sort((a, b) => dist(a) - dist(b))[0]; if (!n) return;
+  barOcc[j] = n; n.stay = 'bar'; n.booked = true; n.aff = n.aff ?? 40; barGuests.push({ n, si: j }); summoned.push({ n, si: j });
+  const arrive = () => { if (barOcc[j] !== n) return; NC.NPC.sit(n, s.x, s.z, s.ry, s.h); n.g.userData.holdGlass = true; n.g.userData.lookAt = P().group.position; setTimeout(() => { n.g.userData.lookAt = null; }, 3000);
+    NC.bubble && NC.bubble(n.g, U.pick(['여기 자리 있어요? 앉아도 되죠? 😊', '바텐더님 여기 하이볼 하나요~ …아, 안녕하세요!', '혼자 오셨어요? 저도요 ㅎㅎ', '여기 모히토 맛있대서 와 봤어요']), 2.8);
+    NC.ui.toast(`🍸 옆자리에 ${n.name}님이 앉았어요 — 아래 「👥 옆자리」 버튼: 술 사기 · 대화 · 건배`); };
+  if (dist(n) > 22) { n.x = 19.7; n.z = s.z + 1.2; n.g.position.set(n.x, 0, n.z); }
+  NC.NPC.goTo(n, { x: 19.7, z: s.z + .45 }, arrive, 3.2);
+  setTimeout(() => { if (barOcc[j] === n && n.state !== 'seated') { n.x = 19.7; n.z = s.z + .45; arrive(); } }, 15000);   // 길이 막히면 그냥 앉힘
+}
+function releaseSummoned() {
+  summoned.splice(0).forEach(({ n, si }) => setTimeout(() => { const p = P(); if (p.seat && p.seat.kind === 'bar' && Math.abs(p.seat.s - si) === 1) { summoned.push({ n, si }); return; }
+    if (barOcc[si] === n) barOcc[si] = null; const k = barGuests.findIndex(b => b.n === n); if (k >= 0) barGuests.splice(k, 1); n.stay = null; n.g.userData.holdGlass = false; if (n.state === 'seated') NC.NPC.release(n); else n.booked = false; }, 25000));
+}
+NC.on('seat', info => { clearTimeout(nbTimer); if (!info || info.kind !== 'bar') return;
+  nbTimer = setTimeout(() => { const n = barNeighbor(); if (n) { NC.ui.toast(`👥 옆자리 ${n.name}님 — 아래 「👥 옆자리」 버튼으로 술 사기 · 대화`); n.g.userData.lookAt = P().group.position; setTimeout(() => { n.g.userData.lookAt = null; }, 2500); } else nbTimer = setTimeout(summonNeighbor, 5000); }, 1600); });
+NC.on('stand', () => { clearTimeout(nbTimer); releaseSummoned(); });
+function neighborMenu(n) {
+  const p = P(); p.busy = true; n.g.userData.lookAt = p.group.position; const myG = (NC.settings && NC.settings.look && NC.settings.look.gender) || 'm';
+  const done = () => { NC.ui.hideDlg(); p.busy = false; setTimeout(() => { n.g.userData.lookAt = null; }, 1500); };
+  const react = (lines, d, anim) => { n.aff = U.clamp((n.aff ?? 40) + d, 0, 100); NC.ui.chatAdd(n.name, U.pick(lines)); NC.bubble && NC.bubble(n.g, U.pick(lines), 2.6); if (anim) Mo.play(n.g, anim); if (d) NC.ui.toast(`💗 ${n.name} 호감도 ${d > 0 ? '+' : ''}${d} (${n.aff})`); };
+  NC.ui.showDlg({ name: n.name, tag: '🍸 바 옆자리', job: `💗 ${Math.round(n.aff ?? 40)} · 🍺 ${n.tipsy || 0}잔`, say: U.pick(['네? 저요? ㅎㅎ', '아 안녕하세요~ 뭐 드세요?', '여기 분위기 좋죠?', '혼자 오셨어요?']), opts: [
+    { t: '🍸 술 한 잔 사 드리기 (🪙10)', run: () => { done(); buyDrinkFor(n); } },
+    { t: '💬 대화하기', run: () => { done(); talkTo(n); } },
+    { t: '🥂 건배 제안하기', run: () => { done(); setTimeout(() => { Mo.trigger(n.g, 'drink:cheers', { silent: true }); Mo.trigger(p.group, 'drink:cheers'); }, 300); react(['짠~! 🥂 오늘 밤을 위하여!', '좋아요, 짠! ㅎㅎ', '건배~ 근데 이름이 뭐예요?'], 2); } },
+    { t: '🍹 바텐더 추천 칵테일 같이 마시기 (🪙15)', run: () => { done(); if (!NC.Wallet.spend(15)) return NC.ui.toast('🪙 코인이 부족해요 (15 필요)'); const bt = NC.Bartender; if (bt) Mo.play(bt, 'cheer'); NC.ui.chatAdd(BARTENDER, U.pick(['두 분께 오늘의 시그니처, 「90’s 네온 모히토」입니다 🍸', '커플 칵테일 「블루 라군」 두 잔 나왔습니다~ 😉'])); n.tipsy = (n.tipsy || 0) + 1; setTimeout(() => { Mo.trigger(n.g, 'drink:cheers', { silent: true }); Mo.trigger(p.group, 'drink:cheers'); }, 900); react(['와 이거 색깔 너무 예쁘다~ 고마워요!', '센스 있으시네요 ㅎㅎ 같이 마시니까 더 맛있다', '어머 이거 저 좋아하는 맛이에요! 🍹'], 5); } },
+    { t: myG === 'm' ? '😍 오늘 정말 예쁘시네요!' : '😎 잘 생기셨네요!', run: () => { done(); react(n.trait === 'cool' ? ['…그런 말 자주 하시죠? ㅎㅎ 그래도 고마워요', '음, 그 말은 한 잔 더 하고 다시 해 줘요 ㅋㅋ'] : ['어머 진짜요? 😳 고마워요~', '헤헤 오늘 좀 신경 썼거든요 ☺️', '그쪽도 멋있으신데요? ㅎㅎ'], n.trait === 'cool' ? 1 : 3, 'shy'); } },
+    { t: '🌊 오늘 물이 별로네요', run: () => { done(); react(['그럼 저는요? 😏 …농담이에요 ㅋㅋ', '에이~ 11시 넘으면 좋아져요', '그래서 바에 앉아 계셨구나 ㅋㅋ'], 0, 'laugh'); } },
+    { t: '그냥 있을게요', run: done },
+  ] });
+}
 function talkTo(n) { NC.Dialog.open(n, { intro: U.pick(['아, 안녕하세요~ 여기 자주 오세요?', '혼자 오셨어요? 저도 친구 기다리는 중이에요 ㅎㅎ', '여기 모히토 맛있어요. 드셔 보셨어요?', '음악 좋죠? 오늘 DJ 선곡 괜찮네요']) }); }
 // 머무는 NPC(바·흡연실)는 대화가 끝나도 자리 유지
 if (NC.VIP && NC.VIP.endSession) { const orig = NC.VIP.endSession; NC.VIP.endSession = (n, reason) => { if (n && n.stay) return; orig(n, reason); }; }
@@ -277,7 +315,9 @@ function seatBar() {
   const btns = [];
   if (s.kind === 'bar') btns.push(['🍸 주문', barMenu]); else btns.push(['🔔 웨이터 호출', () => { if (s.kind === 'table' && NC.TableLife) NC.TableLife.waveLamp(s.t); const st = s.kind === 'table' ? NC.standPos(s.t, s.s) : { x: W.vip[s.room].seats[s.s].x + 1, z: Math.min(W.vip[s.room].seats[s.s].z, 17.4) }; dispatchWaiter(st, { kind: s.kind, room: s.room, seat: s }, '부르셨어요? 😊'); }]);
   if (life.drink) btns.push(['🍹 마시기', sip]); btns.push(['🥂 건배', cheers]);
-  const n = nearbyCompanion(3.4); if (n && n !== p) { btns.push([`💬 ${n.name}`, () => n.stay ? talkTo(n) : NC.Dialog.open(n, {})]); if (s.kind === 'bar' || n.stay) btns.push([`🍸 ${n.name}에게 한 잔 (🪙10)`, () => buyDrinkFor(n)]); }
+  const nb = s.kind === 'bar' ? barNeighbor() : null;
+  if (nb) { btns.push([`👥 옆자리 ${nb.name}`, () => neighborMenu(nb)]); btns.push([`🍸 ${nb.name}에게 한 잔 (🪙10)`, () => buyDrinkFor(nb)]); }   // v37 ⑤
+  else { const n = nearbyCompanion(3.4); if (n && n !== p) { btns.push([`💬 ${n.name}`, () => n.stay ? talkTo(n) : NC.Dialog.open(n, {})]); if (s.kind === 'bar' || n.stay) btns.push([`🍸 ${n.name}에게 한 잔 (🪙10)`, () => buyDrinkFor(n)]); } }
   btns.push(['📸', photo]);
   const sig = btns.map(b => b[0]).join('|'); if (sig === barSig) return; barSig = sig;
   bar.innerHTML = ''; btns.forEach(([t, f]) => { const b = document.createElement('button'); b.textContent = t; b.onclick = f; bar.appendChild(b); }); bar.style.display = 'flex';

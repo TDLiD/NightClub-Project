@@ -7,6 +7,7 @@ const T = NC.THREE, U = NC.util, W = NC.world, Mo = NC.Motion, $ = NC.$, camera 
 /* ───────── 플레이어 ───────── */
 const P = NC.player = { group: null, x: 0, z: -1, ry: Math.PI, target: null, autoPath: null, onAuto: null, autoStuck: 0, seat: null, busy: false, speed: 5, zone: 'corridor', room: -1, stageT: 0, stageCoins: 0, danceUntil: 0, y: 0 };
 const cam = NC.cam = { yaw: 0, pitch: .9, dist: 11 };
+const dlgCam = { on: false, armed: false, yaw: 0, pitch: .5, dist: 4, yaw0: 0, pitch0: 0, dist0: 0 };   // v37 ② 대화 중 자유 시점
 const keys = {}, joy = { x: 0, y: 0 };
 
 NC.sitPlayer = (info, pos) => { P.seat = info; P.target = null; P.autoPath = null; NC.seatAvatar(P.group, pos.x, pos.z, pos.ry, pos.h); P.x = pos.x; P.z = pos.z; P.ry = pos.ry; NC.emit('seat', info); };
@@ -57,6 +58,7 @@ NC.canvas.addEventListener('pointerdown', e => { pt.down = true; pt.moved = 0; p
 addEventListener('pointermove', e => { if (!pt.down || e.pointerId !== pt.id || NC._pinch) return; const dx = e.clientX - pt.x, dy = e.clientY - pt.y; pt.moved += Math.abs(dx) + Math.abs(dy); pt.x = e.clientX; pt.y = e.clientY; cam.yaw -= dx * .006; cam.pitch = U.clamp(cam.pitch + dy * .003, .35, 1.3); });
 addEventListener('pointerup', e => {
   if (!pt.down || e.pointerId !== pt.id) return; pt.down = false;
+  if (NC._suppressTap && performance.now() - NC._suppressTap < 1500) { NC._suppressTap = 0; return; }   // v37 ③ 손님 찾아가기를 멈춘 탭은 이동 명령으로 쓰지 않음
   if (pt.moved < (NC.isMobile ? 16 : 8) && !NC._pinchEnd && P.group && !P.busy && e.target === NC.canvas) {
     ray.setFromCamera(new T.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
     const v = new T.Vector3(); if (ray.ray.intersectPlane(plane, v)) clickMove(v, ray.ray);
@@ -167,9 +169,19 @@ function frame() {
     Mo.update(P.group, dt, { near: true, speed: moving && P.autoPath ? .85 : 1.1 }); NC.Avatar.fitLabel(P.group, camera);
     updateZone(dt, moving);
     // 카메라: 대화 중이면 두 사람을 프레이밍
-    const f = (NC.camOverride && NC.camOverride()) || NC.Dialog.focus(camera);
+    const co = NC.camOverride && NC.camOverride(); let f = co || NC.Dialog.focus(camera);
+    /* v37 ② 대화 중에도 화면 돌리기·확대/축소: 사용자가 드래그·휠·핀치·＋/－를 쓰면 그 대화 동안은 두 사람 가운데를 중심으로 자유 시점 */
+    if (!co && f && NC.Dialog.cur) {
+      if (!dlgCam.on && (cam.yaw !== dlgCam.yaw0 || cam.dist !== dlgCam.dist0 || cam.pitch !== dlgCam.pitch0) && dlgCam.armed) {   // 처음 조작한 순간: 지금 화면 그대로에서 이어서 돌아가게
+        const dx = camera.position.x - f.tx, dz = camera.position.z - f.tz, dy = camera.position.y - f.ty, hd = Math.hypot(dx, dz) || 1, d0 = Math.hypot(hd, dy);
+        const ddYaw = cam.yaw - dlgCam.yaw0, ddDist = cam.dist - dlgCam.dist0, ddPitch = cam.pitch - dlgCam.pitch0;
+        dlgCam.on = true; dlgCam.yaw = Math.atan2(dx, dz) + ddYaw; dlgCam.pitch = U.clamp(Math.atan2(dy, hd) + ddPitch, .05, 1.35); dlgCam.dist = U.clamp(d0 + ddDist * .5, 1.6, 14); }
+      if (dlgCam.on) { dlgCam.yaw += cam.yaw - dlgCam.yaw0; dlgCam.pitch = U.clamp(dlgCam.pitch + (cam.pitch - dlgCam.pitch0), .05, 1.35); dlgCam.dist = U.clamp(dlgCam.dist + (cam.dist - dlgCam.dist0) * .5, 1.6, 14);
+        f = { tx: f.tx, ty: f.ty, tz: f.tz, cx: f.tx + Math.sin(dlgCam.yaw) * Math.cos(dlgCam.pitch) * dlgCam.dist, cy: f.ty + Math.sin(dlgCam.pitch) * dlgCam.dist, cz: f.tz + Math.cos(dlgCam.yaw) * Math.cos(dlgCam.pitch) * dlgCam.dist, free: true }; }
+      dlgCam.yaw0 = cam.yaw; dlgCam.dist0 = cam.dist; dlgCam.pitch0 = cam.pitch; dlgCam.armed = true;
+    } else if (dlgCam.armed) { dlgCam.on = false; dlgCam.armed = false; }
     if (f) { camTarget.set(f.tx, f.ty, f.tz); camPos.set(f.cx, f.cy, f.cz);
-      if (innerWidth > 800) { let dx = f.tx - f.cx, dz = f.tz - f.cz; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; camTarget.x += -dz * .95; camTarget.z += dx * .95; camPos.x += -dz * .95; camPos.z += dx * .95; } }   // 오른쪽 대화 패널을 피해 인물을 왼쪽에 배치
+      if (innerWidth > 800 && !f.free) { let dx = f.tx - f.cx, dz = f.tz - f.cz; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; camTarget.x += -dz * .95; camTarget.z += dx * .95; camPos.x += -dz * .95; camPos.z += dx * .95; } }   // 오른쪽 대화 패널을 피해 인물을 왼쪽에 배치
     else { const tx = P.group.position.x, tz = P.group.position.z, ty = 1.4 + P.y, inner = P.room >= 0 || P.zone === 'karaoke', dist = ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? Math.min(cam.dist, 4.2) : P.room >= 0 ? Math.min(cam.dist, 8) : cam.dist;
       camTarget.set(tx, ty, tz); camPos.set(tx + Math.sin(cam.yaw) * Math.cos(cam.pitch) * dist, ty + Math.sin(cam.pitch) * dist, tz + Math.cos(cam.yaw) * Math.cos(cam.pitch) * dist); camPos.y = Math.min(camPos.y, ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? 2.75 : W.ROOM.h - .5); void inner;
       if (W.clampCam && !W.extraZones.some(e => e.test(P.x, P.z))) W.clampCam(camTarget, camPos, P.y > 3);
@@ -179,7 +191,7 @@ function frame() {
         /* 벽에 막혀 카메라가 너무 붙으면(드래그 중이 아닐 때) 방 가운데 쪽으로 시점을 천천히 돌림 */
         const hd = Math.hypot(camPos.x - tx, camPos.z - tz), want = Math.cos(cam.pitch) * dist;
         if (!pt.down && hd < want * .6) cam.yaw = U.lerpAngle(cam.yaw, Math.atan2(bx.cx - tx, bx.cz - tz), Math.min(1, dt * 1.6)); } }
-    camera.position.lerp(camPos, Math.min(1, dt * (f ? 3 : 6))); NC._look = NC._look || camTarget.clone(); NC._look.lerp(camTarget, Math.min(1, dt * 6)); camera.lookAt(NC._look);
+    camera.position.lerp(camPos, Math.min(1, dt * (f && !f.free ? 3 : 8))); NC._look = NC._look || camTarget.clone(); NC._look.lerp(camTarget, Math.min(1, dt * 6)); camera.lookAt(NC._look);
     const doorOpen = P.room >= 0 ? W.vip[P.room].door.open : 0;
     NC.Audio.update(P, Math.atan2(camera.position.x - P.x, camera.position.z - P.z), P.zone, doorOpen);
     curAct = computeAct(); if (curAct) { actBtn.style.display = 'block'; const lb = (NC.isGuest && NC.isGuest() ? '🔒 ' : '') + curAct.label; if (actBtn.textContent !== lb) actBtn.textContent = lb; } else actBtn.style.display = 'none';

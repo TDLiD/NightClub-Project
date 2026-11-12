@@ -86,7 +86,7 @@ function goTo(f) {
   const me = P(); if (!me.group) return;
   if (me.busy || NC.Dialog && NC.Dialog.cur) return NC.ui.toast('지금은 이동할 수 없어요 (대화·이벤트 중)');
   const zn = W.zoneAt(me.x, me.z).name; if (['karaoke', 'restroom', 'wroom', 'smoke'].includes(zn)) return NC.ui.toast('클럽 홀로 나온 뒤 이동할 수 있어요');
-  follow = Object.assign(f, { t0: performance.now(), next: 0 }); path(); NC.ui.toast(`🚶 ${f.name}님에게 가는 중… (아무 키나 누르면 멈춤)`); render();
+  follow = Object.assign(f, { t0: performance.now(), next: 0 }); path(); NC.ui.toast(`🚶 ${f.name}님에게 가는 중… (화면을 누르거나 방향키를 누르면 멈춤)`); render();
 }
 function path() {
   const me = P(), to = targetNear(follow), r = NC.Path ? NC.Path.find(me, to) : null;
@@ -106,6 +106,14 @@ NC.tickers.push(() => {
   const p = follow.pos(); if (now > follow.next && Math.hypot(p.x - follow.last.x, p.z - follow.last.z) > 1.2) path();
 });
 addEventListener('keydown', e => { if (follow && !NC.ui.typing() && ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes((e.key || '').toLowerCase())) { follow = null; render(); } });
+/* v37 ③ 찾아가는 도중 화면(또는 목록 밖 아무 곳)을 누르면 즉시 멈춤 — 그 탭은 새 이동 명령으로 쓰지 않음 */
+function stopFollow(msg) { if (!follow) return; const me = P(); follow = null; me.autoPath = null; me.onAuto = null; me.target = null; render(); NC._suppressTap = performance.now(); if (msg) NC.ui.toast(msg); }
+addEventListener('pointerdown', e => {
+  if (!follow) return; const t = e.target;
+  if (t.closest && (t.closest('#guestList') || t.closest('#glTab') || t.closest('#talk') || t.closest('.modal'))) return;   // 목록 안에서 다른 손님을 고르는 경우는 그대로
+  stopFollow('⏹ 손님 찾아가기를 멈췄어요');
+}, true);
+NC.stopFollow = stopFollow;
 setInterval(render, 1500);
 NC.GuestList = { render, goTo, startPick, endPick, open: () => setOpen(true) };
 })();

@@ -318,6 +318,8 @@ function drawFace(cv, look, exName, st = {}) {
 /* ───────── 메시 도우미 ───────── */
 const geo = {}; const G = (k, f) => geo[k] || (geo[k] = f());
 const sph = () => G('sph', () => new T.SphereGeometry(1, 14, 10));
+/* v37 밑창 색: 신발 색보다 어둡게(흰 신발은 회갈색 고무) — 흰 스펀지처럼 보이지 않게 */
+function soleTone(c) { const col = new T.Color(c || '#1a1a1d'), l = col.r * .3 + col.g * .59 + col.b * .11; if (l > .62) return '#7d756c'; col.multiplyScalar(.45); return '#' + col.getHexString(); }
 const cyl = (a, b, h, s = 10) => G(`c${a}_${b}_${h}_${s}`, () => new T.CylinderGeometry(a, b, h, s));
 /* v32 해부학 팔다리: 원통 대신 근육 볼륨이 있는 회전체 (삼각근·이두 / 전완 근육 / 무릎 잘록 / 종아리 / 가는 발목)
  *  t=0 위(관절 쪽) → t=1 아래. 반지름 = lerp(rt, rb, t) × k. 양 끝은 닫아서 관절이 꺾여도 구멍이 안 보임 */
@@ -765,18 +767,21 @@ function create(o = {}) {
     } else if (look.shoes === 'platform') {   // v32 90년대 플랫폼 슈즈: 두꺼운 통굽(6~7cm)
       const pm = mShoe, sm = G('platSole' + (look.soleColor || ''), () => std(look.soleColor || '#0c0a0e', { roughness: .45 }));
       kn.add(mesh(sph(), pm, 0, -TL2 - .005, .045, f ? .048 : .058, .042, f ? .115 : .132));
-      kn.add(mesh(G('platS' + look.gender, () => new T.BoxGeometry(f ? .095 : .112, .075, f ? .235 : .27)), sm, 0, -TL2 - .07, .045));
-      kn.add(mesh(G('platS2' + look.gender, () => new T.BoxGeometry(f ? .1 : .118, .012, f ? .24 : .275)), G('platLine', () => std('#d8d4cc', { roughness: .5 })), 0, -TL2 - .03, .045));
+      kn.add(mesh(G('nsole', () => new T.CylinderGeometry(1, 1, 1, 20)), sm, 0, -TL2 - .07, .045, f ? .05 : .058, .072, f ? .122 : .138));   // v37 둥근 통굽
+      kn.add(mesh(G('nsole', () => new T.CylinderGeometry(1, 1, 1, 20)), G('platLine2', () => std('#4a4440', { roughness: .6 })), 0, -TL2 - .03, .045, f ? .052 : .06, .01, f ? .124 : .14));   // v37 흰 줄 → 어두운 라인
     } else if (look.shoes === 'flats') {   // v30 플랫 슈즈
-      kn.add(mesh(sph(), mShoe, 0, -TL2 - .012, .045, .045, .03, .115)); kn.add(mesh(G('flS', () => new T.BoxGeometry(.088, .012, .22)), G('bsoleM', () => std('#08070a', { roughness: .5 })), 0, -TL2 - .038, .045));
+      kn.add(mesh(sph(), mShoe, 0, -TL2 - .012, .045, .045, .03, .115)); kn.add(mesh(G('nsole', () => new T.CylinderGeometry(1, 1, 1, 20)), G('bsoleM', () => std('#08070a', { roughness: .5 })), 0, -TL2 - .038, .045, .046, .012, .115));
     } else if (BOOT) {   // v17 부츠: 광택 블랙 + 굽 있는 밑창
       kn.add(mesh(sph(), bootM, 0, -TL2 - .005, .045, f ? .05 : .06, .05, f ? .115 : .135));
-      kn.add(mesh(G('bsole' + look.gender, () => new T.BoxGeometry(f ? .095 : .115, .04, f ? .24 : .28)), G('bsoleM', () => std('#08070a', { roughness: .5 })), 0, -TL2 - .045, .045));
+      kn.add(mesh(G('nsole', () => new T.CylinderGeometry(1, 1, 1, 20)), G('bsoleM', () => std('#08070a', { roughness: .5 })), 0, -TL2 - .048, .045, f ? .05 : .06, .026, f ? .122 : .142));   // v37 둥근 부츠 밑창
       if (f) kn.add(mesh(G('heel', () => new T.BoxGeometry(.045, .07, .05)), G('bsoleM', () => std('#08070a', { roughness: .5 })), 0, -TL2 - .03, -.045));
-    } else if (look.shoes === 'sneakers' || TOON) {   // 청키 스니커즈: 컬러 어퍼 + 흰 밑창 + 끈
-      kn.add(mesh(sph(), mShoe, 0, -TL2 - .005, .05, f ? .05 : .058, .045, f ? .12 : .135));
-      kn.add(mesh(G('sole' + look.gender, () => new T.BoxGeometry(f ? .1 : .115, .035, f ? .25 : .28)), G('soleM', () => std('#f8f8f8', { roughness: .6 })), 0, -TL2 - .04, .05));
-      kn.add(mesh(G('box', () => new T.BoxGeometry(1, 1, 1)), G('laceM', () => std('#2a2a2a', { roughness: .8 })), 0, -TL2 + .02, .1, .05, .008, .05));
+    } else if (look.shoes === 'sneakers' || TOON) {   // v37 자연스러운 운동화: 발 모양 어퍼(발등·앞코·뒤꿈치) + 얇고 둥근 고무 밑창 — 예전 두꺼운 흰 사각 밑창(스펀지처럼 보임) 제거
+      const sc = soleTone(look.shoeColor), w = f ? .045 : .053, L = f ? .116 : .13;
+      kn.add(mesh(sph(), mShoe, 0, -TL2 - .014, .05, w, .036, L));              // 발등
+      kn.add(mesh(sph(), mShoe, 0, -TL2 - .024, .118, w * .9, .026, L * .46));   // 앞코(살짝 납작)
+      kn.add(mesh(sph(), mShoe, 0, -TL2 - .01, -.022, w * .94, .038, L * .36));  // 뒤꿈치
+      kn.add(mesh(G('nsole', () => new T.CylinderGeometry(1, 1, 1, 20)), G('nsoleM' + sc, () => std(sc, { roughness: .9 })), 0, -TL2 - .049, .048, w * 1.06, .016, L * 1.04));   // 고무 밑창 1.6cm
+      kn.add(mesh(G('box', () => new T.BoxGeometry(1, 1, 1)), G('laceM', () => std('#2a2a2a', { roughness: .8 })), 0, -TL2 + .012, .085, .04, .006, .045));
     } else kn.add(mesh(G('foot' + look.gender, () => new T.BoxGeometry(f ? .075 : .095, .07, f ? .21 : .25)), mShoe, 0, -.45, .045));
     return { lg, kn };
   };

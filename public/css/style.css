@@ -42,7 +42,7 @@ button{font-family:inherit}
 #chatrow button{border:1px solid var(--line);background:var(--panel);color:#fff;border-radius:10px;padding:0 10px;font-size:12px;cursor:pointer}
 #btnVoice.on{background:#1f7a4a;border-color:#6dff8a}
 /* 대화 패널 */
-#talk{position:fixed;right:12px;top:60px;bottom:70px;width:min(400px,94vw);display:none;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:18px;z-index:15;box-shadow:0 0 30px rgba(123,61,255,.45);overflow:hidden}
+#talk{position:fixed;right:12px;top:60px;bottom:70px;width:min(400px,94vw);display:none;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:18px;z-index:15;box-shadow:0 0 30px rgba(123,61,255,.45);overflow:hidden auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
 #talk .th{display:flex;gap:10px;padding:10px;border-bottom:1px solid #4a2d8a;align-items:center;position:relative}
 #tFace{border-radius:12px;background:radial-gradient(#5a3a9a,#2a1650);flex:none}
 #talk .ti{flex:1;min-width:0;font-size:13px}#talk .ti b{font-size:17px}
@@ -256,7 +256,7 @@ html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
   #help{display:none}#hud{top:44px}
   #partyBar{top:0}#partyBar button{height:30px;font-size:12px}
   #guestList{top:80px;width:170px}#guestList #glBody{max-height:calc(100vh - 150px);min-height:0}
-  #talk{top:6px;bottom:6px;height:auto;left:auto;right:6px;width:min(340px,46vw)}#tLog{min-height:0}
+  #talk{top:6px;bottom:6px;height:auto;left:auto;right:6px;width:min(340px,46vw);overflow-y:auto}#talk .th,#tChips,.trow,#tSrc{flex-shrink:0}#tLog{flex:0 0 auto;min-height:0;max-height:34vh}#talk .th{padding:6px 8px}#tFace{width:52px;height:60px}
   #emotes{bottom:4px;padding:4px}#emotes button{width:30px;height:30px;font-size:14px}
   #act{bottom:48px}#chat{bottom:44px;width:min(300px,40vw)}#chatlog{max-height:70px}
   #start{align-items:flex-start}#start .card{max-width:min(720px,96vw)}
@@ -301,3 +301,8 @@ html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 #cpTracks button{padding:7px 0;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:#2b1758;color:#fff;cursor:pointer;font-size:13px;font-weight:700}
 #cpTracks button.on{background:linear-gradient(135deg,#ff3d9a,#7b3dff);border:0}
 /* v23 음악 플레이어 스타일은 js/lifestyle.js 안에 있음(캐시 문제 방지) */
+
+/* v37 ① 대화 패널: 내용이 화면보다 길면 패널 전체를 스크롤(가로 화면에서 「브루스 추실래요?」 등 아래쪽 칩이 잘리던 문제) */
+#talk::-webkit-scrollbar{width:5px}#talk::-webkit-scrollbar-thumb{background:#6b4bc0;border-radius:4px}
+#talk .th,#tChips,.trow,#tSrc,#tCancel{flex-shrink:0}
+@media (max-height:500px) and (orientation:landscape){#tChips button{padding:5px 9px;font-size:12px}#tCancel{padding:5px;font-size:12px}}

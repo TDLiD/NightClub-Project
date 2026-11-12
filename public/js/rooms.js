@@ -1,5 +1,5 @@
 /* rooms.js — 부속 공간: 🚻 화장실 · 🚬 흡연실 (v8)
- *  ■ 화장실(통로 동쪽 끝 문): 칸 3개 · 소변기 2개 · 세면대 3개 · 대형 거울 · 핸드 드라이어
+ *  ■ 화장실(통로 동쪽 끝 문): 칸 3개 · 소변기 5개(v37 · 옆 손님과 대화) · 세면대 3개 · 대형 거울 · 핸드 드라이어
  *    칸 이용(볼일) → 🚻 화장실 신호 해소 · 취기 약간 감소 / 손 씻기·거울 → ✨ 매무새(다음 대화 첫인상 +)
  *  ■ 흡연실(서쪽 벽 무대 옆 문): 유리 부스 · 재떨이 테이블 · 환풍기 · 연기 · 흡연 중인 손님 2명(대화·라이터 빌려주기)
  *  ■ 성능: 방 안에 있을 때만 갱신 · 클럽 메시 숨김 · 클럽 광원을 빌려 써서 광원 수 불변
@@ -48,10 +48,13 @@ const RR = makeRoom('restroom', '🚻 화장실', 80, 30, 4.6, 3.4, 3.0);
     RR.stalls.push({ x, z: z0 + d + .55, door, sign, busy: false });
     RR.rects.push([x - .75, z0, x + .8, z0 + d]);
   }
-  // 소변기 2개 (동쪽 벽)
+  // v37 소변기 5개 (동쪽 벽) — 칸막이 · 물 내림 배관 · 센서 램프
   RR.urinals = [];
-  for (let k = 0; k < 2; k++) { const z = -1.6 + k * 1.1; const u = RR.add(new T.Mesh(new T.SphereGeometry(.22, 16, 12, 0, Math.PI * 2, 0, Math.PI * .6), porcelain), 4.45, .75, z); u.rotation.z = Math.PI / 2; u.scale.set(1.3, .8, 1); if (k === 0) RR.add(new T.Mesh(box(.5, 1.0, .04), part), 4.35, 1.0, z + .55); RR.urinals.push({ x: 3.8, z }); }
-  RR.rects.push([4.2, -2.1, 4.6, 0.0]);
+  for (let k = 0; k < 5; k++) { const z = -2.9 + k * .92; const u = RR.add(new T.Mesh(new T.SphereGeometry(.22, 16, 12, 0, Math.PI * 2, 0, Math.PI * .6), porcelain), 4.45, .75, z); u.rotation.z = Math.PI / 2; u.scale.set(1.3, .8, 1);
+    RR.add(new T.Mesh(new T.CylinderGeometry(.014, .014, .34, 8), chrome), 4.52, 1.22, z); RR.add(new T.Mesh(new T.CircleGeometry(.025, 10), M.emi('#33aaff', 2)), 4.57, 1.42, z).rotation.y = -Math.PI / 2;
+    if (k < 4) RR.add(new T.Mesh(box(.5, 1.0, .04), part), 4.3, 1.05, z + .46);
+    RR.urinals.push({ x: 3.85, z, k, user: null }); }
+  RR.rects.push([4.2, -3.3, 4.6, 1.3]);
   // 세면대 3개 + 거울 (남쪽 벽) + 핸드 드라이어
   RR.add(new T.Mesh(box(4.2, .1, .6), M.pbr('marble', { repeat: [2, 1], roughness: .5, gen: { a: '#1a1820', b: '#6a6478' } })), -1.0, .88, 3.1); RR.add(new T.Mesh(box(4.2, .8, .55), wood), -1.0, .43, 3.12);
   RR.sinks = [];
@@ -196,6 +199,66 @@ function go(R, spot, onArrive) {
 }
 NC.Rooms = { restroom: RR, smoke: SM, wroom: WR, enter, leave, current: () => cur, wrEpisode, make: makeRoom, shell, go, borrowCig: n => borrowCig(n), borrowFire: n => borrowFire(n), smokeFight: n => smokeFight(n), get SF() { return SF; }, initSmokers: () => initSmokers() };
 
+/* ═════ v37 🚹 소변기 손님 · 옆 사람과 대화 ═════ */
+const UR_NAMES = ['김부장', '박대리', '최사장', '민수', '준호', '태식이', '강 과장', '덕배'];
+RR.men = [];
+function initUrinalMen() {
+  if (RR.men.length) return;
+  for (let i = 0; i < 3; i++) { const nm = UR_NAMES[(i * 3 + (Date.now() / 1000 | 0)) % UR_NAMES.length], seed = U.hash('ur' + nm + i);
+    const g = NC.Avatar.create({ name: nm, look: NC.Avatar.randomLook(seed, 'm'), seed, expr: 'neutral' }); g.visible = false; RR.G.add(g); RR.men.push({ g, nm, u: null }); }
+  shuffleMen();
+}
+function placeMan(m, u) { if (m.u) m.u.user = null; m.u = u; if (!u) { m.g.visible = false; return; } u.user = m; m.g.visible = true; m.g.position.set(RR.cx + u.x + .12, 0, RR.cz + u.z); m.g.rotation.y = Math.PI / 2; m.g.userData.lookAt = null; }
+function shuffleMen() {   // 손님 2~3명이 빈 소변기를 하나씩 차지(플레이어가 쓰는 칸·바로 앞은 비움)
+  if (urTalk) return; const P = NC.player, lz = P.z - RR.cz, lx = P.x - RR.cx;
+  RR.men.forEach(m => placeMan(m, null));
+  const want = 2 + (Math.random() < .5 ? 1 : 0), free = RR.urinals.filter(u => !(Math.abs(lx - u.x) < 1 && Math.abs(lz - u.z) < .5)).sort(() => Math.random() - .5);
+  RR.men.slice(0, want).forEach((m, i) => { if (free[i]) placeMan(m, free[i]); });
+  if (RR.men[0] && RR.men[0].nm) RR.men.forEach(m => { m.g.userData.idlePose = null; });
+}
+let urTalk = null, urT = 25;
+const UR_TALK = {
+  hi: ['아 네~ 안녕하세요 ㅎㅎ', '…아, 저요? 네 안녕하세요', '여기서 인사는 좀 어색하네요 ㅋㅋ'],
+  handsome: ['아 진짜요? ㅎㅎ 오늘 머리 좀 했죠', '하하 거울 보고 오셨나 봐요? 그쪽도 훈훈하신데요!', '(쑥스) 여기서 그런 말 들으니 묘하네요 ㅋㅋ 고마워요'],
+  water: ['그쵸? 지난주 금요일이 진짜였는데…', '에이~ 아까 3번 테이블 보셨어요? 물 좋던데요', '물 탓 말고 부킹을 하세요 형님 ㅋㅋㅋ', '11시 넘으면 물 좋아져요. 조금만 버텨 봐요'],
+  fit: ['헬스 10년 차입니다 ㅎㅎ 티 나요?', '어깨는 타고났죠 ㅋㅋ 배는 비밀…', '요즘 회사 다니느라 다 빠졌어요 ㅠㅠ'],
+  drunk: ['아직 멀쩡해요! …아마도 ㅋㅋ', '양주 반 병째예요. 오늘 끝까지 갑니다', '친구가 자꾸 원샷시켜서 피신 왔어요 ㅋㅋ'],
+  booking: ['오늘 두 번 차였어요 ㅠㅠ 웨이터 팁을 더 줘야 하나…', '방금 VIP 룸 부킹 성공했어요! 😎', '부킹은 타이밍이에요. 블루스 타임 노려요'],
+  dj: ['오늘 DJ 루나 선곡 미쳤죠! 90년대 메들리 최고', '아까 그 노래 나올 때 소름 돋았어요', '좀 더 신나는 거 틀었으면 좋겠어요'],
+  tip: ['아 그리고 팁 하나, 바 쪽 혼자 계신 분 아까부터 심심해 보이던데요 😉', '웨이터한테 팁 주면 부킹 확률 올라가요. 진짜임 ㅋㅋ', '흡연실 가면 대화 트기 쉬워요. 불 빌려 달라고 하세요 ㅎㅎ'],
+  quiet: ['(서로 눈 마주치지 않고 정면만 본다…)', '(헛기침) 흠흠…', '(조용히 벽의 타일 무늬를 센다)'],
+};
+function urinalTalk(m, onDone) {
+  const P = NC.player; urTalk = m; P.busy = true; const g = m.g; g.userData.lookAt = P.group.position; let turns = 0;
+  const finish = () => { NC.ui.hideDlg(); urTalk = null; g.userData.lookAt = null; if (onDone) onDone(); else P.busy = false; };
+  const reply = (key, anim, extra) => { turns++; const line = U.pick(UR_TALK[key]); NC.bubble && NC.bubble(g, line, 2.8); if (anim) Mo.play(g, anim); menu(line + (extra ? '\n' + extra : '')); };
+  const menu = say => NC.ui.showDlg({ name: m.nm, tag: '🚹 옆 소변기', say, opts: [
+    { t: '😎 잘 생기셨네요!', run: () => { NC.bubble && NC.bubble(P.group, '와… 잘 생기셨네요!', 1.8); reply('handsome', 'shy'); } },
+    { t: '🌊 오늘 물이 별로네요', run: () => { NC.bubble && NC.bubble(P.group, '오늘 물이 별로네요…', 1.8); reply('water', 'laugh'); } },
+    { t: '💪 어깨가 실하시네요! 운동하세요?', run: () => { NC.bubble && NC.bubble(P.group, '어깨가 실하시네요!', 1.8); reply('fit', 'cheer'); } },
+    { t: '🍺 오늘 많이 드셨어요?', run: () => reply('drunk', 'nod') },
+    { t: '🕺 부킹은 잘 되세요?', run: () => reply('booking', 'laugh', turns >= 2 ? U.pick(UR_TALK.tip) : '') },
+    { t: '🎧 DJ 선곡 어때요?', run: () => reply('dj', 'nod') },
+    { t: '🤐 (조용히 볼일만 본다)', run: () => { NC.ui.toast(U.pick(UR_TALK.quiet)); finish(); } },
+    { t: '👋 먼저 갈게요~ (그만하기)', run: () => { NC.bubble && NC.bubble(g, U.pick(['네~ 즐거운 밤 되세요!', '이따 스테이지에서 봐요 ㅎㅎ', '수고하세요~']), 2); finish(); } },
+  ] });
+  NC.bubble && NC.bubble(P.group, U.pick(['아 안녕하세요~', '오늘 사람 많네요 ㅎㅎ', '여기 자주 오세요?']), 1.8);
+  setTimeout(() => { if (urTalk !== m) return; const l = U.pick(UR_TALK.hi); NC.bubble && NC.bubble(g, l, 2.2); menu(l); }, 700);
+}
+function useUrinal(u) {
+  const P = NC.player; P.x = RR.cx + u.x; P.z = RR.cz + u.z; P.ry = Math.PI / 2; P.target = null; P.autoPath = null; P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry;
+  const nb = RR.urinals.filter(o => o.user && Math.abs(o.k - u.k) === 1).map(o => o.user)[0];   // 바로 옆 칸 손님
+  if (!nb) return useToilet('urinal');
+  P.busy = true; NC.ui.toast(`🚹 ${u.k + 1}번 소변기 — 옆에 ${nb.nm}님이 있어요`);
+  urinalTalk(nb, () => { useToilet('urinal'); });
+}
+NC.tickers.push(dt => {
+  if (cur !== RR) return; if (!RR.men.length) initUrinalMen();
+  if ((urT -= dt) <= 0 && !NC.player.busy) { urT = 25 + Math.random() * 20; shuffleMen(); }
+  RR.men.forEach(m => { if (m.g.visible) Mo.update(m.g, dt, { near: true, speed: 1 }); if (NC.Avatar.fitLabel) NC.Avatar.fitLabel(m.g, NC.camera); });
+});
+NC.on && NC.on('room:enter', () => {});
+
 /* 화장실 행동 */
 function useToilet(kind, st) {
   const P = NC.player; P.busy = true;
@@ -317,7 +380,7 @@ NC.interactProviders.push(() => {
   if ([RR, WR, SM].includes(R) && near(R.exit, 1.4)) out.push({ label: '🚪 클럽으로 돌아가기 (E)', dist: .5, run: () => leave(R) });
   if (R === RR) {
     RR.stalls.forEach((st, i) => { if (near(st, 1.0) && !st.busy) out.push({ label: `🚽 ${i + 1}번 칸 이용하기 (E)`, dist: .3, run: () => useToilet('stall', st) }); });
-    if (P.group.userData.look && P.group.userData.look.gender === 'm') RR.urinals.forEach(u => { if (near(u, .9)) out.push({ label: '🚹 소변기 이용 (E)', dist: .3, run: () => useToilet('urinal') }); });
+    if (P.group.userData.look && P.group.userData.look.gender === 'm') RR.urinals.forEach(u => { if (u.user) { if (near(u, 1.25) && !urTalk) out.push({ label: `💬 옆 소변기 ${u.user.nm}에게 말 걸기 (E)`, dist: .45, run: () => urinalTalk(u.user, null) }); } else if (near(u, .75)) out.push({ label: `🚹 ${u.k + 1}번 소변기 이용 (E)`, dist: .2, run: () => useUrinal(u) }); });
     RR.sinks.forEach(s => { if (near(s, .9)) { out.push({ label: '🧼 손 씻기 (E)', dist: .2, run: wash }); out.push({ label: '🪞 거울 보고 매무새 정리 (E)', dist: .35, run: mirror }); } });
     if (near(RR.dryer, .9)) out.push({ label: '💨 핸드 드라이어 (E)', dist: .3, run: dryer });
   } else if (R === WR) {

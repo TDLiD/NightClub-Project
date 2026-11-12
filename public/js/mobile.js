@@ -153,6 +153,7 @@ html.mobile #kara{left:2vw!important;right:2vw!important;width:auto!important;ma
 html.mobile #dlg{left:0!important;right:0!important;bottom:0!important;transform:none!important;width:auto!important;max-height:62vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:12px 12px calc(12px + env(safe-area-inset-bottom))!important;box-sizing:border-box}
 html.mobile #dlg button.opt{padding:12px;font-size:14.5px}
 html.mobile #talk{left:2vw!important;right:2vw!important;width:auto!important;top:auto!important;bottom:calc(env(safe-area-inset-bottom) + 6px)!important;height:54vh!important}
+html.mobile #talk{overflow-y:auto!important;-webkit-overflow-scrolling:touch;touch-action:pan-y!important}   /* v37 ① 대화 패널 스크롤 */
 html.mobile #profCard{left:max(8px,env(safe-area-inset-left))!important;top:calc(env(safe-area-inset-top) + 92px)!important;right:auto!important;transform:scale(.8)!important;transform-origin:top left;max-height:none;overflow:hidden;z-index:16}
 html.mobile #chat{bottom:calc(env(safe-area-inset-bottom) + 190px)!important;width:min(300px,70vw)}html.mobile #chatlog{max-height:90px}
 html.mobile .modal .box{width:94vw;max-height:86vh}
@@ -168,6 +169,7 @@ html.mobile #seatBar button{padding:7px 10px!important;font-size:12px!important}
  html.mobile #joy{width:96px;height:96px;bottom:8px}
  html.mobile #dlg{max-height:72vh;left:auto!important;width:min(520px,60vw)!important;right:0!important}
  html.mobile #talk{top:6px!important;bottom:6px!important;height:auto!important;left:auto!important;width:min(340px,46vw)!important}
+ html.mobile #tLog{flex:0 0 auto!important;max-height:30vh!important;min-height:0!important}html.mobile #tChips{flex-shrink:0!important}   /* v37 ① 가로: 대화 기록은 짧게, 칩은 전부 → 패널 스크롤 */
  html.mobile #profCard{top:calc(env(safe-area-inset-top) + 44px)!important}
  html.mobile #btnSearch{bottom:calc(env(safe-area-inset-bottom) + 150px)!important;right:max(54px,calc(env(safe-area-inset-right) + 44px))!important}
 }
