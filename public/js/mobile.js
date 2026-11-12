@@ -58,10 +58,21 @@ function offerResume() {
 setTimeout(offerResume, 300);
 
 /* ───────── WebGL 컨텍스트 손실 → 저장 후 자동 새로고침 ───────── */
+/* v34: 바로 새로고침하지 않고 먼저 같은 화면에서 복구를 기다림(대부분 1~2초 안에 복구) → 복구되면 그대로 계속(대화·위치 유지)
+ *      5초 안에 복구되지 않을 때만 저장 후 새로고침 → 이어서 입장 */
+let lostT = null;
 NC.canvas.addEventListener('webglcontextlost', e => {
   e.preventDefault(); if (started) Resume.save();
-  const o = document.createElement('div'); o.id = 'ctxLost'; o.innerHTML = '<div>📱 화면 메모리가 부족해 다시 불러오는 중…<br><small>잠시 후 이어서 입장해요</small></div>'; document.body.appendChild(o);
-  setTimeout(() => location.reload(), 1200);
+  let o = $('#ctxLost'); if (!o) { o = document.createElement('div'); o.id = 'ctxLost'; document.body.appendChild(o); }
+  o.innerHTML = '<div>📱 화면 메모리를 정리하는 중…<br><small>잠시만 기다려 주세요</small></div>';
+  clearTimeout(lostT); lostT = setTimeout(() => { o.innerHTML = '<div>📱 다시 불러오는 중…<br><small>이어서 입장해요</small></div>'; setTimeout(() => location.reload(), 600); }, 5000);
+  NC.contextLost = true;
+}, false);
+NC.canvas.addEventListener('webglcontextrestored', () => {
+  clearTimeout(lostT); NC.contextLost = false; const o = $('#ctxLost'); if (o) o.remove();
+  try { const R = NC.renderer; R.setPixelRatio(Math.max(.7, (NC.renderScale || R.getPixelRatio()) - .15)); R.setSize(innerWidth, innerHeight, false); } catch (er) { }
+  (NC.npcs || []).forEach(n => { const u = n.g && n.g.userData; if (u) u.faceDirty = true; });
+  NC.ui.toast('📱 화면을 복구했어요 — 해상도를 조금 낮췄어요');
 }, false);
 
 /* ───────── 백그라운드: 음악·영상 일시정지 (모바일) ───────── */
@@ -110,6 +121,7 @@ if (MOB) {
   const help = $('#help'); if (help) help.innerHTML = '👆 탭: 이동 · 드래그: 시점 · 핀치: 확대';
 }
 const css = `
+html.mobile *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}   /* v34 모바일: 반투명 블러 끄기(합성 비용↓ → 패널 열고 닫을 때 버벅임 감소) */
 html.mobile #help{display:none!important}
 html.mobile #title{font-size:14px}html.mobile #badge{display:none}
 html.mobile .ibtn{min-width:34px;height:34px;font-size:15px;padding:0 6px}

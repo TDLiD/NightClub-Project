@@ -1,7 +1,7 @@
 {
  "_설명": [
   "v33.1 프로필 사진 목록 — node tools/build_profiles.js 로 다시 만들 수 있어요 (새 사진을 boy/girl 폴더에 넣고 실행)",
-  "f: 원본 파일(profile/boy|girl/), t: 썸네일(320x400 JPG), eth: east/west/black/south/latin, age: y(20대)/m(30~40대)/old(50대+), style: photo/art/anime/cartoon/fantasy, dup: 같은 사진(자동 배정·고르기 창 제외)"
+  "f: 원본 파일(profile/boy|girl/), t: 썸네일(320x400 JPG), eth: east/west/black/south/latin, age: y(20대)/m(30~40대)/old(50대+), style: photo/art/anime/cartoon/fantasy, dup: 같은 사진(자동 배정·고르기 창 제외) · m: 작은 썸네일(128x160, 리스트·이름표용)"
  ],
  "boy": [
   {
@@ -9,189 +9,216 @@
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-001_webp.jpg"
+   "t": "thumb/boy/image-001_webp.jpg",
+   "m": "mini/boy/image-001_webp.jpg"
   },
   {
    "f": "boy/image-002.webp",
    "eth": "east",
    "age": "m",
    "style": "photo",
-   "t": "thumb/boy/image-002_webp.jpg"
+   "t": "thumb/boy/image-002_webp.jpg",
+   "m": "mini/boy/image-002_webp.jpg"
   },
   {
    "f": "boy/image-003.webp",
    "eth": "east",
    "age": "m",
    "style": "photo",
-   "t": "thumb/boy/image-003_webp.jpg"
+   "t": "thumb/boy/image-003_webp.jpg",
+   "m": "mini/boy/image-003_webp.jpg"
   },
   {
    "f": "boy/image-004.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-004_webp.jpg"
+   "t": "thumb/boy/image-004_webp.jpg",
+   "m": "mini/boy/image-004_webp.jpg"
   },
   {
    "f": "boy/image-005.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-005_webp.jpg"
+   "t": "thumb/boy/image-005_webp.jpg",
+   "m": "mini/boy/image-005_webp.jpg"
   },
   {
    "f": "boy/image-006.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-006_webp.jpg"
+   "t": "thumb/boy/image-006_webp.jpg",
+   "m": "mini/boy/image-006_webp.jpg"
   },
   {
    "f": "boy/image-007.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-007_webp.jpg"
+   "t": "thumb/boy/image-007_webp.jpg",
+   "m": "mini/boy/image-007_webp.jpg"
   },
   {
    "f": "boy/image-008.webp",
    "eth": "east",
    "age": "m",
    "style": "photo",
-   "t": "thumb/boy/image-008_webp.jpg"
+   "t": "thumb/boy/image-008_webp.jpg",
+   "m": "mini/boy/image-008_webp.jpg"
   },
   {
    "f": "boy/image-009.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-009_webp.jpg"
+   "t": "thumb/boy/image-009_webp.jpg",
+   "m": "mini/boy/image-009_webp.jpg"
   },
   {
    "f": "boy/image-010.webp",
    "eth": "east",
    "age": "m",
    "style": "photo",
-   "t": "thumb/boy/image-010_webp.jpg"
+   "t": "thumb/boy/image-010_webp.jpg",
+   "m": "mini/boy/image-010_webp.jpg"
   },
   {
    "f": "boy/image-011.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-011_webp.jpg"
+   "t": "thumb/boy/image-011_webp.jpg",
+   "m": "mini/boy/image-011_webp.jpg"
   },
   {
    "f": "boy/image-012.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-012_webp.jpg"
+   "t": "thumb/boy/image-012_webp.jpg",
+   "m": "mini/boy/image-012_webp.jpg"
   },
   {
    "f": "boy/image-013.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-013_webp.jpg"
+   "t": "thumb/boy/image-013_webp.jpg",
+   "m": "mini/boy/image-013_webp.jpg"
   },
   {
    "f": "boy/image-014.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-014_webp.jpg"
+   "t": "thumb/boy/image-014_webp.jpg",
+   "m": "mini/boy/image-014_webp.jpg"
   },
   {
    "f": "boy/image-015.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-015_webp.jpg"
+   "t": "thumb/boy/image-015_webp.jpg",
+   "m": "mini/boy/image-015_webp.jpg"
   },
   {
    "f": "boy/image-016.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-016_webp.jpg"
+   "t": "thumb/boy/image-016_webp.jpg",
+   "m": "mini/boy/image-016_webp.jpg"
   },
   {
    "f": "boy/image-017.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-017_webp.jpg"
+   "t": "thumb/boy/image-017_webp.jpg",
+   "m": "mini/boy/image-017_webp.jpg"
   },
   {
    "f": "boy/image-018.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-018_webp.jpg"
+   "t": "thumb/boy/image-018_webp.jpg",
+   "m": "mini/boy/image-018_webp.jpg"
   },
   {
    "f": "boy/image-019.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-019_webp.jpg"
+   "t": "thumb/boy/image-019_webp.jpg",
+   "m": "mini/boy/image-019_webp.jpg"
   },
   {
    "f": "boy/image-020.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-020_webp.jpg"
+   "t": "thumb/boy/image-020_webp.jpg",
+   "m": "mini/boy/image-020_webp.jpg"
   },
   {
    "f": "boy/image-021.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-021_webp.jpg"
+   "t": "thumb/boy/image-021_webp.jpg",
+   "m": "mini/boy/image-021_webp.jpg"
   },
   {
    "f": "boy/image-022.jpg",
    "eth": "west",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-022_jpg.jpg"
+   "t": "thumb/boy/image-022_jpg.jpg",
+   "m": "mini/boy/image-022_jpg.jpg"
   },
   {
    "f": "boy/image-023.png",
    "eth": "west",
    "age": "old",
    "style": "art",
-   "t": "thumb/boy/image-023_png.jpg"
+   "t": "thumb/boy/image-023_png.jpg",
+   "m": "mini/boy/image-023_png.jpg"
   },
   {
    "f": "boy/image-024.jpg",
    "eth": "east",
    "age": "y",
    "style": "anime",
-   "t": "thumb/boy/image-024_jpg.jpg"
+   "t": "thumb/boy/image-024_jpg.jpg",
+   "m": "mini/boy/image-024_jpg.jpg"
   },
   {
    "f": "boy/image-025.jpg",
    "eth": "west",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-025_jpg.jpg"
+   "t": "thumb/boy/image-025_jpg.jpg",
+   "m": "mini/boy/image-025_jpg.jpg"
   },
   {
    "f": "boy/image-026.jfif",
    "eth": "west",
    "age": "m",
    "style": "photo",
-   "t": "thumb/boy/image-026_jfif.jpg"
+   "t": "thumb/boy/image-026_jfif.jpg",
+   "m": "mini/boy/image-026_jfif.jpg"
   },
   {
    "f": "boy/image-027.jfif",
    "eth": "south",
    "age": "m",
    "style": "photo",
-   "t": "thumb/boy/image-027_jfif.jpg"
+   "t": "thumb/boy/image-027_jfif.jpg",
+   "m": "mini/boy/image-027_jfif.jpg"
   },
   {
    "f": "boy/image-028.jfif",
@@ -202,91 +229,104 @@
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-029_jfif.jpg"
+   "t": "thumb/boy/image-029_jfif.jpg",
+   "m": "mini/boy/image-029_jfif.jpg"
   },
   {
    "f": "boy/image-030.jfif",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-030_jfif.jpg"
+   "t": "thumb/boy/image-030_jfif.jpg",
+   "m": "mini/boy/image-030_jfif.jpg"
   },
   {
    "f": "boy/image-031.jfif",
    "eth": "east",
    "age": "m",
    "style": "photo",
-   "t": "thumb/boy/image-031_jfif.jpg"
+   "t": "thumb/boy/image-031_jfif.jpg",
+   "m": "mini/boy/image-031_jfif.jpg"
   },
   {
    "f": "boy/image-032.jfif",
    "eth": "east",
    "age": "m",
    "style": "photo",
-   "t": "thumb/boy/image-032_jfif.jpg"
+   "t": "thumb/boy/image-032_jfif.jpg",
+   "m": "mini/boy/image-032_jfif.jpg"
   },
   {
    "f": "boy/image-033.jfif",
    "eth": "east",
    "age": "m",
    "style": "photo",
-   "t": "thumb/boy/image-033_jfif.jpg"
+   "t": "thumb/boy/image-033_jfif.jpg",
+   "m": "mini/boy/image-033_jfif.jpg"
   },
   {
    "f": "boy/image-034.jfif",
    "eth": "east",
    "age": "y",
    "style": "anime",
-   "t": "thumb/boy/image-034_jfif.jpg"
+   "t": "thumb/boy/image-034_jfif.jpg",
+   "m": "mini/boy/image-034_jfif.jpg"
   },
   {
    "f": "boy/image-035.jfif",
    "eth": "east",
    "age": "y",
    "style": "anime",
-   "t": "thumb/boy/image-035_jfif.jpg"
+   "t": "thumb/boy/image-035_jfif.jpg",
+   "m": "mini/boy/image-035_jfif.jpg"
   },
   {
    "f": "boy/image-036.jfif",
    "eth": "west",
    "age": "old",
    "style": "photo",
-   "t": "thumb/boy/image-036_jfif.jpg"
+   "t": "thumb/boy/image-036_jfif.jpg",
+   "m": "mini/boy/image-036_jfif.jpg"
   },
   {
    "f": "boy/image-037.jfif",
    "eth": "east",
    "age": "m",
    "style": "photo",
-   "t": "thumb/boy/image-037_jfif.jpg"
+   "t": "thumb/boy/image-037_jfif.jpg",
+   "m": "mini/boy/image-037_jfif.jpg"
   },
   {
    "f": "boy/image-038.jfif",
    "eth": "east",
    "age": "m",
    "style": "photo",
-   "t": "thumb/boy/image-038_jfif.jpg"
+   "t": "thumb/boy/image-038_jfif.jpg",
+   "m": "mini/boy/image-038_jfif.jpg"
   },
   {
    "f": "boy/image-039.jfif",
    "eth": "latin",
    "age": "y",
    "style": "photo",
-   "t": "thumb/boy/image-039_jfif.jpg"
+   "t": "thumb/boy/image-039_jfif.jpg",
+   "m": "mini/boy/image-039_jfif.jpg"
   },
   {
    "f": "boy/image-040.jfif",
    "eth": "west",
    "age": "m",
    "style": "photo",
-   "t": "thumb/boy/image-040_jfif.jpg"
+   "t": "thumb/boy/image-040_jfif.jpg",
+   "m": "mini/boy/image-040_jfif.jpg"
   },
   {
    "f": "boy/image-041.avif",
    "eth": "west",
    "age": "m",
    "style": "photo",
-   "t": "thumb/boy/image-041_avif.jpg"
+   "t": "thumb/boy/image-041_avif.jpg",
+   "m": "mini/boy/image-041_avif.jpg"
   }
  ],
  "girl": [
@@ -295,112 +335,128 @@
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-000_webp.jpg"
+   "t": "thumb/girl/image-000_webp.jpg",
+   "m": "mini/girl/image-000_webp.jpg"
   },
   {
    "f": "girl/image-001.jpg",
    "eth": "east",
    "age": "y",
    "style": "art",
-   "t": "thumb/girl/image-001_jpg.jpg"
+   "t": "thumb/girl/image-001_jpg.jpg",
+   "m": "mini/girl/image-001_jpg.jpg"
   },
   {
    "f": "girl/image-001.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-001_webp.jpg"
+   "t": "thumb/girl/image-001_webp.jpg",
+   "m": "mini/girl/image-001_webp.jpg"
   },
   {
    "f": "girl/image-002.jpg",
    "eth": "east",
    "age": "y",
    "style": "art",
-   "t": "thumb/girl/image-002_jpg.jpg"
+   "t": "thumb/girl/image-002_jpg.jpg",
+   "m": "mini/girl/image-002_jpg.jpg"
   },
   {
    "f": "girl/image-002.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-002_webp.jpg"
+   "t": "thumb/girl/image-002_webp.jpg",
+   "m": "mini/girl/image-002_webp.jpg"
   },
   {
    "f": "girl/image-003.webp",
    "eth": "west",
    "age": "y",
    "style": "fantasy",
-   "t": "thumb/girl/image-003_webp.jpg"
+   "t": "thumb/girl/image-003_webp.jpg",
+   "m": "mini/girl/image-003_webp.jpg"
   },
   {
    "f": "girl/image-004.jfif",
    "eth": "west",
    "age": "y",
    "style": "art",
-   "t": "thumb/girl/image-004_jfif.jpg"
+   "t": "thumb/girl/image-004_jfif.jpg",
+   "m": "mini/girl/image-004_jfif.jpg"
   },
   {
    "f": "girl/image-004.webp",
    "eth": "east",
    "age": "m",
    "style": "photo",
-   "t": "thumb/girl/image-004_webp.jpg"
+   "t": "thumb/girl/image-004_webp.jpg",
+   "m": "mini/girl/image-004_webp.jpg"
   },
   {
    "f": "girl/image-005.jfif",
    "eth": "west",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-005_jfif.jpg"
+   "t": "thumb/girl/image-005_jfif.jpg",
+   "m": "mini/girl/image-005_jfif.jpg"
   },
   {
    "f": "girl/image-005.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-005_webp.jpg"
+   "t": "thumb/girl/image-005_webp.jpg",
+   "m": "mini/girl/image-005_webp.jpg"
   },
   {
    "f": "girl/image-006.jfif",
    "eth": "west",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-006_jfif.jpg"
+   "t": "thumb/girl/image-006_jfif.jpg",
+   "m": "mini/girl/image-006_jfif.jpg"
   },
   {
    "f": "girl/image-006.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-006_webp.jpg"
+   "t": "thumb/girl/image-006_webp.jpg",
+   "m": "mini/girl/image-006_webp.jpg"
   },
   {
    "f": "girl/image-007.jfif",
    "eth": "west",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-007_jfif.jpg"
+   "t": "thumb/girl/image-007_jfif.jpg",
+   "m": "mini/girl/image-007_jfif.jpg"
   },
   {
    "f": "girl/image-007.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-007_webp.jpg"
+   "t": "thumb/girl/image-007_webp.jpg",
+   "m": "mini/girl/image-007_webp.jpg"
   },
   {
    "f": "girl/image-008.jfif",
    "eth": "west",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-008_jfif.jpg"
+   "t": "thumb/girl/image-008_jfif.jpg",
+   "m": "mini/girl/image-008_jfif.jpg"
   },
   {
    "f": "girl/image-008.webp",
    "eth": "east",
    "age": "m",
    "style": "photo",
-   "t": "thumb/girl/image-008_webp.jpg"
+   "t": "thumb/girl/image-008_webp.jpg",
+   "m": "mini/girl/image-008_webp.jpg"
   },
   {
    "f": "girl/image-009.jfif",
@@ -411,161 +467,184 @@
    "eth": "east",
    "age": "m",
    "style": "photo",
-   "t": "thumb/girl/image-009_webp.jpg"
+   "t": "thumb/girl/image-009_webp.jpg",
+   "m": "mini/girl/image-009_webp.jpg"
   },
   {
    "f": "girl/image-010.jfif",
    "eth": "west",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-010_jfif.jpg"
+   "t": "thumb/girl/image-010_jfif.jpg",
+   "m": "mini/girl/image-010_jfif.jpg"
   },
   {
    "f": "girl/image-010.webp",
    "eth": "east",
    "age": "old",
    "style": "photo",
-   "t": "thumb/girl/image-010_webp.jpg"
+   "t": "thumb/girl/image-010_webp.jpg",
+   "m": "mini/girl/image-010_webp.jpg"
   },
   {
    "f": "girl/image-011.jfif",
    "eth": "west",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-011_jfif.jpg"
+   "t": "thumb/girl/image-011_jfif.jpg",
+   "m": "mini/girl/image-011_jfif.jpg"
   },
   {
    "f": "girl/image-011.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-011_webp.jpg"
+   "t": "thumb/girl/image-011_webp.jpg",
+   "m": "mini/girl/image-011_webp.jpg"
   },
   {
    "f": "girl/image-012.jfif",
    "eth": "west",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-012_jfif.jpg"
+   "t": "thumb/girl/image-012_jfif.jpg",
+   "m": "mini/girl/image-012_jfif.jpg"
   },
   {
    "f": "girl/image-012.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-012_webp.jpg"
+   "t": "thumb/girl/image-012_webp.jpg",
+   "m": "mini/girl/image-012_webp.jpg"
   },
   {
    "f": "girl/image-013.jfif",
    "eth": "black",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-013_jfif.jpg"
+   "t": "thumb/girl/image-013_jfif.jpg",
+   "m": "mini/girl/image-013_jfif.jpg"
   },
   {
    "f": "girl/image-013.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-013_webp.jpg"
+   "t": "thumb/girl/image-013_webp.jpg",
+   "m": "mini/girl/image-013_webp.jpg"
   },
   {
    "f": "girl/image-014.jfif",
    "eth": "black",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-014_jfif.jpg"
+   "t": "thumb/girl/image-014_jfif.jpg",
+   "m": "mini/girl/image-014_jfif.jpg"
   },
   {
    "f": "girl/image-014.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-014_webp.jpg"
+   "t": "thumb/girl/image-014_webp.jpg",
+   "m": "mini/girl/image-014_webp.jpg"
   },
   {
    "f": "girl/image-015.jfif",
    "eth": "west",
    "age": "y",
    "style": "fantasy",
-   "t": "thumb/girl/image-015_jfif.jpg"
+   "t": "thumb/girl/image-015_jfif.jpg",
+   "m": "mini/girl/image-015_jfif.jpg"
   },
   {
    "f": "girl/image-015.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-015_webp.jpg"
+   "t": "thumb/girl/image-015_webp.jpg",
+   "m": "mini/girl/image-015_webp.jpg"
   },
   {
    "f": "girl/image-016.jfif",
    "eth": "black",
    "age": "m",
    "style": "photo",
-   "t": "thumb/girl/image-016_jfif.jpg"
+   "t": "thumb/girl/image-016_jfif.jpg",
+   "m": "mini/girl/image-016_jfif.jpg"
   },
   {
    "f": "girl/image-016.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-016_webp.jpg"
+   "t": "thumb/girl/image-016_webp.jpg",
+   "m": "mini/girl/image-016_webp.jpg"
   },
   {
    "f": "girl/image-017.jfif",
    "eth": "latin",
    "age": "y",
    "style": "art",
-   "t": "thumb/girl/image-017_jfif.jpg"
+   "t": "thumb/girl/image-017_jfif.jpg",
+   "m": "mini/girl/image-017_jfif.jpg"
   },
   {
    "f": "girl/image-017.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-017_webp.jpg"
+   "t": "thumb/girl/image-017_webp.jpg",
+   "m": "mini/girl/image-017_webp.jpg"
   },
   {
    "f": "girl/image-018.jfif",
    "eth": "south",
    "age": "y",
    "style": "cartoon",
-   "t": "thumb/girl/image-018_jfif.jpg"
+   "t": "thumb/girl/image-018_jfif.jpg",
+   "m": "mini/girl/image-018_jfif.jpg"
   },
   {
    "f": "girl/image-018.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-018_webp.jpg"
+   "t": "thumb/girl/image-018_webp.jpg",
+   "m": "mini/girl/image-018_webp.jpg"
   },
   {
    "f": "girl/image-019.jfif",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-019_jfif.jpg"
+   "t": "thumb/girl/image-019_jfif.jpg",
+   "m": "mini/girl/image-019_jfif.jpg"
   },
   {
    "f": "girl/image-019.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-019_webp.jpg"
+   "t": "thumb/girl/image-019_webp.jpg",
+   "m": "mini/girl/image-019_webp.jpg"
   },
   {
    "f": "girl/image-020.jfif",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-020_jfif.jpg"
+   "t": "thumb/girl/image-020_jfif.jpg",
+   "m": "mini/girl/image-020_jfif.jpg"
   },
   {
    "f": "girl/image-020.webp",
    "eth": "east",
    "age": "y",
    "style": "photo",
-   "t": "thumb/girl/image-020_webp.jpg"
+   "t": "thumb/girl/image-020_webp.jpg",
+   "m": "mini/girl/image-020_webp.jpg"
   },
   {
    "f": "girl/image-021.jfif",
@@ -588,7 +667,8 @@
    "eth": "east",
    "age": "y",
    "style": "cartoon",
-   "t": "thumb/girl/image-023_jfif.jpg"
+   "t": "thumb/girl/image-023_jfif.jpg",
+   "m": "mini/girl/image-023_jfif.jpg"
   },
   {
    "f": "girl/image-023.webp",
@@ -599,7 +679,8 @@
    "eth": "west",
    "age": "y",
    "style": "fantasy",
-   "t": "thumb/girl/image-024_jfif.jpg"
+   "t": "thumb/girl/image-024_jfif.jpg",
+   "m": "mini/girl/image-024_jfif.jpg"
   },
   {
    "f": "girl/image-025.jfif",
@@ -614,7 +695,8 @@
    "eth": "east",
    "age": "y",
    "style": "art",
-   "t": "thumb/girl/image-026_avif.jpg"
+   "t": "thumb/girl/image-026_avif.jpg",
+   "m": "mini/girl/image-026_avif.jpg"
   },
   {
    "f": "girl/image-026.jfif",

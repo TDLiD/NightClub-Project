@@ -163,7 +163,8 @@ function setupGroups() {
   const low = NC.quality && NC.quality.level === 'low', nTables = low ? 8 : 10;
   if (low && !makeGuests.done) {   // 저사양(모바일): 손님을 한 명씩 나눠 만든 뒤 자리 배치 (한꺼번에 만들면 입장 직후 수 초 멈춤)
     makeGuests.done = 'pending'; let k = 0; const idle = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 250 }) : f => setTimeout(f, 30);
-    const step = () => { if (k < 16) { makeGuests(k < 8 ? 1 : 0, k < 8 ? 0 : 1, k); k++; idle(step); } else { makeGuests.done = true; setupGroups(); } }; idle(step); return; }
+    const NG = NC.isMobile ? 8 : 16;   // v34 모바일: 테이블 손님 8명
+    const step = () => { if (k < NG) { makeGuests(k < NG / 2 ? 1 : 0, k < NG / 2 ? 0 : 1, k); k++; idle(step); } else { makeGuests.done = true; setupGroups(); } }; idle(step); return; }
   if (low && makeGuests.done !== true) return;
   if (!low) makeGuests(16, 16);
   const crowd = (NC.npcs || []).filter(n => n.role === 'crowd' && !n.stay && n.enabled), guests = crowd.filter(n => n.guest), rest = crowd.filter(n => !n.guest);

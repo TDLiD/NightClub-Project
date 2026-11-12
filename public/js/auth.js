@@ -207,7 +207,7 @@ function pickCharacter(g, cur) {
   return new Promise(res => {
     const L = E.stylesOf(g);
     NC.ui.modal(`<h3>🧍 캐릭터 고르기 <small style="opacity:.6">${g === 'f' ? '여성' : '남성'} ${L.length}종</small></h3><div id="stGrid">${L.map(([, nm], i) => `<div class="stc${i + 1 === cur ? ' on' : ''}" data-no="${i + 1}"><img alt=""><b>No.${i + 1} ${nm}</b></div>`).join('')}</div>`, [['선택', 'ok', true], ['취소', 0]])
-      .then(r => res(r.val === 'ok' ? sel : null));
+      .then(r => { if (NC.started && E.releasePreview) setTimeout(E.releasePreview, 100); res(r.val === 'ok' ? sel : null); });   // v34 게임 중 캐릭터 고르기 후 미리보기 화면 해제
     let sel = cur; const grid = $('#stGrid'), cards = [...grid.querySelectorAll('.stc')]; let k = 0;
     const step = () => { if (k >= cards.length || !document.body.contains(grid)) return; const c = cards[k++]; c.querySelector('img').src = E.thumb(E.lookByNo(g, +c.dataset.no)); requestAnimationFrame(step); }; requestAnimationFrame(step);
     grid.onclick = e => { const c = e.target.closest('.stc'); if (!c) return; sel = +c.dataset.no; cards.forEach(x => x.classList.toggle('on', x === c)); };

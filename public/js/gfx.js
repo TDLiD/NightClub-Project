@@ -13,7 +13,7 @@ const T = NC.THREE, R = NC.renderer, U = NC.util;
 
 /* ───────── 화질 ───────── */
 const mobile = NC.isMobile;
-const LEVELS = { high: { post: true, shadows: true, pr: 1.75, tex: 512, film: true }, mid: { post: true, shadows: false, pr: 1.25, tex: 512, film: true }, low: { post: false, shadows: false, pr: NC.isMobile ? 1.25 : 1, tex: 256, film: false } };
+const LEVELS = { high: { post: true, shadows: true, pr: 1.75, tex: 512, film: true }, mid: { post: true, shadows: false, pr: 1.25, tex: 512, film: true }, low: { post: false, shadows: false, pr: NC.isMobile ? (innerWidth * innerHeight > 900000 ? 1 : 1.25) : 1,   /* v34 태블릿(큰 화면)은 1.0 */ tex: 256, film: false } };
 const level = LEVELS[U.store.get('nc_quality', '')] ? U.store.get('nc_quality', '') : (mobile ? 'low' : 'high');
 const Q = NC.quality = Object.assign({ level }, LEVELS[level]);
 NC.setQuality = lv => { if (!LEVELS[lv]) return; U.store.set('nc_quality', lv); location.reload(); };

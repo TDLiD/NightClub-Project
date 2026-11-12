@@ -25,7 +25,7 @@ function rig() {
 }
 function draw(look, w, h, ry = .35, target) {
   const r = rig(); r.renderer.setSize(w, h, false); r.cam.aspect = w / h; r.cam.updateProjectionMatrix();
-  if (r.cur) r.scene.remove(r.cur);
+  if (r.cur) { r.scene.remove(r.cur); try { const f = r.cur.userData.face; f && f.tex && f.tex.dispose(); } catch (e) { } }   // v34 이전 미리보기 얼굴 텍스처 해제
   const g = NC.Avatar.create({ name: 'preview', look, seed: cfg.seed, expr: 'smile', hiRes: true });
   g.traverse(o => { if (o.isSprite) o.visible = false; });
   g.rotation.y = ry; r.scene.add(g); r.cur = g;
@@ -188,5 +188,9 @@ E.stylesOf = g => STYLES.filter(s => s[0] === g);
 E.lookByNo = (g, no) => { const L = E.stylesOf(g), s = L[U.clamp((no | 0) - 1, 0, L.length - 1)]; return fullLook(g, s[2]); };
 E.styleName = (g, no) => { const L = E.stylesOf(g); return (L[U.clamp((no | 0) - 1, 0, L.length - 1)] || [])[1] || ''; };
 E.thumb = (look, w = 150, h = 200) => draw(look, w, h, .45);
+/* v34 미리보기용 두 번째 WebGL 화면은 입장하면 완전히 해제 — 모바일에서 WebGL 화면 2개가 동시에 살아 있으면
+ *     메인 화면이 메모리 부족으로 끊겨(context lost) 로그인 화면으로 튕기던 원인 중 하나 */
+E.releasePreview = () => { if (!R) return; try { if (R.cur) R.scene.remove(R.cur); R.renderer.dispose(); R.renderer.forceContextLoss(); R.renderer.domElement.width = R.renderer.domElement.height = 1; } catch (e) { } R = null; };
+NC.on && NC.on('start', () => setTimeout(E.releasePreview, 300));
 E.renderCustom();
 })();

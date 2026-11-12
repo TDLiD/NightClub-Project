@@ -328,10 +328,12 @@ const LIMB_PROF = {
   uaC: [[0, 1], [.3, 1.04], [.7, 1.0], [1, .97]], faC: [[0, 1], [.25, 1.03], [.8, .96], [1, .95]],   // 소매(옷이라 근육이 덜 드러남)
   thC: [[0, 1], [.5, .98], [1, .94]], shC: [[0, .98], [.3, 1.02], [.8, .96], [1, .97]],           // 슬림 바지
 };
-const limb = (kind, rt, rb, h, sz = .92) => G(`L${kind}${rt.toFixed(4)}_${rb.toFixed(4)}_${h}_${sz}`, () => {
+const LITE_DETAIL = NC.isMobile || (NC.quality && NC.quality.level === 'low');   // v34 모바일: 옷 주름 링·작은 뼈 돌출 생략(메시 수↓)
+const LIMB_SEG = (NC.isMobile || (NC.quality && NC.quality.level === 'low')) ? 9 : 14;   // v34 모바일은 팔다리 둘레 분할 9
+const limb = (kind, rt, rb, h, sz = .92) => G(`L${kind}${rt.toFixed(3)}_${rb.toFixed(3)}_${h}_${sz}`, () => {
   const P = LIMB_PROF[kind], pts = [new T.Vector2(0, -h / 2)];
   for (let i = P.length - 1; i >= 0; i--) { const [t, k] = P[i]; pts.push(new T.Vector2((rt + (rb - rt) * t) * k, h / 2 - t * h)); }
-  pts.push(new T.Vector2(0, h / 2)); const g = new T.LatheGeometry(pts, 14); g.scale(1, 1, sz); return g; });   // sz: 앞뒤로 살짝 납작(실제 팔다리 단면은 타원)
+  pts.push(new T.Vector2(0, h / 2)); const g = new T.LatheGeometry(pts, LIMB_SEG); g.scale(1, 1, sz); return g; });   // sz: 앞뒤로 살짝 납작(실제 팔다리 단면은 타원)
 /* v32 체형 프리셋 — look.body 가 있으면 build/muscle 대신 사용 */
 const BODY = {
   slim:     { b: .86, limb: .86, mu: 0,   belly: 0,   hip: .95 },   // 마른 체형
@@ -659,7 +661,8 @@ function create(o = {}) {
   const F = look.face, r = .115, sx = .86 * (F.faceW || 1), sy = 1.03 * (F.jaw || 1), sz = .98;
   const skull = new T.Group(); skull.position.set(0, .095, .012); skull.scale.set(sx, sy, sz); head.add(skull);
   const hi = o.hiRes && !(NC.quality && NC.quality.level === 'low');
-  const lowQ = NC.quality && NC.quality.level === 'low', fcv = document.createElement('canvas'); fcv.width = hi ? FW * 2 : lowQ && !o.hiRes ? FW / 2 : FW; fcv.height = hi ? FH * 2 : lowQ && !o.hiRes ? FH / 2 : FH;   // v17: 저사양은 얼굴 텍스처 절반 크기(그리기 CPU ¼)
+  const lowQ = NC.quality && NC.quality.level === 'low', fcv = document.createElement('canvas'), half = (lowQ && !o.hiRes) || NC.isMobile;   // v34 모바일은 얼굴 텍스처 512×256 (갱신 때마다 GPU 업로드 ¼)
+  fcv.width = hi && !NC.isMobile ? FW * 2 : half ? FW / 2 : FW; fcv.height = hi && !NC.isMobile ? FH * 2 : half ? FH / 2 : FH;   // v17: 저사양은 얼굴 텍스처 절반 크기(그리기 CPU ¼)
   const ftex = NC.tex(fcv); ftex.anisotropy = 8;
   const headMat = skinMat(look.skin, ftex); headMat.color.setRGB(1, 1, 1);
   const headMesh = new T.Mesh(G('head' + look.gender, () => sculptHead(r, f)), headMat); headMesh.userData.noMerge = true; skull.add(headMesh);
@@ -715,8 +718,8 @@ function create(o = {}) {
     const faBare = bare || look.top === 'overshirt', faT = .042 * LIMB * (1 + .35 * MU), faB = .033 * LIMB * (1 + .2 * MU);
     el.add(mesh(limb(faBare ? 'fa' : 'faC', faT, faB, .25), faBare ? mSkin : mSleeve, 0, -.125, 0));
     el.add(mesh(sph(), faBare ? mSkin : mSleeve, 0, 0, 0, Math.min(faT * .95, uaB * .92), Math.min(faT * .95, uaB * .92), Math.min(faT * .95, uaB * .92) * .9));                         // 팔꿈치 관절
-    if (faBare) el.add(mesh(sph(), mSkin, 0, -.006, -faT * .6, faT * .24, faT * .3, faT * .2));                   // 팔꿈치 뼈 돌출(뒤)
-    else if (!look.leather && !['vest', 'stageJacket'].includes(look.top)) {                                       // 소매 주름: 팔꿈치 안쪽 · 손목 뭉침
+    if (faBare && !LITE_DETAIL) el.add(mesh(sph(), mSkin, 0, -.006, -faT * .6, faT * .24, faT * .3, faT * .2));                   // 팔꿈치 뼈 돌출(뒤)
+    else if (!LITE_DETAIL && !look.leather && !['vest', 'stageJacket'].includes(look.top)) {                                       // 소매 주름: 팔꿈치 안쪽 · 손목 뭉침
       for (const [y, k] of [[-.03, 1.06], [.012, 1.04]]) { const rg = mesh(G('fold', () => new T.TorusGeometry(1, .07, 4, 18)), mSleeve, 0, y, .004, faT * k, faT * k, faT * k * .9); rg.rotation.x = Math.PI / 2 + .25; el.add(rg); }
       for (const y of [-.2, -.225]) { const rg = mesh(G('fold', () => new T.TorusGeometry(1, .07, 4, 18)), mSleeve, 0, y, 0, faB * 1.0, faB * 1.0, faB * .94); rg.rotation.x = Math.PI / 2; el.add(rg); } }
     if (look.top === 'overshirt') el.add(mesh(cyl(.05, .048, .05), mSleeve, 0, -.01, 0));
@@ -748,8 +751,8 @@ function create(o = {}) {
     const snT = wide ? .08 : .058 * LIMB, snB = wide ? .1 : .044 * LIMB;
     kn.add(mesh(wide ? cyl(snT, snB, TL2) : limb(PANTS ? 'shC' : 'sh', snT, snB, TL2), legMat, 0, -TL2 / 2, 0));
     { const kr = Math.min(snT * .95, thB * .88); kn.add(mesh(sph(), legMat, 0, 0, 0, kr, kr, kr * .92)); }                                        // 무릎 관절
-    if (!PANTS && look.shoes !== 'thigh') kn.add(mesh(sph(), mSkin, 0, -.014, snT * .5, snT * .34, snT * .42, snT * .24));   // 슬개골(무릎뼈)
-    if (PANTS) {                                                                                                     // 바지 주름: 무릎 뒤 · 밑단이 신발 위에서 접힘(브레이크)
+    if (!LITE_DETAIL && !PANTS && look.shoes !== 'thigh') kn.add(mesh(sph(), mSkin, 0, -.014, snT * .5, snT * .34, snT * .42, snT * .24));   // 슬개골(무릎뼈)
+    if (PANTS && !LITE_DETAIL) {                                                                                                     // 바지 주름: 무릎 뒤 · 밑단이 신발 위에서 접힘(브레이크)
       const fm = legMat, fg = G('fold', () => new T.TorusGeometry(1, .07, 4, 18));
       { const rg = mesh(fg, fm, 0, .01, -.006, snT * 1.04, snT * 1.04, snT * .96); rg.rotation.x = Math.PI / 2 - .3; kn.add(rg); }
       for (const [y, k] of (wide ? [[-TL2 + .03, .99]] : [[-TL2 + .07, .99], [-TL2 + .04, 1.0], [-TL2 + .015, 1.01]])) { const rr = snB * k * (wide ? 1.0 : .97) * 1.03; const rg = mesh(fg, fm, 0, y, .004, rr, rr, rr * .95); rg.rotation.x = Math.PI / 2 + (y > -TL2 + .05 ? .12 : -.1); kn.add(rg); } }

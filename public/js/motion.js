@@ -298,6 +298,8 @@ function trigger(a, ev, opt = {}) {
 }
 
 const ZERO = [0, 0, 0];
+const MOBF = !!NC.isMobile; let fbT = 0, fbN = 0;
+function faceBudget() { const t = performance.now(); if (t - fbT > 14) { fbT = t; fbN = MOBF ? 1 : 3; } return fbN-- > 0; }
 function update(a, dt, opt = {}) {
   const u = a.userData, m = u.motion, R = u.rig; if (!R) return;
   m.t += dt; const b = beatInfo();
@@ -333,12 +335,12 @@ function update(a, dt, opt = {}) {
   u.blinkT -= dt; if (u.blinkT < 0) { u.blink = true; u.blinkEnd = .13; u.blinkT = 2.4 + Math.random() * 3.6; u.faceDirty = true; }
   if (u.blink) { u.blinkEnd -= dt; if (u.blinkEnd < 0) { u.blink = false; u.faceDirty = true; } }
   const talking = now < u.talkUntil;
-  if (talking) { u.mouthT -= dt; if (u.mouthT < 0) { u.mouthT = .07 + Math.random() * .08; u.mouthOpen = Math.random() < .2 ? 0 : .25 + Math.random() * .75; u.faceDirty = true; } } else if (u.mouthOpen) { u.mouthOpen = 0; u.faceDirty = true; }
+  if (talking) { u.mouthT -= dt; if (u.mouthT < 0) { u.mouthT = (MOBF ? .14 : .07) + Math.random() * .08; u.mouthOpen = Math.random() < .2 ? 0 : .25 + Math.random() * .75; u.faceDirty = true; } } else if (u.mouthOpen) { u.mouthOpen = 0; u.faceDirty = true; }
   // 시선 도약(사카드): 1~4초마다 눈동자가 살짝 이동, 바라보는 대상이 있으면 그쪽으로
   if (u.gaze && opt.near !== false) { u.gazeT -= dt; if (u.gazeT < 0) { u.gazeT = 1 + Math.random() * 3;
       if (u.lookAt && !u.moving) { const yw = Math.atan2(u.lookAt.x - a.position.x, u.lookAt.z - a.position.z), rel = ((yw - a.rotation.y + PI) % (PI * 2) + PI * 2) % (PI * 2) - PI; u.gaze = [U.clamp(rel * .5, -.8, .8) + (Math.random() - .5) * .2, (Math.random() - .5) * .3]; }
       else u.gaze = [(Math.random() - .5) * 1.1, (Math.random() - .5) * .5]; u.faceDirty = true; } }
-  if (u.faceDirty && (opt.near !== false || talking)) u.redraw();
+  if (u.faceDirty && (opt.near !== false || talking) && (talking || faceBudget())) u.redraw();   // v34 얼굴 다시 그리기는 프레임당 몇 명만(모바일 1명) — GPU 업로드 폭주로 화면이 끊기던 문제
 }
 
 NC.Motion = { update, play, trigger, TRIGGERS, EMOTION_TRIGGER, GEST: Object.keys(GEST), BASE: Object.keys(BASE) };

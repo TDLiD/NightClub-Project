@@ -206,7 +206,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 let cardFor = null; const v3 = new T.Vector3();
 function fillCard(n) {
   const f = profile(n), aff = Math.round(n.aff || 0);
-  card.innerHTML = (n.photo && NC.Profile ? `<img class="pcPh" src="${NC.Profile.url(n.photo)}" alt="">` : '') + `<div class="pcHead"><b>${esc(f.name)}</b> <span>${n.gender === 'f' ? '♀' : '♂'} ${f.age}세</span>${f.tag ? `<i>${esc(f.tag)}</i>` : ''}</div>
+  const html = (n.photo && NC.Profile ? `<img class="pcPh" src="${NC.Profile.url(n.photo, 'mini')}" alt="">` : '') + `<div class="pcHead"><b>${esc(f.name)}</b> <span>${n.gender === 'f' ? '♀' : '♂'} ${f.age}세</span>${f.tag ? `<i>${esc(f.tag)}</i>` : ''}</div>
     <div class="pcRow"><em>💼 직업</em>${esc(f.job)} · ${esc(f.mbti)}</div>
     <div class="pcRow"><em>💍 결혼</em>${esc(f.married)}</div>
     <div class="pcRow"><em>🎯 취미</em>${esc(f.hobby)}</div>
@@ -216,6 +216,7 @@ function fillCard(n) {
     <div class="pcRow"><em>💘 이상형</em>${esc(f.ideal)}</div>
     <div class="pcRow"><em>📏 키</em>${f.height}cm · 📍 ${esc(whereOf(n))}</div>
     <div class="pcAff"><span style="width:${aff}%"></span><small>호감 ${aff}</small></div>`;
+  if (card._html !== html) { card.innerHTML = html; card._html = html; }   // v34 내용이 같으면 다시 그리지 않음(매초 이미지·레이아웃 재생성 → 모바일 버벅임)
 }
 let fillT = 0;
 NC.tickers.push(dt => {

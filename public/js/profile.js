@@ -33,7 +33,7 @@ async function load() {
 }
 P.ready = load().then(() => { P.loaded = true; });
 P.pool = g => P.list[gk(g)].filter(e => !e.dup);
-P.url = (path, big) => { if (!path) return null; const e = P.byPath[path]; return BASE + (big || !e || !e.t ? path : e.t); };
+P.url = (path, big) => { if (!path) return null; const e = P.byPath[path]; if (big === 'mini') return BASE + (e && (e.m || e.t) || path); return BASE + (big || !e || !e.t ? path : e.t); };   // v34 'mini' = 128x160 (리스트·이름표·카드 — 모바일 메모리 절약)
 const imgCache = {};
 P.img = (path, big) => { const u = P.url(path, big); if (!u) return Promise.reject(); return imgCache[u] || (imgCache[u] = new Promise((res, rej) => { const im = new Image(); im.decoding = 'async'; im.onload = () => res(im); im.onerror = () => { delete imgCache[u]; rej(new Error('img ' + u)); }; im.src = u; })); };
 
@@ -89,7 +89,7 @@ P.setFor = (n, path) => { n.photo = path; const u = n.g && n.g.userData; if (!u)
 /* ───── 머리 위 이름표: 왼쪽에 동그란 사진 ───── */
 P.decorate = g => {
   const u = g && g.userData, path = u && u.look && u.look.photo; if (!u || !u.label || !path) return;
-  P.img(path).then(im => {
+  P.img(path, 'mini').then(im => {
     const s = u.label, tex = s.material.map, c = tex && tex.image; if (!c || !c.getContext) return;
     const x = c.getContext('2d'), name = String(u.name || '').trim(), col = (u.look && u.look.topColor) || '#ff3d9a';
     x.clearRect(0, 0, c.width, c.height);

@@ -8,6 +8,7 @@
 const NC = window.NC; if (!NC) return;
 const U = NC.util, W = NC.world, Mo = NC.Motion;
 const npcs = NC.npcs = [];
+const MOBN = !!NC.isMobile, NEAR = MOBN ? 10 : 16; let lodF = 0;
 let crowdOn = true;
 
 function spawn(def, role) {
@@ -113,7 +114,9 @@ NC.NPC = {
   init(data) {
     // v17: 모바일/저사양은 로그인 화면에서 아바타를 하나도 만들지 않음(아바타 1명 생성 = 수백 ms 작업) →
     //      입장 버튼을 누른 뒤 한 명씩 '입장'하듯 나눠 생성 → 로그인 화면 입력·버튼 반응이 즉시
-    const list = (data.personas || []).map(d => [d, 'persona']).concat((data.npcs || []).filter(d => d.enabled !== false).map(d => [d, 'crowd']));
+    let crowdDefs = (data.npcs || []).filter(d => d.enabled !== false);
+    if (NC.isMobile) { const cap = innerWidth * innerHeight > 900000 ? 16 : 12; crowdDefs = crowdDefs.filter(d => d.v32).concat(crowdDefs.filter(d => !d.v32)).slice(0, cap); }   // v34 모바일: 돌아다니는 손님 수 제한(폰 12 · 태블릿 16)
+    const list = (data.personas || []).map(d => [d, 'persona']).concat(crowdDefs.map(d => [d, 'crowd']));
     const lite = (NC.quality && NC.quality.level === 'low') || matchMedia('(pointer:coarse)').matches;
     if (lite) { NC.NPC.ready = false; let i = 0; const idle = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 250 }) : f => setTimeout(f, 30);
       const step = () => { if (i < list.length) { spawn(...list[i++]); idle(step); } else NC.NPC.ready = true; };
@@ -130,7 +133,13 @@ NC.NPC = {
     console.info(`[npc] 페르소나 ${data.personas ? data.personas.length : 0}명 · 손님 ${(data.npcs || []).length}명`);
   },
   update(dt, cam) {
-    npcs.forEach(n => { if (!n.enabled && n.state === 'off') return; update(n, dt); const near = cam.position.distanceTo(n.g.position) < 16; Mo.update(n.g, dt, { near, speed: n.speed / 2.1 }); NC.Avatar.fitLabel(n.g, cam); });
+    lodF++;
+    npcs.forEach((n, i) => { if (!n.enabled && n.state === 'off') return; update(n, dt);
+      if (!n.g.visible) return; const d = cam.position.distanceTo(n.g.position), near = d < NEAR;
+      /* v34 LOD: 멀리 있는 손님(모바일 18m+)은 2~3프레임에 한 번만 관절 계산 → 대화 상대·가까운 손님은 매 프레임 */
+      n._lodDt = (n._lodDt || 0) + dt; const every = !MOBN || d < 18 || n.state === 'talk' ? 1 : d < 30 ? 2 : 3;
+      if ((lodF + i) % every === 0) { Mo.update(n.g, n._lodDt, { near, speed: n.speed / 2.1 }); n._lodDt = 0; }
+      NC.Avatar.fitLabel(n.g, cam); });
     staff.forEach(g => { Mo.update(g, dt, { near: cam.position.distanceTo(g.position) < 16 }); NC.Avatar.fitLabel(g, cam); });
   },
 };
