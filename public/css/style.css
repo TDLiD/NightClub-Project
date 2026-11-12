@@ -55,8 +55,9 @@ button{font-family:inherit}
 .ln.npc{background:#3a1f74;align-self:flex-start;border-top-left-radius:4px}.ln.me{background:#a3266a;align-self:flex-end;border-top-right-radius:4px}.ln.me b{display:none}
 .ln.sys{align-self:center;background:none;color:#ffe08a;font-size:12px;text-align:center;max-width:100%}
 .ln.typing span{animation:blink 1s infinite}@keyframes blink{50%{opacity:.3}}
-#tChips{display:flex;flex-wrap:wrap;gap:6px;padding:6px 10px;max-height:94px;overflow:auto;border-top:1px solid #4a2d8a}
-#tChips button{background:#2c1758;border:1px solid #6b4bc0;color:#fff;border-radius:14px;padding:5px 10px;font-size:12px;cursor:pointer}
+#tChips{display:flex;flex-wrap:wrap;gap:5px;padding:6px 8px;flex:none;max-height:none;overflow:visible;border-top:1px solid #4a2d8a}   /* v35 기본 대화 칩 전부 표시(스크롤 없음) — 대신 대화 기록 영역이 줄어듦 */
+#tLog{min-height:70px}
+#tChips button{background:#2c1758;border:1px solid #6b4bc0;color:#fff;border-radius:14px;padding:4px 9px;font-size:12px;line-height:1.35;cursor:pointer}
 #tChips button.pri,.pri{background:linear-gradient(135deg,#ff3d9a,#7b3dff)!important;border:0!important;font-weight:700}
 .trow{display:flex;gap:6px;padding:8px 10px}
 .trow input{flex:1;min-width:0;padding:10px;border-radius:10px;border:1px solid #6b4bc0;background:#241148;color:#fff;font-size:14px}

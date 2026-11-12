@@ -223,6 +223,17 @@ const BASE = {
     p.hipsY = .44 / u.figScale; p.legL = [-1.75, 0, -.28]; p.legR = [-1.75, 0, .28]; p.knL = [2.25, 0, 0]; p.knR = [2.25, 0, 0];
     p.torso = [.5, .12 * s, 0]; p.head = [.1, .45 * s, 0]; p.shR = [-1.25, .1 * s, .15]; p.elR = [-.45, 0, 0]; p.shL = [-.35, 0, -.3]; p.elL = [-1.0, 0, 0];
   },
+  /* v35 DJ 루나 하이프 댄스: 박자마다 통통 튀며 4가지 동작을 8박자씩 순환 — 팔 번갈아 펌프 · 양손 머리 위 박수 · 바디롤+헤어플립 · 한 손 데크 + 한 손 크게 휘두르기 */
+  djHype(p, t, u, b) {
+    const ph = b ? b.phase : (t * 2.1) % 1, n = b ? b.n : Math.floor(t * 2.1), bt = Math.sin(ph * Math.PI * 2), up = Math.max(0, Math.cos(ph * Math.PI * 2)), sw = (n % 2 ? 1 : -1);
+    const mv = Math.floor(n / 8 + (u.seed || 0) * 4) % 4;
+    p.hipsY = u.hipH - .05 + .05 * up; p.bodyY = .035 * up; p.knL = [.25 - .18 * up, 0, 0]; p.knR = [.25 - .18 * up, 0, 0]; p.legL = [-.1 + .08 * up, 0, -.06]; p.legR = [-.1 + .08 * up, 0, .06];
+    p.bodyX = .05 * sw * (1 - up * .5); p.torso = [.06 - .06 * up, .18 * sw, .08 * sw]; p.head = [-.08 + .22 * bt, -.15 * sw, .1 * sw];
+    if (mv === 0) { const L = sw > 0; p.shL = L ? [-2.7, 0, -.35] : [-.6, 0, -.4]; p.elL = L ? [-.15, 0, 0] : [-1.4, 0, 0]; p.shR = !L ? [-2.7, 0, .35] : [-.6, 0, .4]; p.elR = !L ? [-.15, 0, 0] : [-1.4, 0, 0]; }
+    else if (mv === 1) { const cl = up; p.shL = [-2.9, 0, -.25 - .25 * (1 - cl)]; p.elL = [-.5, 0, 0]; p.shR = [-2.9, 0, .25 + .25 * (1 - cl)]; p.elR = [-.5, 0, 0]; p.head = [-.25, .1 * sw, 0]; }
+    else if (mv === 2) { const r = Math.sin((n % 4 + ph) * Math.PI / 2); p.torso = [.22 * r, .1 * sw, .05]; p.hipsY = u.hipH - .06 - .03 * r; p.head = [.35 * r - .1, .45 * sw, .25 * sw]; p.shL = [-.4, 0, -.7 - .2 * up]; p.elL = [-.9, 0, 0]; p.shR = [-.4, 0, .7 + .2 * up]; p.elR = [-.9, 0, 0]; }
+    else { p.shL = [-1.0, 0, -.25]; p.elL = [-1.1 + .25 * bt, 0, 0]; p.shR = [-1.6 - .9 * Math.sin(t * 3.3), .3, .9 + .5 * Math.cos(t * 3.3)]; p.elR = [-.3, 0, 0]; p.head = [.12 + .2 * bt, .2 * Math.sin(t * 1.7), 0]; }
+  },
   djMix(p, t, u, b) {  // v18 DJ 믹싱: 박자에 고개 끄덕 + 양손 번갈아 데크/페이더 조작
     const ph = b ? b.phase : (t * 2) % 1, nod = Math.sin(ph * Math.PI * 2), a = Math.sin(t * 3.1), c = Math.sin(t * 2.3 + 1);
     p.hipsY = u.hipH - .03 - .02 * Math.abs(nod); p.knL = [.12 + .06 * Math.abs(nod), 0, 0]; p.knR = [.12 + .06 * Math.abs(nod), 0, 0]; p.torso = [.16, .08 * a, 0]; p.head = [.18 + .14 * nod, .2 * c, 0];
@@ -261,6 +272,12 @@ const GEST = {
     p.shL = [-.9 * k, 0, -.1]; p.elL = [-.3, 0, 0]; p.shR = [-.9 * k, 0, .1]; p.elR = [-.3, 0, 0]; } },
   pickup: { dur: 1.6, expr: 'joy', f(p, t) { const k = Math.sin(Math.min(1, t / 1.4) * PI); p.torso = [.9 * k, 0, 0]; p.knL = [.9 * k, 0, 0]; p.knR = [.9 * k, 0, 0]; p.legL = [-.6 * k, 0, -.1]; p.legR = [-.6 * k, 0, .1]; p.hipsY = (p.hipsY || 0) - .25 * k; p.shR = [-1.3 * k, 0, .1]; p.elR = [-.2, 0, 0]; } },
   aegyo: { dur: 2.2, expr: 'joy', f(p, t) { const k = Math.min(1, t / .3, (2.2 - t) / .3), s = Math.sin(t * 8); p.shL = [-2.3 * k, 0, .9 * k]; p.elL = [-2.2 * k, 0, 0]; p.shR = [-2.3 * k, 0, -.9 * k]; p.elR = [-2.2 * k, 0, 0]; p.head = [.05, 0, .25 * s * k]; p.bodyX = .03 * s * k; p.torso = [.05, 0, .1 * s * k]; } },
+  /* v35 몸싸움(과장된 실랑이 — 멱살 잡고 밀치기·헛손질, 맞는 장면 묘사 없음) */
+  brawl: { dur: 2.4, expr: 'angry', f(p, t) { const a = Math.sin(t * 9), b2 = Math.sin(t * 9 + 1.7), k = Math.min(1, t / .25, (2.4 - t) / .3);
+    p.torso = [.22 * k, .35 * a * k, .1 * b2 * k]; p.head = [.1, -.2 * a, 0]; p.hipsY = (p.hipsY || 0) - .03 * k; p.knL = [.3 * k, 0, 0]; p.knR = [.3 * k, 0, 0]; p.legL = [-.15, 0, -.1]; p.legR = [.2, 0, .1];
+    p.shL = [-1.5 * k + .3 * a, 0, .25]; p.elL = [-.5 - .5 * Math.max(0, b2), 0, 0]; p.shR = [-1.3 * k - .5 * Math.max(0, a), 0, -.3]; p.elR = [-.3 - .9 * Math.max(0, -a), 0, 0]; p.bodyX = .06 * a; } },
+  stagger: { dur: 1.2, expr: 'sad', f(p, t) { const k = Math.exp(-t * 2.5); p.torso = [-.25 * k, .3 * k, .15 * k]; p.head = [-.3 * k, .4 * k, .2 * k]; p.shL = [-.6 * k, 0, -1.0 * k]; p.shR = [-.6 * k, 0, 1.0 * k]; p.bodyX = -.08 * k; p.knL = [.35 * k, 0, 0]; p.knR = [.2 * k, 0, 0]; } },
+  angry: { dur: 1.6, expr: 'angry', f(p, t) { const s = Math.sin(t * 10); p.shR = [-1.2, 0, .5]; p.elR = [-.3 + .15 * s, 0, 0]; p.torso = [.12, 0, 0]; p.head = [.1, .12 * s, 0]; p.shL = [.1, 0, -.35]; p.elL = [-1.2, 0, 0]; } },
   crossArms: { dur: 2.5, expr: 'annoyed', f(p) { p.shL = [-.55, 0, .5]; p.elL = [-1.95, 0, 0]; p.shR = [-.55, 0, -.5]; p.elR = [-1.95, 0, 0]; p.head = [-.05, 0, 0]; } },
 };
 

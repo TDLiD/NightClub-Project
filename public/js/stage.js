@@ -106,7 +106,7 @@ function tickShow(dt) {
     if (SHOW.t >= SHOW.dur) { SHOW.phase = 'back'; SHOW.path = djPathBack(); u.dance = null; Mo.play(dj, 'bow'); NC.bubble && NC.bubble(dj, '감사합니다~!! 💕 다시 음악 달릴게요!', 2.4); if (F.releaseSpot) F.releaseSpot('djshow');
       (NC.npcs || []).forEach(n => { if (n.g.userData.lookAt === dj.position) n.g.userData.lookAt = null; }); }
   } else if (SHOW.phase === 'back') {
-    if (walkStep(dj, dt, 1.8)) { u.moving = false; const s = W.spots.dj; dj.position.set(s.x, s.y, s.z); dj.rotation.y = s.ry || 0; u.dance = 'djMix'; SHOW.on = false; SHOW.phase = null; }
+    if (walkStep(dj, dt, 1.8)) { u.moving = false; const s = W.spots.dj; dj.position.set(s.x, s.y, s.z); dj.rotation.y = s.ry || 0; u.dance = 'djHype'; SHOW.on = false; SHOW.phase = null; }
   }
 }
 

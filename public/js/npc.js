@@ -128,7 +128,9 @@ NC.NPC = {
       npcs.filter(n => n.role === 'crowd').forEach(n => { if (k >= max) return; const pool = data.crowdModels.filter(m => !m.gender || m.gender === n.gender); if (!pool.length) return; const m = pool[k % pool.length]; NC.VRMKit.attach(n.g, m.model, { tint: m.tint }); k++; });
     }
     /* v24 여성 DJ 「루나」 — 글램 스테이지 룩(크롭 블레이저 · 레더 · 부츠 · 핑크 투톤 포니테일) */
-    NC.DJ = addStaff('DJ 루나', { gender: 'f', idol: true, hairStyle: 'highPony', hairColor: '#1a1014', hair2: '#ff5fa8', top: 'blazerCrop', topColor: '#141016', bottom: 'leather', bottomColor: '#0d0b10', shoes: 'boots', choker: true, chain: true, gloves: true, belt: true, pattern: 'solid', hat: null, curve: .42, face: { lipColor: '#c4475a', shadow: '#d070a0', attractive: true } }, W.spots.dj, 'djMix');
+    /* v35 DJ 루나: 1.25배 크게(무대 어디서나 눈에 띄게) · 은빛 메탈릭 크롭 재킷 + 핑크 투톤 하이 포니테일 + 레더 + 니하이 부츠 · 신나는 하이프 댄스 */
+    NC.DJ = addStaff('DJ 루나', { gender: 'f', idol: true, body: 'athletic', height: 1.7, hairStyle: 'highPony', hairColor: '#1a1014', hair2: '#ff5fa8', top: 'blazerCrop', topColor: '#d8dce6', metallic: true, bottom: 'leather', bottomColor: '#0d0b10', shoes: 'thigh', choker: true, chain: true, gloves: true, belt: true, pattern: 'solid', hat: null, curve: .5, face: { lipColor: '#d0405e', shadow: '#d070a0', liner: .8, blush: .3, earring: true, attractive: true } }, W.spots.dj, 'djHype');
+    NC.DJ.scale.setScalar(1.25);
     NC.Bartender = addStaff('바텐더 J', { gender: 'f', hairStyle: 'ponytail', hairColor: '#17110f', top: 'vest', topColor: '#121018', bottom: 'pants', bottomColor: '#121018' }, W.spots.bartender, null); NC.Bartender.userData.holdGlass = true;
     console.info(`[npc] 페르소나 ${data.personas ? data.personas.length : 0}명 · 손님 ${(data.npcs || []).length}명`);
   },

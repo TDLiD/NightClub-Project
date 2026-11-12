@@ -120,7 +120,7 @@ el.mic.onclick = () => {
   rec.onend = rec.onerror = () => { el.mic.classList.remove('on'); NC.Audio.speaking(false); rec = null; };
   rec.start();
 };
-D.send = send; D.npcSay = npcSay; D.sys = sys; D.renderHead = renderHead; D.chips = chips; D.floatDelta = floatDelta;
+D.send = send; D.npcSay = npcSay; D.sys = sys; D.meSay = t => line('나', t, 'me'); D.renderHead = renderHead; D.chips = chips; D.floatDelta = floatDelta;
 
 /* 카메라 프레이밍: 두 사람이 화면에 같이 잡히게 */
 D.focus = function (camera) {

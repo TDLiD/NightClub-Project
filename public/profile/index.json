@@ -328,6 +328,22 @@
    "style": "photo",
    "t": "thumb/boy/image-041_avif.jpg",
    "m": "mini/boy/image-041_avif.jpg"
+  },
+  {
+   "f": "boy/image-042.png",
+   "t": "thumb/boy/image-042_png.jpg",
+   "m": "mini/boy/image-042_png.jpg",
+   "eth": "east",
+   "age": "old",
+   "style": "art"
+  },
+  {
+   "f": "boy/image-043.png",
+   "t": "thumb/boy/image-043_png.jpg",
+   "m": "mini/boy/image-043_png.jpg",
+   "eth": "east",
+   "age": "old",
+   "style": "art"
   }
  ],
  "girl": [
@@ -791,24 +807,6 @@
    "age": "y",
    "style": "art",
    "res": "lena"
-  },
-  {
-   "f": "girl/재숙.png",
-   "t": "thumb/girl/res_jaesuk.jpg",
-   "m": "mini/girl/res_jaesuk.jpg",
-   "eth": "east",
-   "age": "old",
-   "style": "art",
-   "res": "jaesuk"
-  },
-  {
-   "f": "girl/조여사.jpg",
-   "t": "thumb/girl/res_jo.jpg",
-   "m": "mini/girl/res_jo.jpg",
-   "eth": "east",
-   "age": "old",
-   "style": "art",
-   "res": "jo"
   },
   {
    "f": "girl/혜정.webp",
