@@ -56,6 +56,8 @@ addEventListener('wheel', e => { if (e.target === NC.canvas) cam.dist = U.clamp(
 const ray = new T.Raycaster(), plane = new T.Plane(new T.Vector3(0, 1, 0), 0), pt = { down: false, moved: 0, id: null, x: 0, y: 0 };
 NC.canvas.addEventListener('pointerdown', e => { pt.down = true; pt.moved = 0; pt.id = e.pointerId; pt.x = e.clientX; pt.y = e.clientY; });
 addEventListener('pointermove', e => { if (!pt.down || e.pointerId !== pt.id || NC._pinch) return; const dx = e.clientX - pt.x, dy = e.clientY - pt.y; pt.moved += Math.abs(dx) + Math.abs(dy); pt.x = e.clientX; pt.y = e.clientY; cam.yaw -= dx * .006; cam.pitch = U.clamp(cam.pitch + dy * .003, .35, 1.3); });
+['pointercancel', 'lostpointercapture'].forEach(k => addEventListener(k, e => { if (e.pointerId === pt.id) pt.down = false; }));   // v44 드래그 상태가 꼬여 회전이 멈추던 문제
+addEventListener('blur', () => { pt.down = false; NC._pinch = false; });
 addEventListener('pointerup', e => {
   if (!pt.down || e.pointerId !== pt.id) return; pt.down = false;
   if (NC._suppressTap && performance.now() - NC._suppressTap < 1500) { NC._suppressTap = 0; return; }   // v37 ③ 손님 찾아가기를 멈춘 탭은 이동 명령으로 쓰지 않음
@@ -171,13 +173,14 @@ function frame() {
     // 카메라: 대화 중이면 두 사람을 프레이밍
     const co = NC.camOverride && NC.camOverride(); let f = co || NC.Dialog.focus(camera);
     /* v37 ② 대화 중에도 화면 돌리기·확대/축소: 사용자가 드래그·휠·핀치·＋/－를 쓰면 그 대화 동안은 두 사람 가운데를 중심으로 자유 시점 */
-    if (!co && f && NC.Dialog.cur) {
+    if (f && (NC.Dialog.cur || co)) {   /* v44 블루스·노래방 자동 카메라 중에도 드래그·휠·핀치하면 자유 시점(예전엔 이때 조작이 무시돼 '가끔 안 됨') */
       if (!dlgCam.on && (cam.yaw !== dlgCam.yaw0 || cam.dist !== dlgCam.dist0 || cam.pitch !== dlgCam.pitch0) && dlgCam.armed) {   // 처음 조작한 순간: 지금 화면 그대로에서 이어서 돌아가게
         const dx = camera.position.x - f.tx, dz = camera.position.z - f.tz, dy = camera.position.y - f.ty, hd = Math.hypot(dx, dz) || 1, d0 = Math.hypot(hd, dy);
         const ddYaw = cam.yaw - dlgCam.yaw0, ddDist = cam.dist - dlgCam.dist0, ddPitch = cam.pitch - dlgCam.pitch0;
         dlgCam.on = true; dlgCam.yaw = Math.atan2(dx, dz) + ddYaw; dlgCam.pitch = U.clamp(Math.atan2(dy, hd) + ddPitch, .05, 1.35); dlgCam.dist = U.clamp(d0 + ddDist * .5, 1.6, 14); }
       if (dlgCam.on) { dlgCam.yaw += cam.yaw - dlgCam.yaw0; dlgCam.pitch = U.clamp(dlgCam.pitch + (cam.pitch - dlgCam.pitch0), .05, 1.35); dlgCam.dist = U.clamp(dlgCam.dist + (cam.dist - dlgCam.dist0) * .5, 1.6, 14);
-        f = { tx: f.tx, ty: f.ty, tz: f.tz, cx: f.tx + Math.sin(dlgCam.yaw) * Math.cos(dlgCam.pitch) * dlgCam.dist, cy: f.ty + Math.sin(dlgCam.pitch) * dlgCam.dist, cz: f.tz + Math.cos(dlgCam.yaw) * Math.cos(dlgCam.pitch) * dlgCam.dist, free: true }; }
+        f = { tx: f.tx, ty: f.ty, tz: f.tz, cx: f.tx + Math.sin(dlgCam.yaw) * Math.cos(dlgCam.pitch) * dlgCam.dist, cy: f.ty + Math.sin(dlgCam.pitch) * dlgCam.dist, cz: f.tz + Math.cos(dlgCam.yaw) * Math.cos(dlgCam.pitch) * dlgCam.dist, free: true };
+        { const K = NC.Karaoke, bx = K && K.inRoom && K.box; if (bx) { const m = .32; f.cx = U.clamp(f.cx, bx.cx - bx.hx + m, bx.cx + bx.hx - m); f.cz = U.clamp(f.cz, bx.cz - bx.hz + m, bx.cz + bx.hz - m); f.cy = Math.min(f.cy, (bx.h || 3.2) - .22); } } }   // 노래방 방 벽 밖으로 나가지 않게
       dlgCam.yaw0 = cam.yaw; dlgCam.dist0 = cam.dist; dlgCam.pitch0 = cam.pitch; dlgCam.armed = true;
     } else if (dlgCam.armed) { dlgCam.on = false; dlgCam.armed = false; }
     if (f) { camTarget.set(f.tx, f.ty, f.tz); camPos.set(f.cx, f.cy, f.cz);
@@ -245,7 +248,7 @@ $('#modeSel').addEventListener('click', e => { const b = e.target.closest('butto
 NC.begin = function () {
   const look = NC.settings.look;
   P.group = NC.Avatar.create({ name: NC.settings.name + ' (나)', look, seed: cfg.seed, expr: 'smile', hiRes: true });
-  if (NC.VRMKit && NC.VRMKit.playerUrl) NC.VRMKit.attach(P.group, NC.VRMKit.playerUrl); P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry; NC.scene.add(P.group);
+  if (NC.VRMKit && NC.VRMKit.playerUrl) { if (/\.glb$/i.test(NC.VRMKit.playerName || '') && NC.RealHuman) NC.RealHuman.pin(P.group, NC.VRMKit.playerUrl); else NC.VRMKit.attach(P.group, NC.VRMKit.playerUrl); }   /* v41 .glb = 실사 휴먼 */ P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry; NC.scene.add(P.group);
   if (NC.isMobile) { const o = document.createElement('div'); o.id = 'enterOv'; o.innerHTML = '<div>🪩<br><b>입장 중…</b><br><small>조명과 무대를 준비하고 있어요</small></div>'; document.body.appendChild(o); NC._enterWait = 2; }
   cam.yaw = 0; $('#start').style.display = 'none'; $('#hud').style.display = ''; $('#emotes').style.display = '';
   NC.Audio.init(); NC.emit('start');
@@ -255,7 +258,7 @@ NC.begin = function () {
 NC.rebuildPlayer = look => {
   const old = P.group; if (!old) return; NC.settings.look = look;
   const g = NC.Avatar.create({ name: NC.settings.name + ' (나)', look, seed: cfg.seed, expr: 'smile', hiRes: true });
-  if (NC.VRMKit && NC.VRMKit.playerUrl) NC.VRMKit.attach(g, NC.VRMKit.playerUrl);
+  if (NC.VRMKit && NC.VRMKit.playerUrl) { if (/\.glb$/i.test(NC.VRMKit.playerName || '') && NC.RealHuman) NC.RealHuman.pin(g, NC.VRMKit.playerUrl); else NC.VRMKit.attach(g, NC.VRMKit.playerUrl); }
   g.position.copy(old.position); g.rotation.y = old.rotation.y; NC.scene.add(g); NC.scene.remove(old); P.group = g;
   NC.emit('player:look', look);
 };

@@ -95,7 +95,8 @@ async function chat(body) {
   const history = (Array.isArray(body.history) ? body.history : []).slice(-10).map(h => ({ role: h && h.role === 'npc' ? 'npc' : 'user', text: clean(h && h.text, 240) })).filter(h => h.text);
   const affinity = Math.max(0, Math.min(100, Math.round(+body.affinity || 40)));
   const tags = (Array.isArray(body.tags) ? body.tags : []).slice(0, 8).map(t => clean(t, 20)).filter(Boolean);
-  const system = buildSystemPrompt(p, affinity), user = buildUserMessage(p, { text, history, affinity, tags });
+  const lang = body.lang === 'en' ? 'en' : 'ko';   // v43 영어 화면이면 영어로 답변(JSON 키·감정 값은 그대로)
+  const system = buildSystemPrompt(p, affinity) + (lang === 'en' ? '\n\n[LANGUAGE] The player is using the English interface. Write the "reply" text in natural, casual English (keep the same persona, tone and JSON format; keep emotion/action values unchanged).' : ''), user = buildUserMessage(p, { text, history, affinity, tags });
   const raw = PROVIDER === 'openai' ? await callOpenAI(system, user) : await callAnthropic(system, user);
   return Object.assign(parseReply(raw), { source: 'llm' });
 }

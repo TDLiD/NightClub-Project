@@ -96,6 +96,6 @@ NC.tickers.push(dt => {
 
 /* 플레이어: 내 VRM 파일 불러오기 (시작 화면) */
 V.playerUrl = null;
-V.pickFile = () => new Promise(res => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.vrm,.glb'; inp.onchange = () => { const f = inp.files[0]; if (!f) return res(null); if (V.playerUrl) URL.revokeObjectURL(V.playerUrl); V.playerUrl = URL.createObjectURL(f); res({ url: V.playerUrl, name: f.name }); }; inp.click(); });
+V.pickFile = () => new Promise(res => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.vrm,.glb'; inp.onchange = () => { const f = inp.files[0]; if (!f) return res(null); if (V.playerUrl) URL.revokeObjectURL(V.playerUrl); V.playerUrl = URL.createObjectURL(f); V.playerName = f.name; res({ url: V.playerUrl, name: f.name }); }; inp.click(); });
 console.info('[vrm] VRM 캐릭터 지원 켜짐 (three-vrm ' + (window.THREE_VRM.VRM ? '0.6' : '?') + ')');
 })();

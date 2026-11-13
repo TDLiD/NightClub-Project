@@ -270,7 +270,7 @@ function bandStart() {
   BAND.singer = mk(diva ? '디바 세라' : '보컬 제이', diva ? { gender: 'f', top: 'dress', mini: true, strapless: true, topColor: '#e8b84a', bottom: 'skirt', bottomColor: '#e8b84a', wings: null, hairStyle: 'wavy', hairColor: '#c9a060' } : { gender: 'm', top: 'jacket', topColor: '#141418', hairStyle: 'spiky', face: { attractive: true, sunglasses: true } }, 0, FRONT - 1.35);
   const gt = mk('기타 강산', { gender: 'm', top: 'tee', topColor: '#3a3a42', hairStyle: 'curly', muscle: .4, face: { attractive: false } }, -2.2, FRONT - 1.9);
   const kb = mk('키보드 나래', { gender: 'f', top: 'crop', strapless: true, topColor: '#9b5cff', bottom: 'skirt', mini: true, bottomColor: '#141418' }, 2.3, FRONT - 2.4);
-  gt.userData.rig.elR.children.find(c => c.isGroup).add(BAND.guitar); BAND.singer.userData.rig.elR.children.find(c => c.isGroup).add(BAND.mic);
+  gt.userData.rig.elR.children.find(c => c.userData.isHand || (c.isGroup && !c.userData.bridge)).add(BAND.guitar); BAND.singer.userData.rig.elR.children.find(c => c.userData.isHand || (c.isGroup && !c.userData.bridge)).add(BAND.mic);
   BAND.singer.userData.dance = 'sing'; gt.userData.dance = 'groove'; kb.userData.dance = 'groove';
   BAND.prevVol = null;   // v20.1 밴드는 지금 나오는 스테이지 음악(MP3 등)에 맞춰 공연 — 음악을 줄이거나 다른 노래로 바꾸지 않음
   NC.ui.toast(`🎧 DJ: "여러분~ 오늘의 스페셜 게스트! ${name} 입니다!! 👏"`); NC.ui.chatAdd && NC.ui.chatAdd('DJ 루나', `${name} 무대 시작합니다! 무대 앞으로 오세요~ 🎶`);

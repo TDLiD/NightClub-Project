@@ -101,12 +101,13 @@ if (MOB && NC.setQuality) { const sq = NC.setQuality; NC.setQuality = lv => { if
 /* ───────── 터치: 핀치 줌 · 길게 누르기/더블탭 방지 ───────── */
 { const pts = new Map(); let d0 = 0, dist0 = 0;
   const cv = NC.canvas;
-  cv.addEventListener('pointerdown', e => { if (e.pointerType !== 'touch') return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  cv.addEventListener('pointerdown', e => { if (e.pointerType !== 'touch') return; const now = performance.now(); for (const [id, q] of pts) if (now - (q.t || 0) > 1500) pts.delete(id);   // v44 놓친 손가락(유령 터치) 정리 → 한 손가락 회전이 핀치로 오인되던 문제
+    if (!pts.size) NC._pinch = false; pts.set(e.pointerId, { x: e.clientX, y: e.clientY, t: now });
     if (pts.size === 2) { const [a, b] = [...pts.values()]; d0 = Math.hypot(a.x - b.x, a.y - b.y); dist0 = NC.cam.dist; NC._pinch = true; NC._pinchEnd = true; } });
-  addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY, t: performance.now() });
     if (pts.size === 2 && d0 > 10) { const [a, b] = [...pts.values()], d = Math.hypot(a.x - b.x, a.y - b.y); NC.cam.dist = U.clamp(dist0 * d0 / Math.max(20, d), 3, 18); const zv = $('#zVal'); if (zv) zv.textContent = Math.round((18 - NC.cam.dist) / 15 * 100) + '%'; } });
   const up = e => { if (!pts.delete(e.pointerId)) return; if (pts.size < 2) NC._pinch = false; if (pts.size === 0) setTimeout(() => { NC._pinchEnd = false; }, 60); };
-  addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  addEventListener('pointerup', up); addEventListener('pointercancel', up); addEventListener('blur', () => { pts.clear(); NC._pinch = false; NC._pinchEnd = false; });
   cv.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('gesturestart', e => e.preventDefault());   // iOS 페이지 확대 방지
   let lastTap = 0; document.addEventListener('touchend', e => { const now = Date.now(); if (now - lastTap < 320 && e.target === cv) e.preventDefault(); lastTap = now; }, { passive: false });

@@ -674,16 +674,16 @@ const REACT = {      // out: accept(받아 줌) · stop(손을 잡아 제지) ·
     : can(n, 90, true) ? { out: 'stop', d: -3, e: 'laugh', line: '(두 손으로 손목을 붙잡으며) 여기서요? ㅋㅋㅋ 선 넘지 마요~ 대신 한 곡 더 춰 줄게요' }
     : { out: 'refuse', d: -15, e: 'annoyed', slap: true, stop: true, line: P_(['지금 제 옷에 손대신 거예요?! 진짜 어이없네요.', '하… 저 그런 사람 아니에요.']) },
 };
-const ACT = {   // 동작 길이(초) · 반응 시점(초) · 서로 더 붙는 정도(m) · flip: 상대가 돌아섬(백허그) · spin: 상대 회전
-  whisper: { dur: 3.0, hit: 1.0, close: .07, desc: '👂 귀에 입술을 가까이 대고 속삭인다' },
-  waist: { dur: 3.2, hit: .8, close: .09, desc: '🤲 허리를 감싼 손으로 몸을 바짝 끌어당긴다' },
-  spin: { dur: 2.8, hit: 1.6, close: 0, spin: true, desc: '💫 손을 들어 올려 한 바퀴 돌린다' },
-  dip: { dur: 3.6, hit: 1.2, close: .08, desc: '💃 허리를 받치고 뒤로 천천히 눕힌다' },
-  forehead: { dur: 3.4, hit: .9, close: .11, desc: '💗 이마를 살며시 맞댄다' },
-  cheek: { dur: 2.8, hit: .9, close: .07, desc: '😚 볼에 가볍게 입을 맞춘다' },
-  hug: { dur: 3.6, hit: .7, close: .08, desc: '🤗 두 팔로 꼭 끌어안는다' },
-  backhug: { dur: 4.2, hit: 1.3, close: .11, flip: true, desc: '🫂 살짝 돌려 세우고 뒤에서 끌어안는다' },
-  kiss: { dur: 3.6, hit: .9, close: .07, desc: '💋 한 손으로 볼을 감싸며 입을 맞추려 한다' },
+const ACT = {   // v40 실제 사람 타이밍으로 조정(다가가는 시간·닿는 순간·머무는 시간) · 동작 길이(초) · 반응 시점(초) · 서로 더 붙는 정도(m) · flip: 상대가 돌아섬(백허그) · spin: 상대 회전
+  whisper: { dur: 3.4, hit: 1.1, close: .07, desc: '👂 귀에 입술을 가까이 대고 속삭인다' },
+  waist: { dur: 3.4, hit: .9, close: .09, desc: '🤲 허리를 감싼 손으로 몸을 바짝 끌어당긴다' },
+  spin: { dur: 3.0, hit: 1.7, close: 0, spin: true, desc: '💫 손을 들어 올려 한 바퀴 돌린다' },
+  dip: { dur: 4.2, hit: 1.5, close: .08, desc: '💃 허리를 받치고 뒤로 천천히 눕힌다' },
+  forehead: { dur: 4.0, hit: 1.3, close: .11, desc: '💗 이마를 살며시 맞댄다' },
+  cheek: { dur: 3.0, hit: 1.0, close: .07, desc: '😚 볼에 가볍게 입을 맞춘다' },
+  hug: { dur: 4.0, hit: .9, close: .08, desc: '🤗 두 팔로 꼭 끌어안는다' },
+  backhug: { dur: 4.6, hit: 1.5, close: .11, flip: true, desc: '🫂 살짝 돌려 세우고 뒤에서 끌어안는다' },
+  kiss: { dur: 4.0, hit: 1.25, close: .07, desc: '💋 한 손으로 볼을 감싸며 입을 맞추려 한다' },
   deepkiss: { dur: 5.0, hit: 1.0, close: .06, desc: '🔥 두 손으로 얼굴을 감싸고 깊게 입을 맞추려 한다' },
   neck: { dur: 3.6, hit: 1.1, close: .08, desc: '💋 고개를 숙여 목덜미에 입술을 댄다' },
   butt: { dur: 2.8, hit: 1.15, close: .09, desc: '🍑 허리에 있던 손을 등을 따라 엉덩이로 내린다' },

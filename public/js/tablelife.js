@@ -50,7 +50,7 @@ let occT = 0;
 /* ── 전등 들고 흔들기 ── */
 const WAVE = { lamp: null, t: 0, dur: 3.4 };
 function waveLamp(t) {
-  if (WAVE.lamp) return; const lamp = lamps[t]; if (!lamp) return; const p = P(), u = p.group.userData, hand = u.rig && u.rig.elR && (u.rig.elR.children.find(c => c.isGroup) || u.rig.elR);
+  if (WAVE.lamp) return; const lamp = lamps[t]; if (!lamp) return; const p = P(), u = p.group.userData, hand = u.rig && u.rig.elR && (u.rig.elR.children.find(c => c.userData.isHand || (c.isGroup && !c.userData.bridge)) || u.rig.elR);
   if (!hand) return; WAVE.lamp = lamp; WAVE.t = 0; WAVE.hand = hand;
   S.remove(lamp); hand.add(lamp); lamp.position.set(0, -.12, .06); lamp.rotation.set(Math.PI, 0, 0); lamp.scale.setScalar(1 / (u.figScale || 1));
   lamp.userData.shade.material.emissiveIntensity = 3.5;

@@ -150,7 +150,7 @@ RR.label = '🚹 남자 화장실'; W.zoneLabel.restroom = '🚹 남자 화장�
   WR.ajumma = NC.Avatar.create({ name: '청소 아주머니', look: { gender: 'f', hairStyle: 'bun', hairColor: '#8a8a90', top: 'shirt', topColor: '#7ab8a0', bottom: 'pants', bottomColor: '#3a3a42', mini: false, strapless: false, wings: false, height: 1.55, build: 1.15, curve: .2, face: { glasses: true, liner: 0, blush: 0 } }, seed: 77, expr: 'annoyed' });
   WR.ajumma.visible = false; WR.G.add(WR.ajumma);
   const mop = new T.Group(); mop.add(new T.Mesh(new T.CylinderGeometry(.015, .015, 1.4, 6), M.std('#c8a060'))); const head = new T.Mesh(box(.3, .06, .12), M.std('#e8e8ec', { roughness: 1 })); head.position.y = -.7; mop.add(head); mop.position.set(.12, -.1, .2); mop.rotation.x = .3;
-  WR.ajumma.userData.rig.elR.children.find(c => c.isGroup).add(mop);
+  WR.ajumma.userData.rig.elR.children.find(c => c.userData.isHand || (c.isGroup && !c.userData.bridge)).add(mop);
 }
 function throwItem(fromG, toG, emoji, delay) {
   setTimeout(() => {

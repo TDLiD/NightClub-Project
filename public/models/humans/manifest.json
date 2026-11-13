@@ -1,0 +1,8 @@
+{
+  "_설명": "v41 근거리 실사 휴먼. 리깅된 GLB(Mixamo · Character Creator · Ready Player Me · Rigify · Unreal 내보내기)를 이 폴더에 넣고 models 에 등록하세요. 비어 있으면 기존 스킨드 절차적 몸만 사용합니다.",
+  "near": 6,
+  "max": 4,
+  "maxMobile": 1,
+  "models": [
+  ]
+}

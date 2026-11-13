@@ -1,0 +1,2463 @@
+{
+ "_설명": [
+  "personas: 부킹 핵심 AI NPC 5명 (LLM 시스템 프롬프트·호감도 엔진·미니게임이 이 데이터를 그대로 사용합니다. 서버도 이 파일을 읽어 프롬프트를 만듭니다)",
+  "npcs: 일반 손님(크라우드). 기존 데이터 그대로 + id/gender/age 추가. 대본형 부킹 + 간단 AI 대화",
+  "look.face 값을 바꾸면 얼굴이 바뀝니다: eyeSize(0.7~1.3) eyeTilt(-0.2~0.2, +면 눈꼬리 올라감) liner(아이라인) blush(볼터치) lipColor lipFull browThick browTilt beard(stubble/goatee) glasses freckles",
+  "likes/dislikes 의 kw 는 호감도 규칙 엔진이 플레이어 발언에서 찾는 키워드입니다. 색은 '#RRGGBB'.",
+  "v5: 페르소나 외형은 오리지널 스타일라이즈드 디자인(크롭·셋업 수트·오버셔츠·쇼츠·모자)",
+  "v32: 90년대 클럽 실사 캐릭터 8명(v32:true) — look.body(slim/average/soft/athletic/stocky/curvy)·belly·metallic·sequin·leather·polo·platform, pose(dance/drink/talk/lean)",
+  "always:true — 모바일 인원 제한·온라인 모드에서도 항상 등장(입장 시 무대 앞에 배치)"
+ ],
+ "personas": [
+  {
+   "id": "harin",
+   "name": "하린",
+   "gender": "f",
+   "age": 27,
+   "job": "Fashion MD",
+   "mbti": "ENFP",
+   "trait": "outgoing",
+   "tag": "🎉 Social butterfly",
+   "tagline": "A trend radar roaming Dongdaemun and Seongsu pop-ups — tonight's mood: pink sequins",
+   "appearance": "Wavy long brown hair, pink sequin mini dress, sparkly earrings, big eyes and a lively blush",
+   "personality": "Full of energy with big reactions. Curious about new people and places but gets bored quickly. Weak to sincere interest.",
+   "speech": "Bright, fast, polite speech with occasional casual slips. Often says \"No way!\", \"Really?\", \"Totally~\".",
+   "catchphrases": [
+    "No way!",
+    "Totally my style~",
+    "Oh, come on~"
+   ],
+   "likes": [
+    {
+     "topic": "fashion",
+     "kw": [
+      "clothes",
+      "fashion",
+      "style",
+      "outfit",
+      "shoes",
+      "bags",
+      "shopping",
+      "dress",
+      "what you're wearing"
+     ]
+    },
+    {
+     "topic": "travel",
+     "kw": [
+      "travel",
+      "abroad",
+      "Jeju",
+      "ocean",
+      "airplane",
+      "vacation"
+     ]
+    },
+    {
+     "topic": "90s K-pop",
+     "kw": [
+      "90s",
+      "old songs",
+      "K-pop",
+      "DEUX",
+      "Roo'Ra",
+      "Cool",
+      "Turbo",
+      "memories"
+     ]
+    },
+    {
+     "topic": "good restaurants",
+     "kw": [
+      "good restaurants",
+      "mukbang",
+      "dessert",
+      "tteokbokki",
+      "food",
+      "hungry"
+     ]
+    },
+    {
+     "topic": "puppies",
+     "kw": [
+      "puppies",
+      "doggo",
+      "pet dog",
+      "woof"
+     ]
+    }
+   ],
+   "dislikes": [
+    {
+     "topic": "bragging",
+     "kw": [
+      "salary",
+      "imported car",
+      "my car",
+      "rich",
+      "wealthy",
+      "I'll buy you designer goods"
+     ]
+    },
+    {
+     "topic": "politics",
+     "kw": [
+      "politics",
+      "elections",
+      "president"
+     ]
+    }
+   ],
+   "pullPush": 0.35,
+   "baseAffinity": 42,
+   "voice": {
+    "pitch": 1.25,
+    "rate": 1.1,
+    "index": 0
+   },
+   "look": {
+    "gender": "f",
+    "height": 1.66,
+    "build": 0.95,
+    "skin": "#f7dcc8",
+    "hairStyle": "ponytail",
+    "hairColor": "#b99cff",
+    "top": "crop",
+    "topColor": "#ff3d8a",
+    "bottom": "skirt",
+    "bottomColor": "#f4f4f6",
+    "face": {
+     "eyeColor": "#4a2e1a",
+     "eyeSize": 1.15,
+     "eyeTilt": 0.05,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0.02,
+     "browArch": 0.8,
+     "lipColor": "#e0457a",
+     "lipW": 1.05,
+     "lipFull": 1.2,
+     "nose": 0.85,
+     "faceW": 0.94,
+     "jaw": 0.96,
+     "blush": 0.45,
+     "liner": 0.8,
+     "shadow": "#c88a6a",
+     "earring": true
+    },
+    "pattern": "solid",
+    "shoeColor": "#ffffff",
+    "hat": null
+   },
+   "secrets": [
+    {
+     "at": 60,
+     "text": "Actually, a friend stood me up today, so I came alone"
+    },
+    {
+     "at": 80,
+     "text": "My dream is to launch a brand with my own name someday"
+    }
+   ],
+   "truths": {
+    "첫인상": "Honestly? At first you seemed a bit shy, but now it's a total twist haha",
+    "연애관": "Someone I can't stop laughing with is the best!",
+    "취향": "Shiny things, tasty food, loud music! I love it all",
+    "흑역사": "In middle school I danced to Roo'Ra at the talent show and my shoe went flying…",
+    "이상형": "Someone with great reactions! Someone who says \"Really?\" to what I say",
+    "최근 고민": "The pop-up opens next week so I can't sleep ㅠㅠ"
+   },
+   "balance": {
+    "b1": "a",
+    "b2": "a",
+    "b3": "b",
+    "b4": "a",
+    "b5": "a",
+    "b6": "b",
+    "b7": "a",
+    "b8": "a"
+   },
+   "lines": {
+    "greet": [
+     "Oh my, hi~! Did you see me dancing on stage earlier? haha",
+     "No way, I knew you'd talk to me! Great vibe tonight, right?"
+    ],
+    "like": [
+     "{topic}? No way, I could talk about that all night!",
+     "Oh, {topic}! Totally my style~ tell me more!"
+    ],
+    "compliment": [
+     "Oh, come on~ but it does feel nice haha",
+     "Really? It took me an hour to pick this dress tonight!"
+    ],
+    "ask": [
+     "So who did you come here with tonight?",
+     "What song are you most into lately?",
+     "What do you usually do on weekends? Want me to guess?"
+    ]
+   },
+   "model": "models/sample_girl.vrm",
+   "tint": {
+    "hair": "#c9a8ff",
+    "top": "#ff6fb0",
+    "bottom": "#f4f4f6"
+   }
+  },
+  {
+   "id": "seojin",
+   "name": "서진",
+   "gender": "f",
+   "age": 30,
+   "job": "Lawyer",
+   "mbti": "INTJ",
+   "trait": "cool",
+   "tag": "😎 Chic",
+   "tagline": "Speaks with verdict-like precision — but one glass of wine loosens her by half a beat",
+   "appearance": "Sharp black bob, cat-like eyes, deep red lips, navy tailored jacket with a black skirt",
+   "personality": "Analytical and independent. Cold on the outside but definitely responds to intelligent talk and wit. Sees through showing off and cheesiness instantly.",
+   "speech": "Calm, short, polite speech. Dry humor and pointed counter-questions. Sparing with emotion, but \"…fair\" is her highest praise.",
+   "catchphrases": [
+    "On what grounds?",
+    "Interesting.",
+    "…Fair."
+   ],
+   "likes": [
+    {
+     "topic": "wine",
+     "kw": [
+      "wine",
+      "red",
+      "white",
+      "champagne",
+      "sommelier"
+     ]
+    },
+    {
+     "topic": "jazz",
+     "kw": [
+      "jazz",
+      "piano",
+      "blues",
+      "LP",
+      "vinyl"
+     ]
+    },
+    {
+     "topic": "books",
+     "kw": [
+      "books",
+      "reading",
+      "novels",
+      "authors",
+      "read"
+     ]
+    },
+    {
+     "topic": "Chess · strategy games",
+     "kw": [
+      "chess",
+      "baduk",
+      "board games",
+      "strategy",
+      "mystery"
+     ]
+    },
+    {
+     "topic": "cats",
+     "kw": [
+      "cats",
+      "kitty",
+      "cat parent"
+     ]
+    }
+   ],
+   "dislikes": [
+    {
+     "topic": "showing off",
+     "kw": [
+      "salary",
+      "imported car",
+      "rich",
+      "I'm kind of a big deal",
+      "connections"
+     ]
+    },
+    {
+     "topic": "Cheesy lines",
+     "kw": [
+      "angel",
+      "from heaven",
+      "destiny",
+      "love at first sight",
+      "goddess"
+     ]
+    }
+   ],
+   "pullPush": 0.7,
+   "baseAffinity": 32,
+   "voice": {
+    "pitch": 0.9,
+    "rate": 1.0,
+    "index": 1
+   },
+   "look": {
+    "gender": "f",
+    "height": 1.68,
+    "build": 0.95,
+    "skin": "#f1c9a5",
+    "hairStyle": "long",
+    "hairColor": "#14101a",
+    "top": "jacket",
+    "topColor": "#25284a",
+    "bottom": "pants",
+    "bottomColor": "#25284a",
+    "face": {
+     "eyeColor": "#2a1a10",
+     "eyeSize": 0.98,
+     "eyeTilt": 0.16,
+     "eyeGap": 0.01,
+     "lid": 0,
+     "browThick": 0.85,
+     "browTilt": 0.14,
+     "browArch": 0.3,
+     "lipColor": "#a3263f",
+     "lipW": 0.95,
+     "lipFull": 1.0,
+     "nose": 0.9,
+     "faceW": 0.9,
+     "jaw": 1.02,
+     "blush": 0.12,
+     "liner": 1.0,
+     "shadow": "#8a6ad0",
+     "earring": true,
+     "mole": [
+      0.22,
+      0.62
+     ],
+     "glasses": false,
+     "sunglasses": false
+    },
+    "setup": true,
+    "pattern": "solid",
+    "shoeColor": "#141018",
+    "hat": null
+   },
+   "secrets": [
+    {
+     "at": 60,
+     "text": "It's louder here than in court, yet strangely my head gets quiet"
+    },
+    {
+     "at": 80,
+     "text": "Actually, she loves dancing. A secret she's told no one"
+    }
+   ],
+   "truths": {
+    "첫인상": "Less predictable than I thought. That's a compliment.",
+    "연애관": "A relationship that respects each other's time. And conversation that's never boring.",
+    "취향": "Red wine, Bill Evans, a bookstore on a rainy day.",
+    "흑역사": "I once called the judge \"Mom\" at a mock trial. The end.",
+    "이상형": "Someone who answers my questions with reasons.",
+    "최근 고민": "My cat likes my sofa more than I do."
+   },
+   "balance": {
+    "b1": "b",
+    "b2": "b",
+    "b3": "a",
+    "b4": "b",
+    "b5": "b",
+    "b6": "a",
+    "b7": "b",
+    "b8": "b"
+   },
+   "lines": {
+    "greet": [
+     "…Yes. A booking? I'll give you one minute. Convince me.",
+     "Interesting. People don't usually talk to me."
+    ],
+    "like": [
+     "{topic}? …Fine, for that I'll give you five more minutes.",
+     "It's been a while since I met someone who knows {topic}. Go on."
+    ],
+    "compliment": [
+     "Compliments on looks are weak evidence. Anything else?",
+     "…Thanks. Still, no extra points."
+    ],
+    "ask": [
+     "So why did you come here tonight? Honestly.",
+     "What's the last book you read?",
+     "Define yourself in one word."
+    ]
+   },
+   "model": "models/sample_girl.vrm",
+   "tint": {
+    "hair": "#2a2230",
+    "top": "#3a3f6a",
+    "bottom": "#2a2a3a"
+   }
+  },
+  {
+   "id": "jiho",
+   "name": "지호",
+   "gender": "m",
+   "age": 28,
+   "job": "Dance instructor",
+   "mbti": "ESFP",
+   "trait": "playful",
+   "tag": "😜 Life of the party",
+   "tagline": "Climbs onto an empty stage first, and claps you back onto the beat when you miss it",
+   "appearance": "Two-block dark brown hair, yellow oversized T-shirt, athletic build, eyes that vanish when he smiles",
+   "personality": "Spontaneous and playful. A mood maker, but notices right away if someone's uncomfortable. Loves hanging out together.",
+   "speech": "Friendly speech mixed with casual talk, lots of \"LOL\", sound effects and big reactions. Starts polite but soon suggests dropping the formalities.",
+   "catchphrases": [
+    "Let's gooo~",
+    "Feel the rhythm!",
+    "LOL fair"
+   ],
+   "likes": [
+    {
+     "topic": "dancing",
+     "kw": [
+      "dancing",
+      "dance",
+      "stage",
+      "performance",
+      "choreography",
+      "let's dance",
+      "want to dance"
+     ]
+    },
+    {
+     "topic": "exercise",
+     "kw": [
+      "exercise",
+      "gym",
+      "soccer",
+      "basketball",
+      "running",
+      "hiking"
+     ]
+    },
+    {
+     "topic": "music",
+     "kw": [
+      "songs",
+      "music",
+      "hip-hop",
+      "beat",
+      "dj",
+      "DJ"
+     ]
+    },
+    {
+     "topic": "Jokes · Banter",
+     "kw": [
+      "ㅋㅋ",
+      "jokes",
+      "pranks",
+      "banter",
+      "funny"
+     ]
+    },
+    {
+     "topic": "great BBQ spots",
+     "kw": [
+      "meat",
+      "samgyeopsal",
+      "chicken",
+      "gopchang"
+     ]
+    }
+   ],
+   "dislikes": [
+    {
+     "topic": "Boredom",
+     "kw": [
+      "tired",
+      "no fun",
+      "boring",
+      "going home"
+     ]
+    },
+    {
+     "topic": "Acting superior",
+     "kw": [
+      "salary",
+      "imported car",
+      "I'm kind of a big deal"
+     ]
+    }
+   ],
+   "pullPush": 0.25,
+   "baseAffinity": 45,
+   "voice": {
+    "pitch": 0.8,
+    "rate": 1.15,
+    "index": 2
+   },
+   "look": {
+    "gender": "m",
+    "height": 1.79,
+    "build": 1.08,
+    "skin": "#ecc0a0",
+    "hairStyle": "spiky",
+    "hairColor": "#3d8bff",
+    "top": "overshirt",
+    "topColor": "#ffcf2e",
+    "bottom": "shorts",
+    "bottomColor": "#2a2f45",
+    "face": {
+     "eyeColor": "#3a2416",
+     "eyeSize": 1.0,
+     "eyeTilt": -0.02,
+     "eyeGap": 0.005,
+     "lid": 0,
+     "browThick": 1.25,
+     "browTilt": 0.05,
+     "browArch": 0.4,
+     "lipColor": "#c08a80",
+     "lipW": 1.08,
+     "lipFull": 1.0,
+     "nose": 1.05,
+     "faceW": 1.0,
+     "jaw": 1.05,
+     "blush": 0.08,
+     "liner": 0,
+     "beard": null,
+     "glasses": false
+    },
+    "pattern": "stripe",
+    "innerColor": "#ffffff",
+    "shoeColor": "#ff5a3d",
+    "hat": "cap",
+    "hatColor": "#1a1a1a"
+   },
+   "secrets": [
+    {
+     "at": 60,
+     "text": "He actually started dancing to overcome stage fright"
+    },
+    {
+     "at": 80,
+     "text": "His goal is to open his own dance studio someday"
+    }
+   ],
+   "truths": {
+    "첫인상": "LOL honestly I thought you'd have no rhythm, but you've got some groove?",
+    "연애관": "Sweating and laughing together! Workout dates are the best",
+    "취향": "Bass-heavy music, samgyeopsal, dawn runs by the Han River",
+    "흑역사": "My pants once ripped mid-performance… the crowd's reaction was legendary",
+    "이상형": "Someone who comes out laughing when I say let's dance, even if they can't dance",
+    "최근 고민": "My students dance better than me LOL, feeling the pressure"
+   },
+   "balance": {
+    "b1": "a",
+    "b2": "a",
+    "b3": "a",
+    "b4": "a",
+    "b5": "a",
+    "b6": "b",
+    "b7": "a",
+    "b8": "a"
+   },
+   "lines": {
+    "greet": [
+     "Oh, here you are~ I've seen you grooving for a while LOL",
+     "Let's gooo~ A booking? Sure, cheers first!"
+    ],
+    "like": [
+     "{topic}? Oh, we clicked LOL, that's totally me",
+     "Ooh, you like {topic}? Shall we drop the formalities?"
+    ],
+    "compliment": [
+     "LOL really? I did put some effort into my hair today, was it obvious?",
+     "Aw~ if I get a compliment, I have to repay it with a dance"
+    ],
+    "ask": [
+     "Can you dance? Or want to learn tonight?",
+     "Name the most exciting song you know!",
+     "Team BBQ or team sashimi? This is important"
+    ]
+   }
+  },
+  {
+   "id": "sua",
+   "name": "수아",
+   "gender": "f",
+   "age": 25,
+   "job": "Florist",
+   "mbti": "ISFJ",
+   "trait": "shy",
+   "tag": "🙈 Shy",
+   "tagline": "Her first night club, dragged along by a friend — a faint scent of freesia on her fingertips",
+   "appearance": "Long straight dark-brown hair, gentle droopy eyes and freckles, pastel blue blouse with a lavender skirt, a shy blush",
+   "personality": "Kind and deeply considerate. Quiet at first, but once comfortable she chats about little things for a long time. Shrinks from loud voices and pressure.",
+   "speech": "Quiet, careful polite speech that trails off (…). Laughs nervously when complimented (hehe).",
+   "catchphrases": [
+    "Oh… really?",
+    "Hehe…",
+    "It's my first time at a place like this…"
+   ],
+   "likes": [
+    {
+     "topic": "Flowers · Plants",
+     "kw": [
+      "flowers",
+      "plants",
+      "roses",
+      "tulips",
+      "freesia",
+      "potted plants",
+      "garden"
+     ]
+    },
+    {
+     "topic": "Cafés · Desserts",
+     "kw": [
+      "café",
+      "coffee",
+      "dessert",
+      "cake",
+      "bread",
+      "macarons"
+     ]
+    },
+    {
+     "topic": "cats",
+     "kw": [
+      "cats",
+      "kitty"
+     ]
+    },
+    {
+     "topic": "Exhibitions · Art",
+     "kw": [
+      "exhibitions",
+      "paintings",
+      "art",
+      "photography",
+      "gallery"
+     ]
+    },
+    {
+     "topic": "Calm songs",
+     "kw": [
+      "calm",
+      "ballads",
+      "indie",
+      "acoustic"
+     ]
+    }
+   ],
+   "dislikes": [
+    {
+     "topic": "Forced drinking",
+     "kw": [
+      "bottoms up",
+      "drink it",
+      "drink more",
+      "get drunk"
+     ]
+    },
+    {
+     "topic": "Loud voices",
+     "kw": [
+      "!!!",
+      "yelling",
+      "noisy"
+     ]
+    }
+   ],
+   "pullPush": 0.3,
+   "baseAffinity": 35,
+   "voice": {
+    "pitch": 1.35,
+    "rate": 0.95,
+    "index": 0
+   },
+   "look": {
+    "gender": "f",
+    "height": 1.61,
+    "build": 0.92,
+    "skin": "#fae3d3",
+    "hairStyle": "bun",
+    "hairColor": "#6e4425",
+    "top": "shirt",
+    "topColor": "#bfe3ff",
+    "bottom": "skirt",
+    "bottomColor": "#c9b6ea",
+    "face": {
+     "eyeColor": "#4a2e1a",
+     "eyeSize": 1.2,
+     "eyeTilt": -0.09,
+     "eyeGap": -0.005,
+     "lid": 1,
+     "browThick": 0.6,
+     "browTilt": -0.08,
+     "browArch": 0.6,
+     "lipColor": "#e0857c",
+     "lipW": 0.88,
+     "lipFull": 1.1,
+     "nose": 0.82,
+     "faceW": 0.93,
+     "jaw": 0.94,
+     "blush": 0.55,
+     "liner": 0.3,
+     "shadow": "#d07a8a",
+     "freckles": true,
+     "glasses": true
+    },
+    "pattern": "solid",
+    "shoeColor": "#f4f4f6",
+    "hat": "beanie",
+    "hatColor": "#f2e8d8"
+   },
+   "secrets": [
+    {
+     "at": 60,
+     "text": "A friend dragged her here, but now it's a little fun"
+    },
+    {
+     "at": 80,
+     "text": "She made a small bouquet from leftover shop flowers. She wants to give it to someone she likes"
+    }
+   ],
+   "truths": {
+    "첫인상": "Oh… you seemed kind. So I answered… hehe",
+    "연애관": "I like people who remember small things. Like my favorite flower…",
+    "취향": "A café window seat on a rainy day, freesia, a warm latte",
+    "흑역사": "I put a \"Happy Grand Opening\" card… on wedding flowers…",
+    "이상형": "Someone with a gentle voice…",
+    "최근 고민": "The shop cat keeps eating the flowers… it's a real problem"
+   },
+   "balance": {
+    "b1": "b",
+    "b2": "b",
+    "b3": "b",
+    "b4": "b",
+    "b5": "b",
+    "b6": "a",
+    "b7": "b",
+    "b8": "b"
+   },
+   "lines": {
+    "greet": [
+     "Oh… me? Oh, hi… hehe",
+     "It's my first time at a place like this… I'm glad you talked to me"
+    ],
+    "like": [
+     "{topic}… I like it too. Oh, I'm suddenly talking a lot hehe",
+     "Oh, I like talking about {topic}… a little more, please"
+    ],
+    "compliment": [
+     "Uh… oh, no… (blushes)",
+     "Hehe… no one's ever said that to me…"
+    ],
+    "ask": [
+     "Do you have a favorite flower…?",
+     "Do you come here often?",
+     "Do you like coffee? I'm a latte person…"
+    ]
+   },
+   "model": "models/sample_girl.vrm",
+   "tint": {
+    "hair": "#9a6a48",
+    "top": "#bfe3ff",
+    "bottom": "#c9b6ea"
+   }
+  },
+  {
+   "id": "minhyuk",
+   "name": "민혁",
+   "gender": "m",
+   "age": 32,
+   "job": "Ad copywriter",
+   "mbti": "ENTP",
+   "trait": "playful",
+   "tag": "🎤 King of banter",
+   "tagline": "A man who sums up every conversation in one line of copy — all his drafts got rejected today, so he's blowing off steam",
+   "appearance": "Slicked-back hair, black horn-rimmed glasses, light stubble, burgundy velvet jacket with black pants",
+   "personality": "Sly and loves debating. Gets hyped when wordplay ping-pong starts. Hates boring reactions and clichés.",
+   "speech": "Sly polite speech and wordplay, turns what you say into ad copy. Sometimes scores you: \"One point.\"",
+   "catchphrases": [
+    "Can I use that as copy?",
+    "Try refuting that logically, heh",
+    "Okay, one point."
+   ],
+   "likes": [
+    {
+     "topic": "wordplay",
+     "kw": [
+      "ㅋㅋ",
+      "banter",
+      "jokes",
+      "wordplay",
+      "comedy",
+      "funny"
+     ]
+    },
+    {
+     "topic": "movies",
+     "kw": [
+      "movies",
+      "directors",
+      "Netflix",
+      "series",
+      "dramas"
+     ]
+    },
+    {
+     "topic": "Advertising · Marketing",
+     "kw": [
+      "advertising",
+      "copy",
+      "marketing",
+      "brands",
+      "cf"
+     ]
+    },
+    {
+     "topic": "Debate",
+     "kw": [
+      "why",
+      "rebuttal",
+      "logic",
+      "evidence",
+      "what do you think"
+     ]
+    },
+    {
+     "topic": "Retro music",
+     "kw": [
+      "retro",
+      "90s",
+      "old songs",
+      "synth",
+      "disco"
+     ]
+    }
+   ],
+   "dislikes": [
+    {
+     "topic": "Boring reactions",
+     "kw": [
+      "ㅇㅇ",
+      "ㅇㅋ",
+      "just because",
+      "dunno"
+     ]
+    },
+    {
+     "topic": "Clichéd lines",
+     "kw": [
+      "angel",
+      "destiny",
+      "do you come here often",
+      "at first sight"
+     ]
+    }
+   ],
+   "pullPush": 0.55,
+   "baseAffinity": 38,
+   "voice": {
+    "pitch": 0.95,
+    "rate": 1.1,
+    "index": 1
+   },
+   "look": {
+    "gender": "m",
+    "height": 1.77,
+    "build": 0.98,
+    "skin": "#f1c9a5",
+    "hairStyle": "slick",
+    "hairColor": "#d8d8e0",
+    "top": "jacket",
+    "topColor": "#7a1f3d",
+    "bottom": "pants",
+    "bottomColor": "#7a1f3d",
+    "face": {
+     "eyeColor": "#30251c",
+     "eyeSize": 0.95,
+     "eyeTilt": 0.03,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1.1,
+     "browTilt": 0.08,
+     "browArch": 0.5,
+     "lipColor": "#b87a72",
+     "lipW": 1.0,
+     "lipFull": 0.9,
+     "nose": 1.1,
+     "faceW": 0.96,
+     "jaw": 1.1,
+     "blush": 0.05,
+     "liner": 0,
+     "beard": "stubble",
+     "glasses": true,
+     "sunglasses": false
+    },
+    "setup": true,
+    "pattern": "solid",
+    "shoeColor": "#141018",
+    "hat": "fedora",
+    "hatColor": "#151217"
+   },
+   "secrets": [
+    {
+     "at": 60,
+     "text": "All his drafts got rejected today, so he came to blow off steam"
+    },
+    {
+     "at": 80,
+     "text": "When he meets someone interesting, he writes a line of copy about them. He's already thought of yours"
+    }
+   ],
+   "truths": {
+    "첫인상": "\"Passed at the first line, on hold at the second.\" Right now I'm leaning toward pass.",
+    "연애관": "If the banter flows, you're halfway there.",
+    "취향": "A 2 a.m. movie theater, acidic coffee, synth-pop.",
+    "흑역사": "I read a competitor's slogan in front of a client. Twice.",
+    "이상형": "Someone who answers my jokes with even better ones.",
+    "최근 고민": "I have lots of ideas, but even more deadlines."
+   },
+   "balance": {
+    "b1": "a",
+    "b2": "b",
+    "b3": "a",
+    "b4": "a",
+    "b5": "b",
+    "b6": "a",
+    "b7": "a",
+    "b8": "b"
+   },
+   "lines": {
+    "greet": [
+     "Oh, a brave opening line. As ad copy… well, I clicked.",
+     "A booking? Sure. But it has to be fun. If it's boring, I skip the ad."
+    ],
+    "like": [
+     "If it's about {topic}, I can give an hour-long presentation.",
+     "Okay, one point for {topic}. Let's keep going."
+    ],
+    "compliment": [
+     "I'll gladly take the compliment, but no receipt.",
+     "Can I use that line as copy? We'll split the royalties."
+    ],
+    "ask": [
+     "Name your all-time favorite movie. I'll guess your personality from it.",
+     "If you advertised yourself, what would the slogan be?",
+     "Jjajang vs. jjamppong — with reasons."
+    ]
+   }
+  }
+ ],
+ "npcs": [
+  {
+   "id": "jihyun",
+   "name": "지현",
+   "gender": "f",
+   "age": 27,
+   "tag": "🎉 Outgoing",
+   "trait": "outgoing",
+   "color": "#ff5c8a",
+   "hair": "#3b2417",
+   "job": "27 · Marketer",
+   "look": {
+    "gender": "f",
+    "height": 1.65,
+    "build": 0.95,
+    "skin": "#f3d2bc",
+    "hairStyle": "wavy",
+    "hairColor": "#6e4425",
+    "top": "shirt",
+    "topColor": "#f2e6d8",
+    "bottom": "skirt",
+    "bottomColor": "#b89470",
+    "shoes": "boots",
+    "shoeColor": "#4a3022",
+    "necklace": true,
+    "pattern": "solid",
+    "hat": null,
+    "realWear": true,
+    "face": {
+     "eyeColor": "#3a2416",
+     "eyeSize": 1.02,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#d0645e",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.3,
+     "liner": 0.55,
+     "shadow": "#b88a74",
+     "freckles": false,
+     "mole": [
+      0.32,
+      0.38
+     ],
+     "glasses": false,
+     "sunglasses": false,
+     "earring": true
+    }
+   }
+  },
+  {
+   "id": "subin",
+   "name": "수빈",
+   "gender": "f",
+   "age": 25,
+   "tag": "🙈 Shy",
+   "trait": "shy",
+   "color": "#7fd1ff",
+   "hair": "#1c1410",
+   "job": "25 · Designer",
+   "look": {
+    "gender": "f",
+    "height": 1.6,
+    "build": 0.92,
+    "skin": "#f7e0d0",
+    "hairStyle": "bob",
+    "hairColor": "#17110f",
+    "top": "tee",
+    "topColor": "#9a9ca2",
+    "oversize": true,
+    "bottom": "pants",
+    "fit": "wide",
+    "bottomColor": "#3a5070",
+    "shoes": "sneakers",
+    "shoeColor": "#f4f4f2",
+    "hat": "beret",
+    "hatColor": "#c8b49a",
+    "pattern": "solid",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#3a2416",
+     "eyeSize": 0.98,
+     "eyeTilt": -0.06,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#c87a7e",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.32,
+     "liner": 0.3,
+     "shadow": "#b88a74",
+     "freckles": true,
+     "mole": null,
+     "glasses": true,
+     "sunglasses": false,
+     "earring": false
+    }
+   }
+  },
+  {
+   "id": "minjae",
+   "name": "민재",
+   "gender": "m",
+   "age": 30,
+   "tag": "😎 Chic",
+   "trait": "cool",
+   "color": "#6a5acd",
+   "hair": "#111111",
+   "job": "30 · Architect",
+   "look": {
+    "gender": "m",
+    "height": 1.8,
+    "build": 1.0,
+    "skin": "#efc8a8",
+    "hairStyle": "slick",
+    "hairColor": "#111111",
+    "top": "jacket",
+    "topColor": "#2b2d33",
+    "inner": "turtle",
+    "innerColor": "#141416",
+    "bottom": "pants",
+    "fit": "skinny",
+    "bottomColor": "#141418",
+    "shoes": "sneakers",
+    "shoeColor": "#1a1412",
+    "pattern": "solid",
+    "realWear": true,
+    "hat": null,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.95,
+     "eyeTilt": 0.08,
+     "eyeGap": 0,
+     "lid": 0,
+     "browThick": 1.15,
+     "browTilt": 0.05,
+     "browArch": 0.4,
+     "lipColor": "#b07a70",
+     "lipW": 1,
+     "lipFull": 0.95,
+     "nose": 0.95,
+     "faceW": 0.95,
+     "jaw": 1.06,
+     "blush": 0,
+     "liner": 0,
+     "shadow": null,
+     "beard": null,
+     "glasses": true,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": true
+    }
+   }
+  },
+  {
+   "id": "haneul",
+   "name": "하늘",
+   "gender": "f",
+   "age": 26,
+   "tag": "😜 Prankster",
+   "trait": "playful",
+   "color": "#ffd23d",
+   "hair": "#7a3b12",
+   "job": "26 · Musician",
+   "look": {
+    "gender": "f",
+    "height": 1.63,
+    "build": 0.95,
+    "skin": "#efc6a8",
+    "hairStyle": "highPony",
+    "hairColor": "#8a3e1a",
+    "top": "tee",
+    "topColor": "#26262c",
+    "pattern": "graphic",
+    "bottom": "shorts",
+    "bottomColor": "#3b4f6e",
+    "fit": "ripped",
+    "shoes": "boots",
+    "shoeColor": "#141214",
+    "choker": true,
+    "chain": true,
+    "hat": null,
+    "realWear": true,
+    "face": {
+     "eyeColor": "#3a2416",
+     "eyeSize": 1.0,
+     "eyeTilt": 0.1,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#a8485a",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.2,
+     "liner": 0.8,
+     "shadow": "#7a5a8a",
+     "freckles": false,
+     "mole": [
+      -0.3,
+      0.2
+     ],
+     "glasses": false,
+     "sunglasses": false,
+     "earring": true
+    }
+   }
+  },
+  {
+   "id": "yerin",
+   "name": "예린",
+   "gender": "f",
+   "age": 24,
+   "tag": "🙈 Shy",
+   "trait": "shy",
+   "color": "#c9a0ff",
+   "hair": "#2a1a12",
+   "job": "24 · Nurse",
+   "look": {
+    "gender": "f",
+    "height": 1.62,
+    "build": 0.93,
+    "skin": "#fae3d3",
+    "hairStyle": "long",
+    "hairColor": "#3b2417",
+    "top": "tee",
+    "topColor": "#f0c8cc",
+    "oversize": true,
+    "bottom": "skirt",
+    "bottomColor": "#f4f2ee",
+    "shoes": "sneakers",
+    "shoeColor": "#f4f4f2",
+    "pattern": "solid",
+    "hat": null,
+    "realWear": true,
+    "face": {
+     "eyeColor": "#3a2416",
+     "eyeSize": 1.04,
+     "eyeTilt": -0.1,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#e08a90",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.38,
+     "liner": 0.25,
+     "shadow": "#b88a74",
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false
+    }
+   }
+  },
+  {
+   "id": "dohyun",
+   "name": "도현",
+   "gender": "m",
+   "age": 29,
+   "tag": "🎉 Outgoing",
+   "trait": "outgoing",
+   "color": "#2ecc71",
+   "hair": "#222222",
+   "job": "29 · Sales",
+   "look": {
+    "gender": "m",
+    "height": 1.76,
+    "build": 1.06,
+    "skin": "#e9bf9a",
+    "hairStyle": "twoblock",
+    "hairColor": "#1a1410",
+    "top": "jacket",
+    "topColor": "#1f2a44",
+    "inner": "tee",
+    "innerColor": "#f4f2ee",
+    "bottom": "pants",
+    "bottomColor": "#c2b29a",
+    "shoes": "sneakers",
+    "shoeColor": "#5a3a22",
+    "pattern": "solid",
+    "realWear": true,
+    "muscle": 0.35,
+    "hat": null,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 1.0,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 0,
+     "browThick": 1.15,
+     "browTilt": 0.05,
+     "browArch": 0.4,
+     "lipColor": "#b07a70",
+     "lipW": 1,
+     "lipFull": 1.0,
+     "nose": 0.95,
+     "faceW": 0.95,
+     "jaw": 1.0,
+     "blush": 0,
+     "liner": 0,
+     "shadow": null,
+     "beard": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": true
+    }
+   }
+  },
+  {
+   "id": "seoyeon",
+   "name": "서연",
+   "gender": "f",
+   "age": 28,
+   "tag": "😎 Chic",
+   "trait": "cool",
+   "color": "#e84a5f",
+   "hair": "#0f0f0f",
+   "job": "28 · Lawyer",
+   "look": {
+    "gender": "f",
+    "height": 1.69,
+    "build": 0.94,
+    "skin": "#f6dccb",
+    "hairStyle": "highPony",
+    "hairColor": "#0f0d0e",
+    "top": "dress",
+    "topColor": "#5a1f2c",
+    "bottom": "skirt",
+    "bottomColor": "#5a1f2c",
+    "shoes": "boots",
+    "shoeColor": "#141214",
+    "pattern": "solid",
+    "hat": null,
+    "realWear": true,
+    "face": {
+     "eyeColor": "#3a2416",
+     "eyeSize": 0.94,
+     "eyeTilt": 0.16,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0.08,
+     "browArch": 0.5,
+     "lipColor": "#9a2a3a",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.12,
+     "liner": 0.9,
+     "shadow": "#8a5a5a",
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": true
+    }
+   }
+  },
+  {
+   "id": "jiwoo",
+   "name": "지우",
+   "gender": "m",
+   "age": 26,
+   "tag": "😜 Prankster",
+   "trait": "playful",
+   "color": "#ff9f43",
+   "hair": "#4a2a14",
+   "job": "26 · Chef",
+   "look": {
+    "gender": "m",
+    "height": 1.74,
+    "build": 1.0,
+    "skin": "#f0c9a8",
+    "hairStyle": "curly",
+    "hairColor": "#4a2a14",
+    "top": "overshirt",
+    "topColor": "#4a5a3a",
+    "inner": "tee",
+    "innerColor": "#f2f0ea",
+    "bottom": "pants",
+    "bottomColor": "#1d2533",
+    "fit": "skinny",
+    "shoes": "sneakers",
+    "shoeColor": "#f2f2f2",
+    "hat": "cap",
+    "hatColor": "#1a1a1d",
+    "pattern": "solid",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.9,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 0,
+     "browThick": 1.3,
+     "browTilt": -0.05,
+     "browArch": 0.4,
+     "lipColor": "#b07a70",
+     "lipW": 1,
+     "lipFull": 0.95,
+     "nose": 1.05,
+     "faceW": 0.95,
+     "jaw": 1.03,
+     "blush": 0,
+     "liner": 0,
+     "shadow": null,
+     "beard": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": false,
+     "mole": [
+      0.25,
+      0.45
+     ]
+    }
+   }
+  },
+  {
+   "id": "jaesuk",
+   "name": "재숙",
+   "gender": "f",
+   "age": 52,
+   "tag": "🎉 Outgoing",
+   "trait": "outgoing",
+   "color": "#ff6b9d",
+   "hair": "#3b2417",
+   "job": "52 · Korean restaurant owner",
+   "look": {
+    "gender": "f",
+    "height": 1.6,
+    "build": 0.98,
+    "skin": "#efcdb4",
+    "hairStyle": "bob",
+    "hairColor": "#6b5440",
+    "top": "jacket",
+    "topColor": "#1f2a4a",
+    "sailor": {
+     "trim": "#e8a6c4"
+    },
+    "bottom": "skirt",
+    "bottomColor": "#1f2a4a",
+    "shoes": "flats",
+    "shoeColor": "#1f2a4a",
+    "bag": {
+     "color": "#8a5a2e"
+    },
+    "pattern": "solid",
+    "hat": null,
+    "realWear": true,
+    "setup": false,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.9,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#c06a6e",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.99,
+     "jaw": 1.0,
+     "blush": 0.18,
+     "liner": 0.3,
+     "shadow": "#b88a74",
+     "freckles": false,
+     "mole": null,
+     "glasses": true,
+     "sunglasses": false,
+     "earring": false,
+     "glassesColor": "#e8a2b6"
+    }
+   },
+   "always": true,
+   "pose": "dance"
+  },
+  {
+   "id": "jo",
+   "name": "조여사",
+   "gender": "f",
+   "age": 50,
+   "tag": "😎 Chic",
+   "trait": "cool",
+   "color": "#8e7cff",
+   "hair": "#1c1410",
+   "job": "50 · Real estate agent",
+   "look": {
+    "gender": "f",
+    "height": 1.6,
+    "build": 0.98,
+    "skin": "#efc6a6",
+    "hairStyle": "bob",
+    "hairColor": "#2a1e18",
+    "top": "tee",
+    "longSleeve": true,
+    "topColor": "#1f2a4a",
+    "bottom": "shorts",
+    "bottomColor": "#1f2a4a",
+    "shoes": "sneakers",
+    "shoeColor": "#2c3e8a",
+    "hat": "visor",
+    "hatColor": "#1f2a4a",
+    "bandana": {
+     "color": "#1f2a44",
+     "pattern": "paisley"
+    },
+    "pattern": "solid",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.92,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#c47870",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 1.0,
+     "jaw": 1.0,
+     "blush": 0.24,
+     "liner": 0.25,
+     "shadow": "#b88a74",
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false
+    }
+   },
+   "always": true,
+   "pose": "dance"
+  },
+  {
+   "id": "sophia",
+   "name": "소피아",
+   "gender": "f",
+   "age": 26,
+   "tag": "💃 Dancer",
+   "trait": "playful",
+   "color": "#ff2d78",
+   "hair": "#e8c35a",
+   "job": "26 · Model",
+   "look": {
+    "gender": "f",
+    "skin": "#f6dccb",
+    "hairColor": "#e8c35a",
+    "hairStyle": "wavy",
+    "top": "dress",
+    "mini": true,
+    "strapless": true,
+    "topColor": "#ff2d78",
+    "bottom": "skirt",
+    "bottomColor": "#ff2d78"
+   },
+   "dance": "vogue",
+   "walk": "model"
+  },
+  {
+   "id": "naomi",
+   "name": "나오미",
+   "gender": "f",
+   "age": 28,
+   "tag": "🔥 B-girl",
+   "trait": "outgoing",
+   "color": "#ffd23d",
+   "hair": "#120c0a",
+   "job": "28 · Dancer",
+   "look": {
+    "gender": "f",
+    "skin": "#6b4026",
+    "hairColor": "#120c0a",
+    "hairStyle": "braids",
+    "top": "crop",
+    "strapless": true,
+    "topColor": "#ffd23d",
+    "bottom": "shorts",
+    "mini": true,
+    "bottomColor": "#141418"
+   },
+   "dance": "breaking",
+   "walk": "swagger"
+  },
+  {
+   "id": "yuna",
+   "name": "유나",
+   "gender": "f",
+   "age": 24,
+   "tag": "🍸 Heavy drinker",
+   "trait": "playful",
+   "color": "#9b5cff",
+   "hair": "#241812",
+   "job": "24 · Grad student",
+   "look": {
+    "gender": "f",
+    "skin": "#f7dcc8",
+    "hairStyle": "bob",
+    "top": "crop",
+    "strapless": false,
+    "topColor": "#9b5cff",
+    "bottom": "skirt",
+    "mini": true,
+    "bottomColor": "#141418"
+   },
+   "dance": "hipSway",
+   "walk": "bouncy",
+   "habit": "drinker"
+  },
+  {
+   "id": "chloe",
+   "name": "클로이",
+   "gender": "f",
+   "age": 29,
+   "tag": "😎 Chic",
+   "trait": "cool",
+   "color": "#c0c0d0",
+   "hair": "#a8743a",
+   "job": "29 · Photographer",
+   "look": {
+    "gender": "f",
+    "skin": "#f2d0bc",
+    "hairColor": "#a8743a",
+    "hairStyle": "long",
+    "top": "dress",
+    "mini": true,
+    "strapless": true,
+    "topColor": "#c0c0d0",
+    "bottom": "skirt",
+    "bottomColor": "#c0c0d0"
+   },
+   "dance": "bodyRoll",
+   "walk": "model"
+  },
+  {
+   "id": "amina",
+   "name": "아미나",
+   "gender": "f",
+   "age": 25,
+   "tag": "🎉 Life of the party",
+   "trait": "outgoing",
+   "color": "#3de6ff",
+   "hair": "#1c1410",
+   "job": "25 · Flight attendant",
+   "look": {
+    "gender": "f",
+    "skin": "#8d5a3b",
+    "hairColor": "#1c1410",
+    "hairStyle": "ponytail",
+    "top": "crop",
+    "strapless": true,
+    "topColor": "#3de6ff",
+    "bottom": "skirt",
+    "mini": true,
+    "bottomColor": "#ffffff"
+   },
+   "dance": "hipCircle",
+   "walk": "bouncy"
+  },
+  {
+   "id": "jake",
+   "name": "제이크",
+   "gender": "m",
+   "age": 30,
+   "tag": "💪 Gym rat",
+   "trait": "outgoing",
+   "color": "#141418",
+   "hair": "#c9a060",
+   "job": "30 · Trainer",
+   "look": {
+    "gender": "m",
+    "skin": "#f2d0bc",
+    "hairColor": "#c9a060",
+    "hairStyle": "short",
+    "top": "tee",
+    "topColor": "#141418",
+    "muscle": 1,
+    "face": {
+     "attractive": true
+    }
+   },
+   "dance": "pump",
+   "walk": "swagger"
+  },
+  {
+   "id": "marcus",
+   "name": "마커스",
+   "gender": "m",
+   "age": 27,
+   "tag": "🎤 Rapper",
+   "trait": "playful",
+   "color": "#c8102e",
+   "hair": "#120c0a",
+   "job": "27 · Rapper",
+   "look": {
+    "gender": "m",
+    "skin": "#5a3420",
+    "hairColor": "#120c0a",
+    "hairStyle": "buzz",
+    "top": "tee",
+    "oversize": true,
+    "topColor": "#c8102e",
+    "necklace": true,
+    "muscle": 0.5
+   },
+   "dance": "breaking",
+   "walk": "swagger"
+  },
+  {
+   "id": "taejun",
+   "name": "태준",
+   "gender": "m",
+   "age": 33,
+   "tag": "🤓 Dad-joke guy",
+   "trait": "shy",
+   "color": "#7a6a50",
+   "hair": "#241812",
+   "job": "33 · Accountant",
+   "look": {
+    "gender": "m",
+    "hairStyle": "side",
+    "top": "shirt",
+    "topColor": "#7a6a50",
+    "face": {
+     "glasses": true,
+     "attractive": false
+    }
+   },
+   "dance": "robot",
+   "walk": "shy",
+   "habit": "drinker"
+  },
+  {
+   "id": "doyun",
+   "name": "도윤",
+   "gender": "m",
+   "age": 26,
+   "tag": "✨ Pretty boy",
+   "trait": "cool",
+   "color": "#1d2742",
+   "hair": "#17110f",
+   "job": "26 · Aspiring actor",
+   "look": {
+    "gender": "m",
+    "hairStyle": "slick",
+    "top": "jacket",
+    "setup": true,
+    "topColor": "#1d2742",
+    "face": {
+     "attractive": true
+    }
+   },
+   "dance": "disco",
+   "walk": "model"
+  },
+  {
+   "id": "leo",
+   "name": "레오",
+   "gender": "m",
+   "age": 31,
+   "tag": "🍺 Party drinker",
+   "trait": "playful",
+   "color": "#e8b84a",
+   "hair": "#8a5a30",
+   "job": "31 · Bartender",
+   "look": {
+    "gender": "m",
+    "skin": "#f6dccb",
+    "hairColor": "#8a5a30",
+    "hairStyle": "curly",
+    "top": "shirt",
+    "pattern": "graphic",
+    "topColor": "#e8b84a",
+    "face": {
+     "attractive": false,
+     "beard": "stubble"
+    }
+   },
+   "dance": "techno",
+   "walk": "bouncy",
+   "habit": "drinker"
+  },
+  {
+   "id": "lena",
+   "name": "Lena",
+   "gender": "f",
+   "age": 24,
+   "tag": "😎 Chic",
+   "trait": "cool",
+   "color": "#efebe3",
+   "hair": "#151012",
+   "job": "24 · Illustrator",
+   "look": {
+    "gender": "f",
+    "height": 1.62,
+    "build": 0.93,
+    "skin": "#efd2bd",
+    "hairStyle": "wavy",
+    "hairColor": "#151012",
+    "top": "tee",
+    "longSleeve": true,
+    "oversize": true,
+    "topColor": "#eeeae2",
+    "pattern": "knit",
+    "bottom": "pants",
+    "fit": "wide",
+    "bottomColor": "#8a9e7c",
+    "bottomPattern": "cord",
+    "shoes": "sneakers",
+    "shoeColor": "#e6dccb",
+    "hat": "bucket",
+    "hatColor": "#cdbb98",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 1.0,
+     "eyeTilt": 0.1,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.85,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#c48a80",
+     "lipW": 1,
+     "lipFull": 1.2,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.15,
+     "liner": 0.95,
+     "shadow": "#8a6a5a",
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false
+    }
+   },
+   "photo": "girl/Lena.jpeg",
+   "always": true,
+   "pose": "dance"
+  },
+  {
+   "id": "hyejung",
+   "name": "혜정",
+   "gender": "f",
+   "age": 42,
+   "tag": "🎉 Outgoing",
+   "trait": "outgoing",
+   "color": "#141a2e",
+   "hair": "#121014",
+   "job": "42 · Piano teacher",
+   "look": {
+    "gender": "f",
+    "height": 1.64,
+    "build": 0.95,
+    "skin": "#f1d3c0",
+    "hairStyle": "wavy",
+    "hairColor": "#121014",
+    "top": "dress",
+    "pattern": "floral",
+    "topColor": "#151a2e",
+    "bottom": "skirt",
+    "bottomColor": "#151a2e",
+    "maxi": true,
+    "shoes": "sandals",
+    "shoeColor": "#d8b35a",
+    "hat": null,
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.95,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#d06a78",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.28,
+     "liner": 0.35,
+     "shadow": "#b88a74",
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false
+    }
+   },
+   "photo": "girl/혜정.webp",
+   "always": true,
+   "pose": "dance"
+  },
+  {
+   "id": "mikyung",
+   "name": "미경",
+   "gender": "f",
+   "age": 24,
+   "tag": "💃 Dance queen",
+   "trait": "outgoing",
+   "color": "#c8ccd4",
+   "job": "24 · Department store cosmetics counter",
+   "pose": "dance",
+   "dance": "hipSway",
+   "walk": "model",
+   "look": {
+    "gender": "f",
+    "body": "slim",
+    "height": 1.69,
+    "skin": "#f0cfb6",
+    "hairStyle": "long",
+    "hairColor": "#1a1210",
+    "top": "halter",
+    "topColor": "#c9ccd6",
+    "metallic": true,
+    "bottom": "skirt",
+    "mini": true,
+    "bottomColor": "#121014",
+    "shoes": "platform",
+    "shoeColor": "#121014",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.96,
+     "eyeTilt": 0.06,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#a8494f",
+     "lipW": 1,
+     "lipFull": 1.05,
+     "nose": 0.95,
+     "faceW": 0.94,
+     "jaw": 0.97,
+     "blush": 0.12,
+     "liner": 0.55,
+     "shadow": null,
+     "freckles": false,
+     "mole": [
+      0.22,
+      0.18
+     ],
+     "glasses": false,
+     "sunglasses": false,
+     "earring": true
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null
+   },
+   "v32": true,
+   "hair": "#1a1210"
+  },
+  {
+   "id": "yuka",
+   "name": "유카",
+   "gender": "f",
+   "age": 22,
+   "tag": "🌸 Shibuya girl",
+   "trait": "playful",
+   "color": "#f2f0ea",
+   "job": "22 · Language student in Tokyo",
+   "pose": "talk",
+   "dance": "shimmy",
+   "walk": "bouncy",
+   "look": {
+    "gender": "f",
+    "body": "average",
+    "height": 1.55,
+    "build": 0.96,
+    "skin": "#e3b48f",
+    "hairStyle": "long",
+    "hairColor": "#8a5a34",
+    "top": "crop",
+    "topColor": "#f3f1ea",
+    "bottom": "skirt",
+    "mini": true,
+    "bottomColor": "#5a7aa6",
+    "shoes": "platform",
+    "shoeColor": "#f0ece4",
+    "soleColor": "#f0ece4",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.98,
+     "eyeTilt": -0.03,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#c99088",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.9,
+     "faceW": 1.0,
+     "jaw": 0.96,
+     "blush": 0.3,
+     "liner": 0.35,
+     "shadow": "#a07a5a",
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": true
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null,
+    "ethnic": "jp"
+   },
+   "v32": true,
+   "hair": "#8a5a34"
+  },
+  {
+   "id": "eunsook",
+   "name": "은숙",
+   "gender": "f",
+   "age": 31,
+   "tag": "🍸 Regular",
+   "trait": "cool",
+   "color": "#7b2a3a",
+   "job": "31 · Insurance company assistant manager",
+   "pose": "drink",
+   "dance": "disco",
+   "look": {
+    "gender": "f",
+    "body": "soft",
+    "height": 1.6,
+    "skin": "#f2d0b8",
+    "hairStyle": "bob",
+    "hairColor": "#2a1810",
+    "top": "shirt",
+    "oversize": true,
+    "topColor": "#7b2a3a",
+    "bottom": "pants",
+    "bottomColor": "#3a4d6e",
+    "shoes": "flats",
+    "shoeColor": "#1a1416",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.9,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#9c3f4a",
+     "lipW": 1,
+     "lipFull": 1.15,
+     "nose": 1.04,
+     "faceW": 1.08,
+     "jaw": 1.04,
+     "blush": 0.18,
+     "liner": 0.25,
+     "shadow": null,
+     "freckles": false,
+     "mole": [
+      -0.3,
+      0.36
+     ],
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null
+   },
+   "v32": true,
+   "hair": "#2a1810"
+  },
+  {
+   "id": "nicole",
+   "name": "니콜",
+   "gender": "f",
+   "age": 27,
+   "tag": "🗽 New Yorker",
+   "trait": "cool",
+   "color": "#141218",
+   "job": "27 · English teacher at a US Army base",
+   "pose": "lean",
+   "dance": "vogue",
+   "walk": "model",
+   "look": {
+    "gender": "f",
+    "body": "athletic",
+    "height": 1.75,
+    "skin": "#f3d6c4",
+    "hairStyle": "wavy",
+    "hairColor": "#b08a52",
+    "top": "dress",
+    "strapless": false,
+    "topColor": "#16141a",
+    "sequin": true,
+    "bottom": "skirt",
+    "mini": true,
+    "bottomColor": "#16141a",
+    "shoes": "platform",
+    "shoeColor": "#16141a",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#4a6a7a",
+     "eyeSize": 0.95,
+     "eyeTilt": 0.02,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#a04a50",
+     "lipW": 1.08,
+     "lipFull": 1.0,
+     "nose": 1.06,
+     "faceW": 0.96,
+     "jaw": 1.02,
+     "blush": 0.15,
+     "liner": 0.4,
+     "shadow": null,
+     "freckles": true,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null,
+    "ethnic": "west"
+   },
+   "v32": true,
+   "hair": "#b08a52"
+  },
+  {
+   "id": "dongsu",
+   "name": "동수",
+   "gender": "m",
+   "age": 29,
+   "tag": "🍺 Salesman",
+   "trait": "playful",
+   "color": "#25304a",
+   "job": "29 · Construction company sales",
+   "pose": "drink",
+   "dance": "stepTouch",
+   "walk": "swagger",
+   "habit": "drinker",
+   "look": {
+    "gender": "m",
+    "body": "soft",
+    "height": 1.72,
+    "belly": 0.75,
+    "skin": "#e8c2a2",
+    "hairStyle": "side",
+    "hairColor": "#141010",
+    "top": "polo",
+    "topColor": "#25304a",
+    "bottom": "pants",
+    "fit": "wide",
+    "bottomColor": "#a39a84",
+    "shoeColor": "#2a1a12",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.82,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1.3,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#a87068",
+     "lipW": 1,
+     "lipFull": 1,
+     "nose": 1.12,
+     "faceW": 1.08,
+     "jaw": 1.12,
+     "blush": 0.1,
+     "liner": 0.2,
+     "shadow": null,
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": false,
+     "beard": "stubble"
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null
+   },
+   "v32": true,
+   "hair": "#141010"
+  },
+  {
+   "id": "junho",
+   "name": "준호",
+   "gender": "m",
+   "age": 23,
+   "tag": "🎧 Hip-hop kid",
+   "trait": "playful",
+   "color": "#2f5a3a",
+   "job": "23 · College student (on leave)",
+   "pose": "dance",
+   "dance": "runMan",
+   "walk": "bouncy",
+   "look": {
+    "gender": "m",
+    "body": "slim",
+    "height": 1.81,
+    "skin": "#f0d0b4",
+    "hairStyle": "comma",
+    "hairColor": "#18110e",
+    "top": "overshirt",
+    "oversize": true,
+    "pattern": "plaid",
+    "topColor": "#2f5a3a",
+    "innerColor": "#f2f0ea",
+    "bottom": "pants",
+    "fit": "wide",
+    "bottomColor": "#4a6488",
+    "shoes": "sneakers",
+    "shoeColor": "#f2f2f0",
+    "hat": "bucket",
+    "hatColor": "#1c1c20",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.95,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#b98278",
+     "lipW": 1,
+     "lipFull": 1,
+     "nose": 0.98,
+     "faceW": 0.95,
+     "jaw": 0.97,
+     "blush": 0.1,
+     "liner": 0.2,
+     "shadow": null,
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": true
+    },
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null
+   },
+   "v32": true,
+   "hair": "#18110e"
+  },
+  {
+   "id": "marco",
+   "name": "마르코",
+   "gender": "m",
+   "age": 34,
+   "tag": "🏍 Biker",
+   "trait": "cool",
+   "color": "#18151a",
+   "job": "34 · Italian restaurant chef",
+   "pose": "lean",
+   "dance": "bounceRock",
+   "walk": "swagger",
+   "look": {
+    "gender": "m",
+    "body": "stocky",
+    "height": 1.77,
+    "skin": "#dcb08c",
+    "hairStyle": "slick",
+    "hairColor": "#1c140e",
+    "top": "jacket",
+    "leather": true,
+    "topColor": "#141216",
+    "bottom": "pants",
+    "bottomColor": "#2c3a52",
+    "shoes": "boots",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#3a2a1a",
+     "eyeSize": 0.88,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1.45,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#a06a60",
+     "lipW": 1,
+     "lipFull": 1,
+     "nose": 1.22,
+     "faceW": 1.04,
+     "jaw": 1.15,
+     "blush": 0.1,
+     "liner": 0.2,
+     "shadow": null,
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": false,
+     "beard": "stubble"
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null,
+    "ethnic": "west"
+   },
+   "v32": true,
+   "hair": "#1c140e"
+  },
+  {
+   "id": "kenji",
+   "name": "켄지",
+   "gender": "m",
+   "age": 26,
+   "tag": "🕺 Disco",
+   "trait": "outgoing",
+   "color": "#121014",
+   "job": "26 · Osaka record store clerk",
+   "pose": "talk",
+   "dance": "disco",
+   "walk": "swagger",
+   "look": {
+    "gender": "m",
+    "body": "athletic",
+    "height": 1.68,
+    "skin": "#ecc9aa",
+    "hairStyle": "slick",
+    "hairColor": "#0e0b0a",
+    "top": "shirt",
+    "topColor": "#121014",
+    "bottom": "pants",
+    "fit": "wide",
+    "bottomColor": "#3a3a40",
+    "shoeColor": "#121014",
+    "necklace": true,
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.9,
+     "eyeTilt": 0.05,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#b07a70",
+     "lipW": 1,
+     "lipFull": 1,
+     "nose": 0.98,
+     "faceW": 0.97,
+     "jaw": 1.0,
+     "blush": 0.1,
+     "liner": 0.2,
+     "shadow": null,
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": true
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null,
+    "ethnic": "jp"
+   },
+   "v32": true,
+   "hair": "#0e0b0a"
+  }
+ ],
+ "crowdModels": [],
+ "crowdModelMax": 6
+}

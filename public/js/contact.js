@@ -43,7 +43,7 @@ function norm(p, b) {
 }
 /* 팔 한쪽의 점들(위팔 중간 · 팔꿈치 · 아래팔 중간 · 손) */
 function armPts(R, sh, el) {
-  const S = R[sh], E = R[el], H = E.children.find(c => c.isGroup) || E;
+  const S = R[sh], E = R[el], H = E.children.find(c => c.userData.isHand || (c.isGroup && !c.userData.bridge)) || E;
   S.updateMatrixWorld(true);
   const ps = S.getWorldPosition(tmp.a), pe = E.getWorldPosition(tmp.b), ph = H.getWorldPosition(tmp.c);
   return [ps.clone().lerp(pe, .5), pe.clone(), pe.clone().lerp(ph, .5), ph.clone()];

@@ -22,6 +22,7 @@ function spawn(def, role) {
     u.idlePose = def.pose && def.pose !== 'dance' ? def.pose : (def.pose ? null : pk([null, null, 'talk', 'drink', 'lean', 'pocket', null]));   // v32 대기 포즈
   }
   if (def.model && NC.VRMKit && NC.VRMKit.ok) NC.VRMKit.attach(g, def.model, { tint: def.tint });
+  else if (def.realModel && NC.RealHuman && NC.RealHuman.ok) NC.RealHuman.pin(g, def.realModel, { skin: def.realSkin });   // v41 페르소나 고정 실사 GLB
   const n = {
     id: def.id, name: def.name, def, role, persona: role === 'persona' ? def : (role === 'crowd' ? { likes: [], lines: null, pullPush: .4 } : null),
     trait: def.trait || 'outgoing', gender: (def.look && def.look.gender) || def.gender || 'f', tag: def.tag || '', job: def.job ? (role === 'persona' ? `${def.age} · ${def.job} · ${def.mbti}` : def.job) : '',

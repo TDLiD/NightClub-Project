@@ -319,6 +319,32 @@ function trigger(a, ev, opt = {}) {
 const ZERO = [0, 0, 0];
 const MOBF = !!NC.isMobile; let fbT = 0, fbN = 0;
 function faceBudget() { const t = performance.now(); if (t - fbT > 14) { fbT = t; fbN = MOBF ? 1 : 3; } return fbN-- > 0; }
+/* ═════ v40 실사감: 관절 이음살 · 손가락 굽힘 · 치마 관성 ═════ */
+const _qi = new THREE_Q(), _qh = new THREE_Q();
+function THREE_Q() { return new NC.THREE.Quaternion(); }
+const HAND_POSE = { relaxed: [.34, .02], touch: [.16, .07], cup: [.3, .03], grip: [.78, 0], open: [.06, .1], glass: [.62, .01] };   // [굽힘, 벌림]
+function bridges(u) {
+  const B = u.bridges; if (!B) return;
+  for (const b of B) { if (b.x) b.g.rotation.x = -b.src.rotation.x * .5; else if (b.q) { _qi.copy(b.src.quaternion).invert(); b.g.quaternion.copy(_qh.identity()).slerp(_qi, .5); } }
+}
+function fingers(u, dt) {
+  if (!u.hands) return; const k = 1 - Math.exp(-dt * 10), t = performance.now() / 1000;
+  for (const sd of ['L', 'R']) { const h = u.hands[sd], F = h && h.userData.fingers; if (!F) continue;
+    let pose = (u.handPose && u.handPose[sd]) || 'relaxed'; if (sd === 'R' && u.holdGlass && pose === 'relaxed') pose = 'glass';
+    const [c, sp] = HAND_POSE[pose] || HAND_POSE.relaxed, br = Math.sin(t * 1.3 + (sd === 'L' ? 0 : 2)) * .025;   // 아주 미세한 손가락 움직임(완전히 멈춘 손 = 마네킹)
+    F.forEach((f, i) => { const c1 = (c + br * (i % 2 ? 1 : -1)) * f.w; f.k1.rotation.x += (.18 + c1 * 1.15 - f.k1.rotation.x) * k; f.k2.rotation.x += (c1 * 1.25 - f.k2.rotation.x) * k; f.k1.rotation.z += (f.sp * sp - f.k1.rotation.z) * k; });
+    const th = h.userData.thumb; if (th) th.rotation.x += ((.5 + c * .6) - th.rotation.x) * k; }
+}
+function skirtSway(a, u, dt) {   // 엉덩이 이동·회전을 반 박자 늦게 따라가는 스프링(무게 있는 원단)
+  const S = u.skirt, sk = u.sk; if (!S || !sk) return; const p = a.position, ry = a.rotation.y;
+  if (sk.px == null) { sk.px = p.x; sk.pz = p.z; sk.ry = ry; return; }
+  const ddt = Math.max(dt, 1 / 120), vx = (p.x - sk.px) / ddt, vz = (p.z - sk.pz) / ddt, wy = (ry - sk.ry) / ddt; sk.px = p.x; sk.pz = p.z; sk.ry = ry;
+  const c = Math.cos(ry), s2 = Math.sin(ry), lf = vx * s2 + vz * c, ls = vx * c - vz * s2, bt = u.dance ? Math.sin(performance.now() / 1000 * 7.7) * .025 : 0;
+  const tx = U.clamp(lf * .07, -.18, .18) + bt, tz = U.clamp(-ls * .07 - wy * .03, -.18, .18);
+  sk.vx += ((tx - sk.rx) * 60 - sk.vx * 9) * dt; sk.vz += ((tz - sk.rz) * 60 - sk.vz * 9) * dt; sk.rx += sk.vx * dt; sk.rz += sk.vz * dt;
+  S.rotation.x = sk.rx; S.rotation.z = sk.rz;
+}
+function secondary(a, u, dt) { if (!u.bridges) return; bridges(u); if (u.near !== false) { fingers(u, dt); skirtSway(a, u, dt); } }
 function update(a, dt, opt = {}) {
   const u = a.userData, m = u.motion, R = u.rig; if (!R) return;
   m.t += dt; const b = beatInfo();
@@ -347,6 +373,7 @@ function update(a, dt, opt = {}) {
   // 호흡: 어깨가 아주 미세하게 오르내림
   { const br = Math.sin(m.t * 1.45 + u.seed * 6); if (u.shY == null) { u.shY = R.shL.position.y; } R.shL.position.y = R.shR.position.y = u.shY + .0045 * br; R.torso.rotation.x += .008 * br * k; }
   if (u.skirt) u.skirt.scale.y += ((u.seated ? .45 : 1) - u.skirt.scale.y) * k;
+  secondary(a, u, dt);   // v40 관절 이음살 · 손가락 · 치마 2차 움직임
   if (u.glass) u.glass.visible = glass;
   // 얼굴: 표정 만료 · 깜빡임 · 말할 때 입 움직임
   const now = performance.now();
@@ -362,7 +389,7 @@ function update(a, dt, opt = {}) {
   if (u.faceDirty && (opt.near !== false || talking) && (talking || faceBudget())) u.redraw();   // v34 얼굴 다시 그리기는 프레임당 몇 명만(모바일 1명) — GPU 업로드 폭주로 화면이 끊기던 문제
 }
 
-NC.Motion = { update, play, trigger, TRIGGERS, EMOTION_TRIGGER, GEST: Object.keys(GEST), BASE: Object.keys(BASE) };
+NC.Motion = { update, play, bridges, secondary, trigger, TRIGGERS, EMOTION_TRIGGER, GEST: Object.keys(GEST), BASE: Object.keys(BASE) };
 // 기존 API 호환
 NC.seatAvatar = (a, x, z, ry, h = .5) => { a.position.set(x, NC.groundY ? NC.groundY(x, z) : 0, z); a.rotation.y = ry; const u = a.userData; u.seated = true; u.moving = false; u.dance = null; u.seatH = h; };
 NC.unseatAvatar = (a, x, z) => { const u = a.userData; u.seated = false; u.talk = false; if (x != null) a.position.set(x, NC.groundY ? NC.groundY(x, z) : 0, z); };

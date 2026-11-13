@@ -229,7 +229,7 @@ NC.LLM = {
     let out = null;
     if (this.enabled() && npc.id) {
       try {
-        const r = await fetch('/api/npc-chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-session': NC.session.token }, body: JSON.stringify({ npcId: npc.id, text, history: (npc.history || []).slice(-10), affinity: npc.aff, tags: an.tags }) });
+        const r = await fetch('/api/npc-chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-session': NC.session.token }, body: JSON.stringify({ npcId: npc.id, lang: NC.lang || 'ko', text, history: (npc.history || []).slice(-10), affinity: npc.aff, tags: an.tags }) });
         const j = await r.json().catch(() => ({})); if (j.ok) out = j; else if (r.status === 429 && j.error) NC.ui.toast(j.error);
       } catch (e) { /* 네트워크 오류 → 로컬 */ }
     }

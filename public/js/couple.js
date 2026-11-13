@@ -23,7 +23,7 @@ const KK = () => NC.Karaoke, BLs = () => NC.Karaoke && NC.Karaoke.BL;
 /* ═════ 2관절 IK ═════ */
 const _m = new T.Matrix4(), _q = new T.Quaternion(), _e = new T.Euler();
 function chain(R, sd) {
-  const S = R['sh' + sd], E = R['el' + sd], H = E.children.find(c => c.isGroup);
+  const S = R['sh' + sd], E = R['el' + sd], H = E.children.find(c => c.userData.isHand || (c.isGroup && !c.userData.bridge));
   return { S, E, H, L1: Math.abs(E.position.y) || .28, L2: (H ? Math.abs(H.position.y) : .27) + .035 };
 }
 /* target: 월드 좌표 · w: 0~1 · poleW: 팔꿈치가 향할 방향(월드) · obs: 상대 몸(관통 검사용, 없으면 생략)
@@ -101,13 +101,13 @@ function plan(A, B, lead, act, e) {
   if (k === 'hug') { if (lead) { o.L = P.upperBack(B, sL); o.R = P.upperBack(B, sR); } else if (acc) { o.L = P.neckBack(B, sL); o.R = P.upperBack(B, sR); } o.head = null; }
   else if (k === 'waist') { if (lead) { o.L = P.lowBack(B, sL); o.R = P.lowBack(B, sR); } else if (acc) { o.L = P.neckBack(B, sL); o.R = P.neckBack(B, sR); } }
   else if (k === 'whisper') { if (lead) { o.R = P.upperArm(B, sR); o.head = P.ear(B, sR); o.wHead = 1; } else { o.head = acc ? P.lips(B) : null; o.tilt = acc ? -.28 * sR : 0; } }
-  else if (k === 'spin') { const top = A.head.clone().lerp(B.head, .5).addScaledVector(UP, .3); if (lead) { o.L = top; o.R = P.waistSide(B, sR); } else { o.R = top; o.L = null; } o.head = null; }
+  else if (k === 'spin') { const top = A.head.clone().lerp(B.head, .5).addScaledVector(UP, .3); if (lead) { o.L = top; o.R = P.waistSide(B, sR); o.hp = { L: 'grip' }; } else { o.R = top; o.L = null; o.hp = { R: 'grip' }; } o.head = null; }
   else if (k === 'dip') { if (lead) { o.R = P.upperBack(B, sR); o.L = P.waistSide(B, sL); o.head = P.lips(B); o.wHead = .8; } else if (acc) { o.L = P.neckBack(B, sL); o.R = null; o.head = P.lips(B); o.wHead = .5; } }
   else if (k === 'forehead') { o.head = P.brow(B); o.wHead = 1; }
   else if (k === 'cheek') { if (lead) { o.L = P.shoulderTop(B, sL); o.head = P.cheek(B, sR); o.wHead = 1; } else if (acc) { o.head = P.lips(B).addScaledVector(B.right, -sR * .1); o.wHead = .5; } }
-  else if (k === 'backhug') { if (lead) { o.L = P.frontWaist(B, sL); o.R = P.frontWaist(B, sR); o.head = P.ear(B, sR).addScaledVector(UP, -.05); o.wHead = .7; } else if (acc) { const hL = B.R.elL.children.find(c => c.isGroup), hR = B.R.elR.children.find(c => c.isGroup); o.L = hL && hL.getWorldPosition(V()).addScaledVector(UP, .03); o.R = hR && hR.getWorldPosition(V()).addScaledVector(UP, .03); o.head = null; } }
+  else if (k === 'backhug') { if (lead) { o.L = P.frontWaist(B, sL); o.R = P.frontWaist(B, sR); o.head = P.ear(B, sR).addScaledVector(UP, -.05); o.wHead = .7; } else if (acc) { const hL = B.R.elL.children.find(c => c.userData.isHand || (c.isGroup && !c.userData.bridge)), hR = B.R.elR.children.find(c => c.userData.isHand || (c.isGroup && !c.userData.bridge)); o.L = hL && hL.getWorldPosition(V()).addScaledVector(UP, .03); o.R = hR && hR.getWorldPosition(V()).addScaledVector(UP, .03); o.head = null; } }
   else if (k === 'kiss' || k === 'deepkiss') { const deep = k === 'deepkiss';
-    if (lead) { o.R = P.cheek(B, sR); o.L = deep ? P.cheek(B, sL) : P.lowBack(B, sL); } else if (acc) { o.L = P.neckBack(B, sL); o.R = deep ? P.neckBack(B, sR) : P.upperBack(B, sR); }
+    if (lead) { o.R = P.cheek(B, sR); o.L = deep ? P.cheek(B, sL) : P.lowBack(B, sL); o.hp = { R: 'cup', L: deep ? 'cup' : 'touch' }; } else if (acc) { o.L = P.neckBack(B, sL); o.R = deep ? P.neckBack(B, sR) : P.upperBack(B, sR); }
     o.head = P.lips(B); o.wHead = 1; o.tilt = (lead ? .24 : -.24); }
   if (!acc && !lead) { o.L = o.R = null; }                                  // 거절: 상대는 손을 뻗지 않음
   if (!acc && lead) o.w *= Math.max(0, 1 - sm(H, H + .35, e)) * .8 + .05;    // 거절당하면 리드의 손이 중간에서 거둬짐
@@ -121,6 +121,7 @@ function applyPlan(A, o, w, Bobs) {
   const R = A.R, ww = (o.w ?? 1) * w;
   /* 손 목표점은 contact.js 의 관절 최적화에 '목표 추종' 항으로 넘김 → 관통 금지 + 목표 도달을 한 번에 풂(직선 IK 를 덮어쓰면 등 뒤로 감는 팔이 몸을 뚫음) */
   A.u.handTgt = { t: performance.now(), L: o.L ? o.L.clone() : null, R: o.R ? o.R.clone() : null, w: ww * (o.wArm ?? 1) }; void Bobs;
+  const hp = o.hp || {}; A.u.handPose = { L: o.L && ww > .5 ? (hp.L || 'touch') : 'relaxed', R: o.R && ww > .5 ? (hp.R || 'touch') : 'relaxed' };   // v40 손 모양: 닿을 땐 손가락을 펴서 표면을 따라, 볼은 감싸듯, 턴은 맞잡기
   if (o.head) aimHead(R, o.head, ww * (o.wHead ?? .5), (o.tilt || 0)); else if (o.tilt) R.head.rotation.z += (o.tilt - R.head.rotation.z) * ww;
   if (o.lean) { R.torso.rotation.x += o.lean * ww; R.knL.rotation.x += o.lean * .4 * ww; R.knR.rotation.x += o.lean * .4 * ww; }
   if (o.toe) R.body.position.y += o.toe * ww;
@@ -133,11 +134,31 @@ function tickBlues() {
   const start = sm(0, 1.4, BL.t);                                            // 시작: 손이 천천히 자리 잡음
   const leadA = !!ua.bluesLead;
   const oa = plan(A, B, leadA, act ? { k: act.k, out: ua.bAct ? ua.bAct.out : 'accept', dur: act.dur, hit: act.hit } : null, e);
-  const ob = plan(B, A, !leadA, act ? { k: act.k, out: n.g.userData.bAct ? n.g.userData.bAct.out : (ua.bAct ? ua.bAct.out : 'accept'), dur: act.dur, hit: act.hit } : null, e);
+  const eB = Math.max(0, e - LAG);   // v40 상대는 0.18초 늦게 반응(완벽히 동기화된 움직임 = 인형)
+  const ob = plan(B, A, !leadA, act ? { k: act.k, out: n.g.userData.bAct ? n.g.userData.bAct.out : (ua.bAct ? ua.bAct.out : 'accept'), dur: act.dur, hit: act.hit } : null, eB);
   // 동작 중엔 동작 목표, 아니면 기본 블루스 홀드(허리·어깨) — 둘 사이는 o.w 로 섞임
   const mix = (o, isLead) => { if (!act) return o; const bse = plan(isLead ? A : B, isLead ? B : A, isLead, null, 0), w = o.w ?? 1; return { ...o, w: 1, L: blendPt(bse.L, o.L, w), R: blendPt(bse.R, o.R, w), head: blendPt(bse.head, o.head, w), wHead: U.lerp(bse.wHead, o.wHead ?? .55, w), tilt: (o.tilt || 0) * w, lean: (o.lean || 0) * w, toe: (o.toe || 0) * w }; };
   applyPlan(A, mix(oa, leadA), start, B); applyPlan(B, mix(ob, !leadA), start, A);
+  life(A, B, act, e, start, 0, leadA); life(B, A, act, eB, start, 1, !leadA);
+  if (NC.Motion.bridges) { NC.Motion.bridges(ua); NC.Motion.bridges(n.g.userData); }
   ST.stats.frames++;
+}
+/* v40 살아 있는 몸: ① 박자에 맞춘 슬로댄스 체중 이동(2박에 한 번 좌우, 상대는 거울처럼 · 반 박자 늦게) ② 호흡(가까운 동작일수록 깊게)
+ *  ③ 접촉 순간 반응(받는 사람은 숨을 살짝 들이쉬며 상체가 0.5초 동안 미세하게 젖혀졌다 돌아옴) ④ 다가가며 앞쪽 무릎에 체중 */
+const LAG = .18, imp = new WeakMap();
+function life(A, B, act, e, start, who, lead) {
+  const R = A.R, t = performance.now() / 1000, b = NC.Audio && NC.Audio.beat ? NC.Audio.beat() : { phase: (t * 118 / 60) % 1, n: Math.floor(t * 118 / 60) };
+  const intimate = act && HEAD_ACTS.has(act.k) ? 1 : act ? .5 : 0, holdW = act ? 1 - (act ? Math.min(1, env(e, 0, .6, act.dur - .6, act.dur)) : 0) : 1;
+  const ph = (((b.n % 2) + b.phase) / 2 + (who ? .06 : 0)) * Math.PI * 2, sway = Math.sin(ph) * .032 * holdW * start * (who ? -1 : 1);   // 2박 주기 좌우
+  R.hips.rotation.z += sway; R.torso.rotation.z -= sway * .55; R.knL.rotation.x += Math.max(0, Math.sin(ph)) * .07 * holdW * start; R.knR.rotation.x += Math.max(0, -Math.sin(ph)) * .07 * holdW * start;
+  const br = Math.sin(t * Math.PI * 2 * (.24 + who * .03) + who * 1.7) * (.008 + .012 * intimate);   // 호흡: 상체·어깨가 아주 조금 오르내림
+  R.torso.rotation.x += br; R.neck.rotation.x -= br * .5;
+  if (act) {
+    let m = imp.get(A.u); const key = act.t0 + ':' + act.k;
+    if (!lead && e >= act.hit && (!m || m.key !== key)) { m = { key, t0: t }; imp.set(A.u, m); }
+    if (m && m.key === key) { const tt = t - m.t0, k2 = Math.exp(-tt * 6) * Math.sin(Math.min(tt * 9, Math.PI)); R.torso.rotation.x -= .035 * k2; R.neck.rotation.x -= .04 * k2; R.head.rotation.x -= .03 * k2; }
+    if (lead) { const w2 = env(e, 0, act.hit, act.dur - .8, act.dur); R.torso.rotation.x += .04 * w2; R.knL.rotation.x += .05 * w2; }   // 리드: 다가가며 상체를 살짝 기울이고 앞 무릎에 체중
+  }
 }
 const blendPt = (a, b, w) => (!a && !b) ? null : !a ? (w > .02 ? b : null) : !b ? (w < .98 ? a : null) : a.clone().lerp(b, w);
 
@@ -190,7 +211,7 @@ function makeProp(kind) {
   }
   return g;
 }
-const handOf = (R, sd) => R['el' + sd].children.find(c => c.isGroup);
+const handOf = (R, sd) => R['el' + sd].children.find(c => c.userData.isHand || (c.isGroup && !c.userData.bridge));
 /* 건네기: 0~1.1 리드가 손을 내밀어 두 사람 사이로 · .7~1.5 상대가 손을 뻗어 받음 · 1.5 소품이 상대 손으로 넘어감 · 1.5~2.6 상대가 가슴께로 가져가고 리드 손은 돌아감 */
 function handoff(n, kind, onGiven) {
   if (ST.hand) return; const pg = NC.player.group, prop = makeProp(kind), A = pg.userData.rig;
