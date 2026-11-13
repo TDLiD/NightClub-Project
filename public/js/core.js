@@ -8,7 +8,7 @@ const T = window.THREE;
 if (!T) return;
 
 const NC = window.NC = {
-  VERSION: 'v37',   // 화면 왼쪽 위에 표시되는 패키지 버전
+  VERSION: 'v39',   // 화면 왼쪽 위에 표시되는 패키지 버전
   THREE: T, $, version: '14.0.0', mode: 'demo', chatEnabled: false, server: false, config: {},
   settings: { name: '', color: 0xff3d9a, look: null, playMode: 'solo' },
   hooks: { beforeStart: [] }, interactProviders: [], tickers: [],

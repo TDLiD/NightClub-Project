@@ -52,7 +52,7 @@ function BLUES_ACT(p, u) {
   } else if (k === 'dip') {                              // 딥: 리드가 오른팔로 등을 받치고 상체를 숙임 → 상대가 뒤로 젖혀 눕고 한쪽 팔을 우아하게 뻗음
     const w = env3(e, .2, H, D - .9, D - .1);
     if (lead) { const [, , c, d] = HUG_LEAD(); J('shR', c, w); J('elR', [d, 0, 0], w); J('torso', [.32, 0, 0], w); J('head', [.28, 0, 0], w); J('knL', [.3, 0, 0], w); J('knR', [.3, 0, 0], w); p.hipsY = U.lerp(p.hipsY, u.hipH - .06, w); }
-    else if (acc) { J('torso', [-.62, 0, 0], w); J('neck', [-.25, 0, 0], w); J('head', [-.4, .2, 0], w); J('shR', [-.4, 0, -1.35], w); J('elR', [-.15, 0, 0], w); J('legL', [.35, 0, -.05], w); J('knL', [.6, 0, 0], w); J('legR', [-.15, 0, .05], w); p.hipsY = U.lerp(p.hipsY, u.hipH - .05, w); }
+    else if (acc) { J('torso', [-.62, 0, 0], w); J('neck', [-.12, 0, 0], w); J('head', [-.18, .2, 0], w);   /* v39 목·머리가 과하게 꺾이지 않게 */ J('shR', [-.4, 0, -1.35], w); J('elR', [-.15, 0, 0], w); J('legL', [.35, 0, -.05], w); J('knL', [.6, 0, 0], w); J('legR', [-.15, 0, .05], w); p.hipsY = U.lerp(p.hipsY, u.hipH - .05, w); }
     else { const r = env3(e, .6, .9, D - .5, D); J('torso', [-.1, 0, 0], r); arms([-1.2, 0, .3], -.4, [-1.2, 0, -.3], -.4, r); }
   } else if (k === 'forehead') {                         // 이마 맞대기: 서로 고개를 숙여 이마를 붙이고 눈을 감음
     const w = env3(e, 0, .9, D - .7, D), r = acc ? 1 : env3(e, 0, .5, H, H + .3);

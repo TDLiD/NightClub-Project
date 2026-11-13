@@ -608,6 +608,7 @@ function startBlues(n) {
   if (K.playing) stop(true);
   if (P.seat) { const s = P.seat; if (s.kind === 'karaoke') { occ[s.s] = null; NC.unseatAvatar(P.group, BL.c.x, BL.c.z); P.seat = null; } else NC.standLocal(); }
   occ.forEach((o, k) => { if (o === n) occ[k] = null; }); NC.unseatAvatar(n.g, BL.c.x, BL.c.z);
+  BL.s0 = { px: P.x, pz: P.z, nx: n.x, nz: n.z };   // v39 Approach: 순간이동 없이 지금 자리에서 걸어와 자리 잡음
   BL.n = n; BL.t = 0; BL.t0 = performance.now(); BL.kiss = 0; n.state = 'blues'; n.g.userData.lookAt = null; P.group.userData.lookAt = null;
   BL.glass = [P.group.userData.holdGlass, n.g.userData.holdGlass]; P.group.userData.holdGlass = n.g.userData.holdGlass = false;
   P.group.userData.dance = 'blues'; P.group.userData.bluesLead = true; n.g.userData.dance = 'blues'; n.g.userData.bluesLead = false; P.group.userData.hideLabel = n.g.userData.hideLabel = true;
@@ -690,13 +691,17 @@ const ACT = {   // 동작 길이(초) · 반응 시점(초) · 서로 더 붙는
   undress: { dur: 3.4, hit: 1.25, close: 0, desc: '👚 옷자락을 잡고 위로 천천히 올린다' },
   dress: { dur: 2.4, hit: .9, close: 0, desc: '👕 벗겨진 겉옷을 다시 입혀 준다' },
 };
+function bluesCancel() {   // v39 동작 중 취소/전환: 진행 중인 반응·종료 타이머를 지우고 자세는 부드럽게 블루스 홀드로 복귀
+  (BL.tm || []).forEach(clearTimeout); BL.tm = []; const P = NC.player; BL.busy = false; BL.act = null; if (P.group) P.group.userData.bAct = null; if (BL.n) BL.n.g.userData.bAct = null; BL.kiss = 0;
+}
 function bluesAct(kind, forced) {
-  const n = BL.n; if (!n || BL.busy) return; const D = NC.Dialog, P = NC.player, r = forced || REACT[kind](n), a = ACT[kind], t0 = performance.now();
+  if (BL.busy) bluesCancel();
+  const n = BL.n; if (!n) return; const D = NC.Dialog, P = NC.player, r = forced || REACT[kind](n), a = ACT[kind], t0 = performance.now(); BL.tm = BL.tm || [];
   const dur = r.kiss ? Math.max(a.dur, r.kiss + a.hit + .6) : a.dur;
   BL.busy = true; BL.act = { k: kind, t0, dur, close: r.out === 'refuse' && !r.kiss ? Math.min(a.close, .03) : a.close, flip: a.flip && r.out === 'accept', spin: a.spin, hit: a.hit };
   P.group.userData.bAct = { k: kind, t0, dur, out: r.out, hit: a.hit }; n.g.userData.bAct = { k: kind, t0, dur, out: r.out, hit: a.hit };
   D.sys(a.desc); D.chips();
-  setTimeout(() => {                                    // 상대 반응
+  BL.tm.push(setTimeout(() => {                                    // 상대 반응
     if (BL.n !== n) return;
     if (r.kiss) { BL.kiss = r.kiss; BL.kissDur = r.kiss; BL.deep = kind === 'deepkiss'; n.bl.kissed = true; }
     if (r.strip && NC.Avatar.undress(n.g, true)) { NC.ui.toast(`👚 ${n.name}의 겉옷이 벗겨졌어요 — 부르스가 끝나면 다시 입어요`); }
@@ -705,12 +710,12 @@ function bluesAct(kind, forced) {
     else if (r.g) { n.g.userData.bAct = null; NC.Motion.play(n.g, r.g); }
     if (r.out === 'accept') { n.g.userData.setExpr && n.g.userData.setExpr(r.e === 'kiss' ? 'kiss' : r.e, (dur - a.hit) + .5); P.group.userData.setExpr && P.group.userData.setExpr(r.e === 'kiss' ? 'kiss' : 'smile', (dur - a.hit) + .3); }
     aff(n, r.d); D.npcSay(r.line, r.e === 'kiss' ? 'shy' : r.e); if (r.slap) { n.bl.warned++; NC.ui.toast(`💔 ${n.name}: 호감도 ${r.d} — 상대가 원하지 않는 스킨십은 역효과예요`); }
-  }, a.hit * 1000);
-  setTimeout(() => {                                    // 동작 종료
+  }, a.hit * 1000));
+  BL.tm.push(setTimeout(() => {                                    // 동작 종료
     BL.busy = false; BL.act = null; P.group.userData.bAct = null; n.g.userData.bAct = null; if (BL.n !== n) return;
     if (r.stop) { const w = BL.where; endBlues('refuse'); if (n.aff < 25 || n.bl.warned >= 2) (w === 'karaoke' ? guestLeave : clubLeave)(n, U.pick(['저 먼저 갈게요. 즐거우세요.', '저 친구들한테 갈게요.'])); }
     else D.chips();
-  }, (r.slap ? a.hit + 1.0 : dur) * 1000);
+  }, (r.slap ? a.hit + 1.0 : dur) * 1000));
 }
 /* ───── v19 회원 전용 프리미엄 로맨스 (노래방 블루스 중, 각 🪙500 · 상대가 항상 받아 줌) ─────
  *  로맨틱 딥 & 키스 · 이마 키스 · 백허그 슬로댄스 · 달콤한 키스 · 소파에 기대 쉬기 · 러브샷 · 장미 꽃다발 · 손편지 고백 · 커플링 · 커플 사진
@@ -722,6 +727,7 @@ const hearts = (g, n = 10, emo = ['💕', '💖', '❤️', '💗']) => { const 
   F.burst(p.x, p.y + 1.9, p.z, { n: 60, colors: ['#ff5fa8', '#ff9ad0', '#ffffff', '#ffd23d'], up: 1.3, spread: .9, life: 1.6, size: .05, g: .6 }); };
 const toss = (from, to, emo, done) => { const F = NC.Features && NC.Features.fx; if (!F) return done && done(); const sp = F.emojiSprite(emo, .32); NC.scene.add(sp); const a = from.position.clone(), b = to.position.clone(); a.y += 1.35; b.y += 1.35; const t0 = performance.now();
   const tick = () => { const k = Math.min(1, (performance.now() - t0) / 850); sp.position.lerpVectors(a, b, k); sp.position.y += Math.sin(k * Math.PI) * .45; if (k < 1) requestAnimationFrame(tick); else { NC.scene.remove(sp); done && done(); } }; requestAnimationFrame(tick); };
+const give = (n, kind, emo, done) => NC.Couple ? NC.Couple.handoff(n, kind, done) : toss(NC.player.group, n.g, emo, done);   // v39 실제 3D 소품을 손에서 손으로
 const yes = (line, e = 'shy', d = 4, extra = {}) => Object.assign({ out: 'accept', d, e, line }, extra);
 function premium(kind) {
   const n = BL.n, P = NC.player, D = NC.Dialog; if (!n || BL.busy) return;
@@ -739,16 +745,15 @@ function premium(kind) {
     case 'sofa': {   // 블루스를 마치고 소파에 나란히 앉아 그녀가 어깨에 기댐
       endBlues('stop'); NC.ui.fade(() => { const si = 1, sj = 2; occ.forEach((o, k) => { if (o === n || o === 'me') occ[k] = null; }); occ[si] = 'me'; occ[sj] = n;
         NC.sitPlayer({ kind: 'karaoke', s: si }, SEATS[si]); const s2 = SEATS[sj]; n.x = s2.x; n.z = s2.z; NC.NPC.sit(n, s2.x, s2.z, s2.ry, s2.h); n.g.userData.lookAt = P.group.position;
-        const fig = n.g.userData.fig; if (fig) { fig.rotation.z = .16; setTimeout(() => { fig.rotation.z = 0; }, 14000); }
+        if (NC.Couple) NC.Couple.sofa(n, 14); else { const fig = n.g.userData.fig; if (fig) { fig.rotation.z = .16; setTimeout(() => { fig.rotation.z = 0; }, 14000); } }   // v39 머리를 어깨에 기대고 팔로 어깨 감싸기
         n.aff = U.clamp(n.aff + 4, 0, 100); setTimeout(() => { if (!D.cur) D.open(n, { intro: U.pick(['(어깨에 머리를 기대며) …잠깐만 이러고 있어도 돼요?', '여기 앉으니까 노래 소리가 멀게 들려요… 좋다 💗']) }); hearts(n.g, 8); }, 700); }); break; }
-    case 'loveshot': NC.Motion.play(P.group, 'cheers'); NC.Motion.play(n.g, 'cheers'); D.sys('🥂 팔을 걸고 러브샷!');
-      after(900, () => { NC.Motion.play(P.group, 'drink'); NC.Motion.play(n.g, 'drink'); }); after(2200, () => { aff(n, 4); D.npcSay(U.pick(['ㅋㅋㅋ 러브샷 진짜 오랜만이에요!', '(얼굴이 빨개지며) 술 때문이에요… 아마도 💗']), 'laugh'); hearts(n.g, 6, ['🥂', '💕', '✨']); }); break;
+    case 'loveshot': D.sys('🥂 팔을 걸고 러브샷!'); if (NC.Couple) NC.Couple.loveshot(n, 3.4); else { NC.Motion.play(P.group, 'cheers'); NC.Motion.play(n.g, 'cheers'); after(900, () => { NC.Motion.play(P.group, 'drink'); NC.Motion.play(n.g, 'drink'); }); } after(2200, () => { aff(n, 4); D.npcSay(U.pick(['ㅋㅋㅋ 러브샷 진짜 오랜만이에요!', '(얼굴이 빨개지며) 술 때문이에요… 아마도 💗']), 'laugh'); hearts(n.g, 6, ['🥂', '💕', '✨']); }); break;
     case 'rose': D.sys('🌹 등 뒤에 숨겼던 장미 꽃다발을 건넨다'); NC.Motion.play(P.group, 'bow');
-      toss(P.group, n.g, '💐', () => { NC.Motion.play(n.g, 'shy'); aff(n, 4); D.npcSay(U.pick(['어머… 꽃이요? 진짜 감동이에요 ㅠㅠ 💗', '(꽃다발에 얼굴을 묻으며) 향기 너무 좋다…']), 'shy'); hearts(n.g, 12, ['🌹', '💕', '💖']); }); break;
+      give(n, 'rose', '💐', () => { NC.Motion.play(n.g, 'shy'); aff(n, 4); D.npcSay(U.pick(['어머… 꽃이요? 진짜 감동이에요 ㅠㅠ 💗', '(꽃다발에 얼굴을 묻으며) 향기 너무 좋다…']), 'shy'); hearts(n.g, 12, ['🌹', '💕', '💖']); }); break;
     case 'letter': NC.ui.modal('<h3>💌 손편지 쓰기</h3><textarea id="loveLetter" rows="4" style="width:100%;box-sizing:border-box;border-radius:10px;padding:8px;background:#241148;color:#fff;border:1px solid #6b4bc0" maxlength="200" placeholder="오늘 처음 봤는데…"></textarea>', [['💌 건네기', 'ok', true], ['취소', 0]])
       .then(r => { const t = r.root && r.root.querySelector('#loveLetter'), txt = (t && t.value.trim()) || '오늘 당신을 만나서 행복했어요.'; if (r.val !== 'ok') { NC.Wallet.add(PREMIUM_COST, '손편지 취소 환불'); return; }
-        D.sys(`💌 "${txt.slice(0, 80)}${txt.length > 80 ? '…' : ''}"`); toss(P.group, n.g, '💌', () => { NC.Motion.play(n.g, 'think'); after(1500, () => { NC.Motion.play(n.g, 'shy'); aff(n, 5); D.npcSay(U.pick(['(편지를 꼭 쥐며) …이거 집에 가서 몇 번이고 읽을 거예요', '손편지라니… 반칙이에요 ㅠㅠ 💗']), 'shy'); hearts(n.g, 10); }); }); }); break;
-    case 'ring': D.sys('💍 작은 상자를 열어 커플링을 끼워 준다'); toss(P.group, n.g, '💍', () => { NC.Motion.play(n.g, 'cheer'); NC.Motion.play(P.group, 'cheer'); aff(n, 6);
+        D.sys(`💌 "${txt.slice(0, 80)}${txt.length > 80 ? '…' : ''}"`); give(n, 'letter', '💌', () => { NC.Motion.play(n.g, 'think'); after(1500, () => { NC.Motion.play(n.g, 'shy'); aff(n, 5); D.npcSay(U.pick(['(편지를 꼭 쥐며) …이거 집에 가서 몇 번이고 읽을 거예요', '손편지라니… 반칙이에요 ㅠㅠ 💗']), 'shy'); hearts(n.g, 10); }); }); }); break;
+    case 'ring': D.sys('💍 작은 상자를 열어 커플링을 끼워 준다'); give(n, 'ring', '💍', () => { NC.Motion.play(n.g, 'cheer'); NC.Motion.play(P.group, 'cheer'); aff(n, 6);
       D.npcSay(U.pick(['꺄… 커플링이요?! 오늘부터 1일이에요? 💍💗', '(손가락을 들어 반짝이는 반지를 본다) …예쁘다']), 'laugh'); hearts(n.g, 14, ['💍', '💖', '✨']); }); break;
     case 'photo': D.sys('📸 볼을 맞대고 커플 사진 찰칵!'); bluesAct('cheek', yes('김치~ 📸 (볼을 맞대고 브이)', 'laugh', 3));
       after(1300, () => { const f = document.createElement('div'); f.style.cssText = 'position:fixed;inset:0;background:#fff;opacity:.9;z-index:80;transition:opacity .5s;pointer-events:none'; document.body.appendChild(f); setTimeout(() => { f.style.opacity = 0; setTimeout(() => f.remove(), 500); }, 80);
@@ -759,7 +764,7 @@ const CHIPS = [['👂 귓속말', 'whisper'], ['🤲 허리 끌어당기기', 'w
   ['🤗 꼭 안아 주기', 'hug'], ['🫂 백허그', 'backhug'], ['💋 키스하기', 'kiss']];   // v19: 신체 접촉·탈의 옵션은 제거
 NC.dialogChipsOverride = (n, CHIP) => {
   if (BL.n !== n) return false;
-  if (BL.busy) { CHIP('⏳ …', () => {}); return true; }
+  if (BL.busy) CHIP('⏹ 지금 동작 멈추기', () => { bluesCancel(); NC.Dialog.chips(); });   // v39 동작 중에도 다른 동작으로 바로 전환 가능
   CHIPS.forEach(([l, k]) => CHIP(l, () => bluesAct(k), k === 'kiss' ? 'pri' : ''));
   if (n.g.userData.undressed) CHIP('👕 옷 다시 입혀 주기', () => bluesAct('dress'));
   if (BL.where === 'karaoke' || K.inRoom) PREMIUM.forEach(([l, k]) => CHIP(`${NC.account ? '💎' : '🔒'} ${l} 🪙${PREMIUM_COST}`, () => premium(k)));
@@ -779,9 +784,10 @@ const sm = (a, b, x) => U.clamp((x - a) / (b - a), 0, 1);
 NC.tickers.push(dt => {
   if (!BL.n) return; const n = BL.n, P = NC.player; BL.t += dt; if (BL.kiss > 0) BL.kiss -= dt;
   const kd = BL.kissDur, k = BL.kiss > 0 ? Math.min(1, (kd - BL.kiss) / .55, BL.kiss / .55) : 0, A = BL.act, ae = A ? (performance.now() - A.t0) / 1000 : 0,
-    cl = A ? A.close * Math.min(1, ae / .7, Math.max(0, (A.dur - ae) / .7)) : 0, a = .28 * Math.sin(BL.t * .35) * (A ? .3 : 1), d = .23 - .05 * k - cl, c = BL.c;
+    cl = A ? A.close * Math.min(1, ae / .7, Math.max(0, (A.dur - ae) / .7)) : 0, a = .28 * Math.sin(BL.t * .35) * (A ? .3 : 1), d = .215 - .05 * k - cl, c = BL.c;
   P.group.userData.kissK = n.g.userData.kissK = k; P.group.userData.kissDeep = n.g.userData.kissDeep = BL.deep && k > 0;
   P.x = c.x - Math.cos(a) * d; P.z = c.z - Math.sin(a) * d; n.x = c.x + Math.cos(a) * d; n.z = c.z + Math.sin(a) * d;
+  if (BL.s0 && BL.t < 1.4) { const q = BL.t / 1.4, k2 = q * q * (3 - 2 * q), S0 = BL.s0; P.x = U.lerp(S0.px, P.x, k2); P.z = U.lerp(S0.pz, P.z, k2); n.x = U.lerp(S0.nx, n.x, k2); n.z = U.lerp(S0.nz, n.z, k2); P.group.userData.moving = n.g.userData.moving = q < .85; } else if (BL.s0) { BL.s0 = null; P.group.userData.moving = n.g.userData.moving = false; }
   P.ry = Math.atan2(n.x - P.x, n.z - P.z); P.group.rotation.y = P.ry;
   let ny = P.ry + Math.PI;
   if (A && A.flip) ny += Math.PI * sm(.3, 1.1, ae) * (1 - sm(A.dur - .9, A.dur - .1, ae));           // 백허그: 상대가 돌아섰다가 다시 마주 봄

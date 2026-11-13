@@ -24,12 +24,56 @@ const VIVID_HAIR = ['#e8c35a', '#ff8fb8', '#9be15d', '#c9572f', '#7a8cff', '#f2f
 const TOPS_M = ['shirt', 'jacket', 'tee', 'overshirt', 'jacket', 'overshirt'];
 const hsl = (h, s, l) => '#' + new T.Color().setHSL(h, s, l).getHexString();
 
-function randomLook(seed, gender) {
+/* ═════ v38 인종·외모 다양성 ═════
+ *  각 인종은 피부톤(언더톤)·모발·눈동자색뿐 아니라 얼굴 골격(콧대 높이·코볼 너비·광대·눈썹뼈·눈두덩 깊이·입술 두께와 돌출·턱)과
+ *  눈 모양(쌍꺼풀 유무·몽고주름·눈 높이)이 다르고, 같은 인종 안에서도 범위 안에서 사람마다 다르게 뽑음 → 같은 얼굴에 피부색만 바꾼 복제 없음 */
+const gauss = r => Math.max(-2.2, Math.min(2.2, (r() + r() + r() + r() - 2) * 1.73));
+const ETH_ALIAS = { west: 'white', jp: 'east', kr: 'east', cn: 'east', asian: 'east' };
+const ETH = {
+  black: { skin: ['#9a6648', '#8d5a3b', '#7a4a2e', '#6b4228', '#5a3825', '#4a2e20', '#3f2a1f'], hair: ['#0e0a09', '#16100d', '#1f1612', '#2a1c14', '#0e0a09', '#5a3a22'], eye: ['#2a1a10', '#3a2416', '#1e140c'],
+    hf: ['afro', 'braids', 'wavy', 'bun', 'curly', 'ponytail', 'bob', 'afro', 'braids'], hm: ['buzz', 'afro', 'curly', 'fade', 'buzz', 'fade', 'short'],
+    m: { noseW: [1.26, 1.5], bridge: [.66, .86], lipFull: [1.3, 1.62], lipW: [1.04, 1.16], cheek: [1.0, 1.18], jaw: [.98, 1.1], faceW: [.94, 1.04], eyeOpen: [.98, 1.1], epi: [0, 0], lid: .85, ridge: [.95, 1.15], socket: [.9, 1.1], prog: [1.15, 1.4], tilt: [-.04, .05], brow: [.95, 1.2] } },
+  white: { skin: ['#f6e0d2', '#f3d6c4', '#efcfb8', '#e8c0a4', '#e2b496', '#d6a684', '#f0d2c0'], hair: ['#e8c35a', '#d8b878', '#c9a060', '#a8743a', '#8a5a30', '#5a3a22', '#3b2417', '#7a3a20', '#b05a2a', '#17110f'], eye: ['#3d5a7a', '#4a6a3a', '#6a5a3a', '#2f4f6f', '#5a3a20', '#7a6a4a', '#4a3a2a'],
+    hf: ['long', 'wavy', 'bob', 'ponytail', 'bun', 'wavy', 'long'], hm: ['side', 'slick', 'curtain', 'short', 'curly', 'wolf', 'fade'],
+    m: { noseW: [.86, 1.02], bridge: [1.12, 1.4], lipFull: [.76, 1.1], lipW: [.92, 1.05], cheek: [.88, 1.04], jaw: [.95, 1.14], faceW: [.86, .96], eyeOpen: [.96, 1.1], epi: [0, 0], lid: 1, ridge: [1.1, 1.38], socket: [1.12, 1.38], prog: [.85, 1.0], tilt: [-.06, .03], brow: [.9, 1.15] } },
+  east: { skin: ['#f5dcc5', '#f2d3b8', '#ecc7a6', '#e8c09c', '#dfb592', '#d8ab88'], hair: ['#0e0b0e', '#17110f', '#241812', '#17110f', '#3b2417', '#4e3020', '#6e4425'], eye: ['#2a1a10', '#3a2416', '#30251c', '#4a2e1a'],
+    hf: ['long', 'bob', 'ponytail', 'wavy', 'bun', 'long', 'bob'], hm: ['curtain', 'twoblock', 'side', 'slick', 'short', 'spiky', 'curtain'],
+    m: { noseW: [.98, 1.14], bridge: [.62, .84], lipFull: [.92, 1.2], lipW: [.92, 1.04], cheek: [1.05, 1.22], jaw: [.96, 1.08], faceW: [.98, 1.08], eyeOpen: [.74, .92], epi: [.45, 1], lid: .45, ridge: [.68, .86], socket: [.58, .8], prog: [.95, 1.08], tilt: [0, .09], brow: [.85, 1.05] } },
+  sea: { skin: ['#d4a27a', '#c8946a', '#c08a5e', '#b88358', '#a9744e', '#9c6a46'], hair: ['#0e0b0e', '#17110f', '#241812', '#3b2417', '#17110f'], eye: ['#2a1a10', '#3a2416', '#1e140c'],
+    hf: ['long', 'wavy', 'ponytail', 'bob', 'bun', 'long'], hm: ['short', 'side', 'curtain', 'spiky', 'slick', 'curly', 'fade'],
+    m: { noseW: [1.12, 1.3], bridge: [.64, .86], lipFull: [1.08, 1.35], lipW: [.98, 1.1], cheek: [1.0, 1.15], jaw: [.96, 1.06], faceW: [.96, 1.05], eyeOpen: [.86, 1.0], epi: [.15, .55], lid: .7, ridge: [.8, .98], socket: [.75, .95], prog: [1.02, 1.18], tilt: [-.02, .06], brow: [.9, 1.1] } },
+  south: { skin: ['#c48d63', '#b98058', '#a8714c', '#93613f', '#7e5236', '#6e4630'], hair: ['#0e0b0e', '#17110f', '#241812', '#2c1c12', '#0e0b0e'], eye: ['#2a1a10', '#3a2416', '#1e140c', '#4a3a20'],
+    hf: ['long', 'braids', 'wavy', 'bun', 'ponytail', 'long'], hm: ['side', 'short', 'slick', 'curly', 'wolf', 'side'],
+    m: { noseW: [1.0, 1.16], bridge: [1.0, 1.24], lipFull: [1.02, 1.25], lipW: [.98, 1.08], cheek: [.98, 1.1], jaw: [.95, 1.08], faceW: [.9, 1.0], eyeOpen: [1.0, 1.12], epi: [0, .1], lid: 1, ridge: [1.0, 1.18], socket: [1.0, 1.22], prog: [.98, 1.1], tilt: [-.05, .03], brow: [1.15, 1.45] } },
+};
+ETH.mixed = { skin: ['#e0b896', '#d6a985', '#c99a76', '#b88a66', '#b07a55', '#a06a4a'], hair: ['#17110f', '#3b2417', '#5a3a22', '#8a5a30', '#241812'], eye: ['#5a3a20', '#6a5a3a', '#3a2416', '#4a6a3a', '#7a6a4a'],
+  hf: ['wavy', 'curly', 'long', 'afro', 'ponytail', 'braids', 'bob'], hm: ['curly', 'fade', 'side', 'short', 'curtain', 'buzz'], m: null };
+const ETH_KEYS = ['east', 'east', 'white', 'white', 'black', 'black', 'sea', 'sea', 'south', 'mixed', 'mixed', 'east', 'white', 'black', 'sea', 'south', 'mixed', 'south'];
+const ETH_LABEL = { east: '동아시아', white: '유럽계', black: '아프리카계', sea: '동남아시아', south: '남아시아', mixed: '혼혈·다문화' };
+function pickEth(r) { return ETH_KEYS[Math.floor(r() * ETH_KEYS.length)]; }
+function applyEthnic(o, eth, r, f) {
+  const E = ETH[eth] || ETH.east, pick = a => a[Math.floor(r() * a.length)], F = o.face, rng = ([a, b]) => a + (b - a) * r();
+  let M = E.m;
+  if (!M) { const ks = ['black', 'white', 'east', 'sea', 'south'], a = ETH[pick(ks)].m, b = ETH[pick(ks)].m, k = .3 + r() * .4; M = {}; for (const key in a) M[key] = Array.isArray(a[key]) ? [a[key][0] * k + b[key][0] * (1 - k), a[key][1] * k + b[key][1] * (1 - k)] : a[key] * k + b[key] * (1 - k); }
+  o.skin = pick(E.skin); o.hairColor = pick(E.hair); o.hairStyle = pick(f ? E.hf : E.hm); F.eyeColor = pick(E.eye);
+  Object.assign(F, { noseW: rng(M.noseW), bridge: rng(M.bridge), lipFull: rng(M.lipFull) * (f ? 1 : .88), lipW: rng(M.lipW), cheek: rng(M.cheek), jaw: rng(M.jaw) * (f ? .97 : 1.03), faceW: rng(M.faceW) * (f ? .98 : 1.02),
+    eyeOpen: rng(M.eyeOpen), epi: rng(M.epi), lid: r() < M.lid ? 1 : 0, ridge: rng(M.ridge) * (f ? .8 : 1), socket: rng(M.socket), prog: rng(M.prog), eyeTilt: rng(M.tilt) + (r() - .5) * .04,
+    eyeSize: .92 + r() * .14, nose: .9 + r() * .2, browThick: (f ? .55 + r() * .3 : .9 + r() * .45) * rng(M.brow), chin: .85 + r() * .3 });
+  // 사람마다 다른 좌우 비대칭(아주 조금) — 완벽한 대칭의 인형 얼굴 방지
+  F.asym = { eyeY: (r() - .5) * .014, eyeS: (r() - .5) * .07, browY: (r() - .5) * .018, mouth: (r() - .5) * .012, nose: (r() - .5) * .016, jaw: (r() - .5) * .05 };
+  const lum = (() => { const c = new T.Color(o.skin); return c.r * .3 + c.g * .59 + c.b * .11; })(); F.skinLum = lum;
+  const lipBase = new T.Color(o.skin).lerp(new T.Color(f ? '#a8404c' : '#8a4840'), f ? .5 : .32); if (lum < .35) lipBase.multiplyScalar(.82);
+  F.lipColor = '#' + lipBase.getHexString(); F.blush = (f ? .08 + r() * .16 : r() * .05) * (lum < .4 ? .35 : 1);
+  // 90년대 수염: 콧수염·염소수염·턱수염·면도 자국 (동아시아·동남아시아는 적게)
+  if (!f) { const fac = eth === 'east' || eth === 'sea' ? .55 : 1, x = r(); F.beard = x < .32 * fac ? 'stubble' : x < .46 * fac ? 'goatee' : x < .56 * fac ? 'mustache' : x < .66 * fac ? 'full' : null; }
+  if (eth === 'white' && r() < .18) F.freckles = true;
+}
+function randomLook(seed, gender, ethForce) {
   const r = U.rng(seed), pick = a => a[Math.floor(r() * a.length)];
   const g = gender || (r() < .5 ? 'f' : 'm'), f = g === 'f';
   const top = pick(f ? TOPS_F : TOPS_M);
   const o = {
-    gender: g, height: f ? 1.6 + r() * .12 : 1.72 + r() * .12, build: .92 + r() * .2,
+    gender: g, height: f ? 1.62 + gauss(r) * .065 : 1.75 + gauss(r) * .07, build: .94 + r() * .14, age: 21 + Math.floor(r() * 22),   // v38 키: 실제 성인 분포(여 1.49~1.75 · 남 1.61~1.89)
     skin: pick(SKINS), hairStyle: pick(f ? HAIR_F : HAIR_M), hairColor: r() < .22 ? pick(VIVID_HAIR) : pick(HAIRC),
     pattern: pick(PATTERNS), hat: pick(HATS), hatColor: hsl(r(), .5, .3 + r() * .3), shoeColor: r() < .6 ? '#f4f4f6' : hsl(r(), .6, .5),
     top, topColor: hsl(r(), .55 + r() * .35, .42 + r() * .2),
@@ -45,50 +89,51 @@ function randomLook(seed, gender) {
       beard: !f && r() < .25 ? (r() < .6 ? 'stubble' : 'goatee') : null, glasses: r() < .2, sunglasses: r() < .14, earring: f && r() < .55,
     },
   };
-  // v14 ① 인종 다양화: 동양 40% · 서양 30% · 흑인 30% (피부톤·헤어·이목구비)
-  const eth = r() < .4 ? 'east' : r() < .5 ? 'west' : 'black'; o.ethnic = eth;
-  if (eth === 'west') { o.skin = pick(['#f6dccb', '#f2d0bc', '#ecc6a8', '#f8e4d6']); if (r() < .55) o.hairColor = pick(['#e8c35a', '#c9a060', '#a8743a', '#d8b878', '#8a5a30']); o.face.eyeColor = pick(['#3d5a7a', '#4a6a3a', '#5a4a30', '#2f4f6f']); o.face.nose *= 1.08; o.face.lid = 1; }
-  else if (eth === 'black') { o.skin = pick(['#8d5a3b', '#7a4a2e', '#6b4026', '#5a3420', '#9e6a48']); o.hairColor = pick(['#120c0a', '#1c1410', '#2a1c14']); o.face.lipFull = Math.max(o.face.lipFull, 1.25); o.face.nose *= 1.05;
-    o.hairStyle = f ? pick(['braids', 'wavy', 'bun', 'long', 'curly' === 'x' ? 'long' : 'ponytail']) : pick(['buzz', 'curly', 'twoblock', 'short']); o.face.lipColor = f ? pick(['#8a2a3a', '#a83e52', '#b85a6a']) : '#7a4a42'; }
-  else { o.skin = pick(['#f7dcc8', '#f1c9a5', '#fae3d3', '#ecc0a0', '#e3b08a']); }
+  // v38 ① 인종·외모 다양성 6분류 — 피부색만이 아니라 얼굴 골격(콧대·코볼·광대·눈꺼풀·입술·눈썹뼈)·눈 모양·모발까지 다르게
+  const eth = ETH_ALIAS[ethForce] || ethForce || pickEth(r); o.ethnic = eth;
+  applyEthnic(o, eth, r, f);
   if (!f) {   // ③ 남성: 미남 50% · 개성파 50% · 근육질 30%
     const hand = r() < .5; o.face.attractive = hand;
-    if (hand) Object.assign(o.face, { eyeSize: 1.0 + r() * .1, browThick: 1.1 + r() * .3, browTilt: .05, jaw: 1.0 + r() * .06, faceW: .92 + r() * .04, nose: .88 + r() * .1, mole: null, freckles: false });
-    else Object.assign(o.face, { eyeSize: .74 + r() * .12, browThick: .7 + r() * 1.0, browTilt: (r() - .5) * .5, jaw: 1.08 + r() * .1, faceW: 1.02 + r() * .06, nose: 1.15 + r() * .2, eyeGap: .03 + r() * .03, mole: r() < .6 ? [(r() - .5) * .9, .2 + r() * .4] : null });
+    if (hand) Object.assign(o.face, { eyeSize: o.face.eyeSize * (1.0 + r() * .06), browThick: o.face.browThick * (1.05 + r() * .15), jaw: o.face.jaw * (1.0 + r() * .04), mole: null, freckles: false });   // v38 인종 골격은 유지하고 미세 조정만
+    else Object.assign(o.face, { eyeSize: o.face.eyeSize * (.9 + r() * .08), browThick: o.face.browThick * (.8 + r() * .5), browTilt: (r() - .5) * .4, jaw: o.face.jaw * (1.04 + r() * .08), faceW: o.face.faceW * (1.02 + r() * .05), nose: o.face.nose * (1.06 + r() * .14), eyeGap: .02 + r() * .03, mole: r() < .5 ? [(r() - .5) * .9, .2 + r() * .4] : null });
     o.muscle = r() < .3 ? .6 + r() * .4 : r() * .25;
   }
-  if (!f) {   // v25 남성 실사 의상: 원색 랜덤 대신 실제 남성복 팔레트(네이비·차콜·블랙·베이지·올리브·데님) · 무지 위주 · 청바지/치노/슬랙스 · 가죽 구두/스니커즈
+  if (!f) {   // v38 남성 90년대 나이트 의상: 가죽 재킷 · 실크 셔츠(오픈 칼라) · 오버사이즈 셔츠 · 블랙 피티드 셔츠 · 클래식 수트 · 청청(빈티지 데님) · 90s 스트리트
     const OUTFITS = [
-      { top: 'jacket', tops: ['#1f2a44', '#2b2d33', '#3a3f47', '#4a3b2c', '#20242a'], inner: 'tee', inners: ['#f2f0ea', '#1c1c20', '#d9d4c8'], bots: ['#2c3e5c', '#1d2533', '#141418'], shoes: ['#1a1412', '#3a2418'] },   // 블레이저 + 티 + 청바지
-      { top: 'shirt', tops: ['#f3f1ec', '#cfd8e6', '#e9e2d4', '#2d3e5e', '#1b1b1f'], bots: ['#2c3e5c', '#c2b29a', '#33363c'], shoes: ['#1a1412', '#5a3a22', '#f2f2f2'] },                                             // 셔츠 + 청바지/치노
-      { top: 'tee', tops: ['#f4f4f2', '#1a1a1d', '#3b4a3a', '#6a6f78', '#7a2e33'], bots: ['#2c3e5c', '#1d2533', '#5b5f66'], shoes: ['#f2f2f2', '#1a1a1d'] },                                                     // 무지 티 + 청바지 + 스니커즈
-      { top: 'overshirt', tops: ['#4a5a3a', '#6b4b33', '#2f3b52', '#3a3a3e', '#8a7a5a'], inner: 'tee', inners: ['#f2f0ea', '#1c1c20'], bots: ['#1d2533', '#c2b29a', '#141418'], shoes: ['#3a2418', '#f2f2f2'] },       // 오버셔츠(셔켓) 레이어드
-      { top: 'jacket', setup: true, tops: ['#1b2236', '#26282e', '#3a3c42'], inner: 'tee', inners: ['#f4f2ee'], bots: null, shoes: ['#120e0c'] },                                                                         // 수트 셋업
+      { top: 'jacket', leather: true, tops: ['#141214', '#2a1c14', '#3a2418', '#1c1a1e'], inner: 'tee', inners: ['#f2f0ea', '#1c1c20', '#7a1c24', '#d9d4c8'], bots: ['#2c3e5c', '#3a5070', '#1d2533', '#141418'], fit: 'skinny', shoes: ['#141018', '#3a2418'], boots: .55 },
+      { top: 'shirt', satin: true, open: true, tops: ['#7a1c2c', '#1c2a4a', '#3a1c4a', '#b89a5a', '#141418', '#e8e0d0', '#2a4a3a'], bots: ['#141418', '#2b2d33', '#3a3028', '#1d2533'], fit: 'wide', shoes: ['#120e0c', '#2a1c14'] },
+      { top: 'shirt', oversize: true, pats: ['solid', 'stripe', 'plaid', 'solid'], tops: ['#cfd8e6', '#e8d8c8', '#b8c8a8', '#f0e8d8', '#8aa0c0', '#d8c0d0'], bots: ['#3a5070', '#2c3e5c', '#5a7a9a'], fit: 'wide', shoes: ['#f2f2f2', '#141018'] },
+      { top: 'shirt', tops: ['#0e0c10', '#141218'], bots: ['#141418', '#2c3e5c', '#2b2d33'], fit: 'skinny', shoes: ['#120e0c'], boots: .3 },
+      { top: 'jacket', setup: true, tops: ['#1b2236', '#26282e', '#3a3c42', '#4a3b2c', '#2a2a30'], inner: 'tee', inners: ['#f4f2ee', '#141016', '#c8b8a0'], bots: null, shoes: ['#120e0c', '#2a1c14'] },
+      { top: 'jacket', denimTop: true, tops: ['#4a6a8a', '#3a5070', '#5a7a9a', '#2c3e5c'], inner: 'tee', inners: ['#f4f2ee', '#c8b8a0', '#1c1c20'], bots: ['#2c3e5c', '#3a5070', '#141418'], fit: 'wide', shoes: ['#f2f2f2', '#3a2418'] },
+      { top: 'tee', oversize: true, pats: ['solid', 'graphic', 'solid', 'stripe'], tops: ['#f4f4f2', '#1a1a1d', '#2a4a7a', '#7a2e33', '#4a5a3a'], bots: ['#3a5070', '#2c3e5c', '#5b5f66'], fit: 'wide', shoes: ['#f2f2f2', '#1a1a1d'], cap: .45 },
     ];
     const ot = pick(OUTFITS); o.top = ot.top; o.topColor = pick(ot.tops); o.inner = ot.inner || o.inner; if (ot.inners) o.innerColor = pick(ot.inners);
-    o.setup = !!ot.setup; o.bottom = r() < .08 ? 'shorts' : 'pants'; o.bottomColor = ot.bots ? pick(ot.bots) : o.topColor;
-    o.fit = r() < .7 ? 'skinny' : 'wide'; o.oversize = r() < .15; o.set = false; o.pattern = r() < .82 ? 'solid' : pick(['stripe', 'plaid', 'solid']);
-    o.shoes = 'sneakers'; o.shoeColor = pick(ot.shoes); o.hat = r() < .12 ? o.hat : null; o.hatColor = pick(['#1a1a1d', '#2b2d33', '#4a3b2c']); o.necklace = r() < .12; o.realWear = true;
+    o.setup = !!ot.setup; o.leather = !!ot.leather; o.satin = !!ot.satin; o.open = !!ot.open; o.denimTop = !!ot.denimTop;
+    o.bottom = 'pants'; o.bottomColor = ot.bots ? pick(ot.bots) : o.topColor; o.fit = ot.fit || (r() < .6 ? 'skinny' : 'wide'); o.oversize = !!ot.oversize; o.set = false; o.pattern = ot.pats ? pick(ot.pats) : 'solid';
+    o.shoes = r() < (ot.boots || 0) ? 'boots' : 'sneakers'; o.shoeColor = pick(ot.shoes); o.hat = ot.cap && r() < ot.cap ? pick(['cap', 'cap', 'bucket']) : null; o.hatColor = pick(['#1a1a1d', '#2b2d33', '#4a3b2c', '#2a4a7a']);
+    o.necklace = r() < .25; o.chain = !o.necklace && r() < .12; o.watch = r() < .55; o.belt = o.top !== 'jacket' && r() < .5; o.realWear = true;
   }
-  if (f) {   // v28 여성 실사 의상: 원색 랜덤 대신 실제 여성복 조합(블라우스·니트·원피스·트렌치/블레이저·크롭+데님·카디건) · 무광 원단 · 자연스러운 메이크업
+  if (f) {   // v38 여성 90년대 나이트 의상: 미니 원피스 · 바디콘(벨벳) · 크롭탑+하이웨이스트 진 · 가죽 스커트 · 새틴 슬립 원피스 · 빈티지 블라우스 · 엘레강스 클럽웨어
     const OUTFITS_F = [
-      { top: 'shirt', tops: ['#f4efe6', '#e8d9c8', '#cfd8e6', '#f2e2e6', '#2d2a30', '#e6e9df'], bottom: 'skirt', bots: ['#1d2533', '#2b2d33', '#c2b29a', '#6b4b3a', '#8a7a68'] },          // 블라우스 + 스커트
-      { top: 'tee', oversize: true, tops: ['#e9e1d3', '#b9a48a', '#7a8a72', '#c8a8a0', '#3a3a40', '#d8d0e0'], bottom: 'pants', fit: 'wide', bots: ['#2c3e5c', '#1d2533', '#e8e0d0', '#4a4a50'] },   // 니트 + 와이드 팬츠/데님
-      { top: 'dress', tops: ['#1a1a1d', '#5a2a3a', '#2f3b52', '#7a4a3a', '#e8dccb', '#3a4a3a', '#6a5a7a'], bottom: 'skirt', same: true },                                                  // 원피스
-      { top: 'jacket', tops: ['#c8b49a', '#2b2d33', '#e8e2d8', '#4a3b2c', '#6a6f78'], inner: 'tee', inners: ['#f4f2ee', '#1c1c20', '#e8d8c8'], bottom: 'pants', bots: ['#2c3e5c', '#141418', '#e8e0d0'] },   // 트렌치/블레이저 + 팬츠
-      { top: 'crop', tops: ['#f4f4f2', '#1a1a1d', '#c8a0a8', '#a8b8c8'], bottom: 'pants', fit: 'wide', bots: ['#2c3e5c', '#1d2533', '#3a5070'] },                                          // 크롭 탑 + 데님
-      { top: 'overshirt', tops: ['#d8c8b0', '#8a7a5a', '#3a3f47', '#b0a0c0', '#c89a8a'], inner: 'tee', inners: ['#f4f2ee', '#1c1c20'], bottom: 'skirt', bots: ['#1d2533', '#6b4b3a', '#2b2d33'] },     // 카디건/셔켓 + 스커트
+      { top: 'dress', mini: true, tops: ['#141016', '#7a1c2c', '#c8203c', '#e8e0d0', '#2a1c4a', '#0e2a3a'], shoes: ['#141018', '#1a1412'], boots: .5 },
+      { top: 'dress', mini: true, velvet: .6, curve: .15, tops: ['#1a0e1a', '#4a0e2a', '#0e1a3a', '#3a0e0e', '#141016'], shoes: ['#141018'], boots: .35 },
+      { top: 'crop', bottom: 'pants', tops: ['#f4f4f2', '#141016', '#c8a0a8', '#7a8aa0', '#d8c8b0', '#8a1c2c'], bots: ['#3a5070', '#2c3e5c', '#5a7a9a', '#1d2533'], fit: 'skinny', shoes: ['#f2f2f2', '#141018'], platform: .45 },
+      { top: 'tee', bottom: 'leather', mini: true, tops: ['#f4f4f2', '#141016', '#c8b8a0', '#3a3a40'], bots: ['#0e0c10', '#2a1410', '#3a1c14'], shoes: ['#141018'], boots: .7 },
+      { top: 'dress', satin: true, tops: ['#d8c098', '#b8a0c8', '#c88a8a', '#1c1c20', '#8a6a5a', '#e8d8d0'], shoes: ['#141018', '#c8a070'] },
+      { top: 'shirt', bottom: 'pants', pats: ['solid', 'solid', 'stripe'], tops: ['#f4efe6', '#e8d9c8', '#cfd8e6', '#f2e2e6', '#2d2a30'], bots: ['#3a5070', '#2c3e5c', '#c2b29a'], fit: 'wide', shoes: ['#3a2418', '#141018'] },
+      { top: 'jacket', bottom: 'skirt', mini: true, tops: ['#141016', '#7a1c2c', '#2a1c4a', '#c8b49a'], inner: 'tee', inners: ['#141016', '#f4f2ee'], bots: ['#141016', '#2b2d33'], shoes: ['#141018'], boots: .5 },
     ];
     const ot = pick(OUTFITS_F); o.top = ot.top; o.topColor = pick(ot.tops); o.inner = ot.inner || o.inner; if (ot.inners) o.innerColor = pick(ot.inners);
-    o.bottom = ot.bottom === 'pants' && r() < .2 ? 'skirt' : ot.bottom; o.bottomColor = ot.same ? o.topColor : pick(ot.bots || ['#1d2533']); if (ot.fit) o.fit = ot.fit; o.oversize = !!ot.oversize && r() < .7;
-    o.setup = false; o.set = false; o.pattern = r() < .84 ? 'solid' : pick(['stripe', 'plaid']); o.mini = o.bottom === 'skirt' && r() < .35;
-    o.shoes = r() < .55 ? 'boots' : 'sneakers'; o.shoeColor = pick(['#1a1412', '#3a2418', '#f2f2f2', '#141214', '#8a6a4a']); o.hat = r() < .12 ? pick(['beret', 'cap', 'fedora']) : null; o.hatColor = pick(['#1a1a1d', '#c8b49a', '#4a3b2c', '#e8e2d8']);
-    o.necklace = r() < .45; o.realWear = true;
-    if (o.hairColor && VIVID_HAIR.includes(o.hairColor) && r() < .7) o.hairColor = pick(HAIRC);
-    Object.assign(o.face, { eyeSize: .9 + r() * .16, liner: .25 + r() * .45, blush: .14 + r() * .2, lipColor: pick(['#c4646a', '#b85a5e', '#d07a7a', '#a84a52', '#c8706a', '#9a3a4a']), shadow: r() < .6 ? pick(['#b88a74', '#a07a8a', '#c09080', '#8a6a5a']) : null });
+    o.bottom = ot.top === 'dress' ? 'skirt' : ot.bottom || 'skirt'; o.bottomColor = ot.top === 'dress' ? o.topColor : pick(ot.bots || ['#1d2533']); if (ot.fit) o.fit = ot.fit; o.oversize = false;
+    o.satin = !!ot.satin; o.velvet = ot.velvet ? r() < ot.velvet : false; o.mini = !!ot.mini; if (ot.curve) o.curve = .5 + ot.curve;
+    o.setup = false; o.set = false; o.pattern = ot.pats ? pick(ot.pats) : 'solid';
+    o.shoes = ot.platform && r() < ot.platform ? 'platform' : r() < (ot.boots || .3) ? 'boots' : 'sneakers'; o.shoeColor = pick(ot.shoes); o.hat = r() < .06 ? pick(['beret', 'bucket']) : null; o.hatColor = pick(['#1a1a1d', '#c8b49a', '#4a3b2c']);
+    o.choker = r() < .35; o.necklace = !o.choker && r() < .4; o.watch = r() < .25; o.belt = o.bottom === 'pants' && r() < .5; o.realWear = true;
+    Object.assign(o.face, { liner: .15 + r() * .45, blush: o.face.blush, earring: r() < .75, hoop: r() < .5 });
   }
   // v17 K-pop 스테이지 룩 (v28: 여성 45%→15% · 남성 35%→12% — 나머지는 실사 일상복)
-  if (r() < (f ? .15 : .12)) applyIdol(o, r, f);
+  if (r() < (f ? .02 : .02)) applyIdol(o, r, f);   // v38 90년대 실제 나이트 분위기 → 현대 K-pop 무대 룩은 거의 안 나옴
   return o;
 }
 const IDOL_F = [   // [상의, 하의, 신발, 모자] — 블랙 톤 무대 의상 조합
@@ -124,8 +169,13 @@ function originalize(o) {
   if (o.setup) { o.bottom = 'pants'; o.bottomColor = o.topColor; o.pattern = 'solid'; }
   return o;
 }
+/* v38 지정 캐릭터(주요 인물·데이터)에 인종이 없으면 피부톤으로 추정 → 그 인종의 얼굴 골격을 사용 */
+function inferEth(look) {
+  if (!look) return null; if (look.ethnic) return ETH_ALIAS[look.ethnic] || look.ethnic; if (!look.skin || !isCol(look.skin)) return null;
+  const c = new T.Color(look.skin), l = c.r * .3 + c.g * .59 + c.b * .11; return l < .42 ? 'black' : l < .58 ? 'south' : l < .68 ? 'sea' : 'east';
+}
 function mergeLook(seed, gender, look) {
-  const base = randomLook(seed, (look && look.gender) || gender);
+  const base = randomLook(seed, (look && look.gender) || gender, inferEth(look));
   const o = Object.assign({}, base, look || {});
   const plain = { freckles: false, mole: null, beard: null, glasses: false, sunglasses: false, earring: false, shadow: null };   // 지정 얼굴은 랜덤 소품을 섞지 않음
   o.face = Object.assign({}, base.face, look && look.face ? plain : {}, (look && look.face) || {});
@@ -136,13 +186,13 @@ function mergeLook(seed, gender, look) {
     o.topColor = tame(o.topColor); o.bottomColor = tame(o.bottomColor, .35, .1, .7); o.realWear = true; if (o.pattern === 'leopard' || o.pattern === 'graphic') o.pattern = 'solid'; }
   if (!o.body && !o.idol && !(look && look.build)) {   // v32 실제 클럽 손님처럼 체형 다양화 (지정 없을 때 시드 기반)
     const r = U.rng(U.hash(String(seed) + 'body')), x = r();
-    o.body = o.gender === 'f' ? (x < .3 ? 'slim' : x < .65 ? 'average' : x < .8 ? 'curvy' : x < .92 ? 'soft' : 'athletic') : (x < .2 ? 'slim' : x < .55 ? 'average' : x < .75 ? 'athletic' : x < .9 ? 'soft' : 'stocky'); }
+    o.body = o.gender === 'f' ? (x < .22 ? 'slim' : x < .5 ? 'average' : x < .66 ? 'curvy' : x < .78 ? 'soft' : x < .88 ? 'athletic' : 'plus') : (x < .16 ? 'slim' : x < .42 ? 'average' : x < .58 ? 'athletic' : x < .7 ? 'muscular' : x < .82 ? 'soft' : x < .91 ? 'stocky' : 'plus'); }   // v38 근육질·플러스 사이즈 추가
   return originalize(o);
 }
 
 /* ───────── 스타일라이즈드(v4) 비율 ─────────
  * 큰 두상·큰 눈·작은 코/입·가는 목·긴 다리의 3D 캐릭터 스타일. TOON=false 로 바꾸면 v3 실사 비율로 돌아감 */
-const TOON = false, HEAD_S = TOON ? 1.15 : .92,   /* v32 실제 인체 비율 1:7.7~8 (v31 .97) */ EYE_K = TOON ? 1.5 : 1.3;   // v17: 아이돌 비율 — 두상 1.32→1.15 · 다리 6% 길게 (8등신에 가깝게)   // v12: 실사형 글래머 비율(두상 1.8→1.32 · 눈 1.85→1.5)
+const TOON = false, HEAD_S = TOON ? 1.15 : .92,   /* v32 실제 인체 비율 1:7.7~8 (v31 .97) */ EYE_K = TOON ? 1.5 : 1.06;   /* v38 눈 1.3→1.06: 인형처럼 큰 눈 → 실제 사람 비율 */   // v17: 아이돌 비율 — 두상 1.32→1.15 · 다리 6% 길게 (8등신에 가깝게)   // v12: 실사형 글래머 비율(두상 1.8→1.32 · 눈 1.85→1.5)
 /* ───────── 얼굴 텍스처 ───────── */
 const FW = 1024, FH = 512, K = FW / (Math.PI * 2);
 const EXPR = {
@@ -177,6 +227,14 @@ const baseCache = new WeakMap();
 let noiseCv = null;
 function skinNoise() { if (noiseCv) return noiseCv; noiseCv = document.createElement('canvas'); noiseCv.width = noiseCv.height = 256; const g = noiseCv.getContext('2d'), im = g.createImageData(256, 256), d = im.data, r = U.rng(77);
   for (let i = 0; i < 256 * 256; i++) { const v = r(); d[i * 4] = 120 + v * 60; d[i * 4 + 1] = 70 + v * 40; d[i * 4 + 2] = 60 + v * 30; d[i * 4 + 3] = v < .55 ? 0 : (v - .55) * 120; } g.putImageData(im, 0, 0); return noiseCv; }
+/* v38 피부결: 저주파 얼룩(혈색·색소 불균일) + 고주파 모공·잔털 그림자 (한 번만 만들어 모든 얼굴이 공유 — 메모리 절약) */
+let mottleCv = null, poreCv = null;
+function skinMottle() { if (mottleCv) return mottleCv; mottleCv = document.createElement('canvas'); mottleCv.width = 128; mottleCv.height = 64; const g = mottleCv.getContext('2d'), r = U.rng(911);
+  for (let i = 0; i < 260; i++) { const x = r() * 128, y = r() * 64, rr = 3 + r() * 9, red = r() < .55, gr = g.createRadialGradient(x, y, 0, x, y, rr); gr.addColorStop(0, red ? 'rgba(190,80,70,.22)' : 'rgba(120,80,50,.18)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - rr, y - rr, rr * 2, rr * 2); } return mottleCv; }
+function skinPores() { if (poreCv) return poreCv; const W = 1024, H = 512; poreCv = document.createElement('canvas'); poreCv.width = W; poreCv.height = H; const g = poreCv.getContext('2d'), im = g.createImageData(W, H), d = im.data, r = U.rng(4242);
+  for (let i = 0; i < W * H; i++) { const v = r(); if (v < .045) { d[i * 4] = 70; d[i * 4 + 1] = 35; d[i * 4 + 2] = 25; d[i * 4 + 3] = 30 + v * 1400; } else if (v > .985) { d[i * 4] = 255; d[i * 4 + 1] = 240; d[i * 4 + 2] = 225; d[i * 4 + 3] = 22; } }
+  g.putImageData(im, 0, 0); return poreCv; }
+function gr0(g, x, y, rr, c) { const gr = g.createRadialGradient(x, y, 0, x, y, rr); gr.addColorStop(0, c); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, rr, 0, 7); g.fill(); }
 /* 저장 데이터에 색 값이 빠졌거나 잘못돼도(예전 버전·null 등) 기본 색으로 채워 그림 — 캔버스 오류로 화면이 멈추는 것 방지 */
 const isCol = v => typeof v === 'string' && /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i.test(v.trim());
 function safeLook(look) {   // 같은 객체를 그대로 고쳐 씀(캐시·슬라이더 미리보기 유지)
@@ -192,30 +250,44 @@ function skinBase(look, FW, FH) {
   const key = baseCache.get(look); if (key && key.width === FW) return key;
   const cv = document.createElement('canvas'); cv.width = FW; cv.height = FH; const g = cv.getContext('2d'), F = look.face, K = FW / (Math.PI * 2);
   g.fillStyle = look.skin; g.fillRect(0, 0, FW, FH);
+  const SL = F.skinLum ?? (() => { const c = new T.Color(look.skin); return c.r * .3 + c.g * .59 + c.b * .11; })(), DK = SL < .45;   // v38 어두운 피부는 하이라이트를 금빛·약하게, 그늘은 더 깊게(잿빛 화장 느낌 방지)
   g.globalAlpha = TOON ? .1 : .5; g.drawImage(skinNoise(), 0, 0, FW, FH); g.globalAlpha = 1;
+  if (!TOON) { g.globalAlpha = DK ? .55 : .4; g.drawImage(skinMottle(), 0, 0, FW, FH); g.globalAlpha = DK ? .35 : .5; g.drawImage(skinPores(), 0, 0, FW, FH); g.globalAlpha = 1; }   // v38 피부 얼룩(혈색·색소) + 모공
   g.setTransform(K, 0, 0, K, FW * .25, FH * .5);
   const rad = (x, y, r0, r1, c0, c1) => { const gr = g.createRadialGradient(x, y, r0, x, y, r1); gr.addColorStop(0, c0); gr.addColorStop(1, c1); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r1, 0, 7); g.fill(); };
   let gr = g.createRadialGradient(0, .15, .35, 0, .2, 1.35); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(70,25,15,.26)'); g.fillStyle = gr; g.fillRect(-1.6, -1.6, 3.2, 3.2);
-  rad(0, -.42, 0, .42, 'rgba(255,240,225,.16)', 'rgba(255,240,225,0)');                 // 이마 하이라이트
-  rad(0, .18, 0, .1, 'rgba(255,240,230,.18)', 'rgba(255,240,230,0)');                    // 콧대 하이라이트
+  const HL = (a) => DK ? `rgba(255,214,170,${a * .7})` : `rgba(255,240,228,${a})`;
+  rad(0, -.42, 0, .42, HL(.16), HL(0));                 // 이마 하이라이트 (T존 유분)
+  rad(0, .18, 0, .1, HL(.2), HL(0));                    // 콧대 하이라이트
   for (const s of [-1, 1]) {
     rad(s * .31, .14, 0, .14, 'rgba(90,40,50,.12)', 'rgba(90,40,50,0)');                  // 눈 밑 그늘
     rad(s * .31, -.07, 0, .16, 'rgba(100,45,40,.12)', 'rgba(100,45,40,0)');              // 눈두덩 쌍꺼풀 그늘
     rad(s * .62, .42, 0, .3, 'rgba(80,30,25,.14)', 'rgba(80,30,25,0)');                  // 광대 아래 음영
-    rad(s * .5, .22, 0, .16, 'rgba(255,235,220,.12)', 'rgba(255,235,220,0)');            // 광대 하이라이트
-    rad(s * .1, .35, 0, .08, 'rgba(200,90,80,.12)', 'rgba(200,90,80,0)');                // 콧망울 혈색
+    rad(s * .5, .22, 0, .16, HL(.12), HL(0));            // 광대 하이라이트
+    rad(s * .1, .35, 0, .08, `rgba(200,90,80,${DK ? .05 : .12})`, 'rgba(200,90,80,0)');                // 콧망울 혈색
+    rad(s * .4, .3, 0, .2, `rgba(205,95,85,${DK ? .03 : .07})`, 'rgba(205,95,85,0)');                   // v38 볼 혈색(자연스러운 홍조)
   }
-  rad(0, .78, 0, .16, 'rgba(255,235,220,.12)', 'rgba(255,235,220,0)');                   // 턱끝 하이라이트
+  rad(0, .78, 0, .16, HL(.12), HL(0));                   // 턱끝 하이라이트
+  { /* v38 나이·표정 주름: 팔자 주름(누구나 약하게) · 눈가 · 이마 (30대 이상 점점) */
+    const age = look.age || 26, ak = U.clamp((age - 26) / 18, 0, 1), sh = DK ? 'rgba(30,12,6,' : 'rgba(110,55,40,';
+    g.lineCap = 'round';
+    for (const s of [-1, 1]) { g.strokeStyle = sh + (.07 + .1 * ak) + ')'; g.lineWidth = .012; g.beginPath(); g.moveTo(s * .12, .36); g.quadraticCurveTo(s * .2, .47, s * .22 * (F.lipW || 1), .6); g.stroke();
+      if (ak > .1) { g.strokeStyle = sh + (.1 * ak) + ')'; g.lineWidth = .004; for (let k = 0; k < 3; k++) { g.beginPath(); g.moveTo(s * .46, .0 + k * .035 - .03); g.lineTo(s * .52, -.01 + k * .045 - .04); g.stroke(); } } }
+    if (ak > .2) { g.strokeStyle = sh + (.09 * ak) + ')'; g.lineWidth = .0045; for (let k = 0; k < 3; k++) { g.beginPath(); g.moveTo(-.28, -.47 + k * .05); g.quadraticCurveTo(0, -.5 + k * .05, .28, -.47 + k * .05); g.stroke(); } }
+    g.strokeStyle = sh + (.05 + .05 * ak) + ')'; g.lineWidth = .006; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(s * .2, .1); g.quadraticCurveTo(s * .31, .16, s * .42, .11); g.stroke(); }   // 눈 밑 주름(애교살 아래)
+  }
   rad(0, 1.02, 0, .35, 'rgba(60,20,15,.18)', 'rgba(60,20,15,0)');                        // 턱 아래 그늘
   const bl = U.clamp((F.blush || 0) + (TOON ? .25 : 0), 0, 1);
   if (bl > .02) for (const s of [-1, 1]) rad(s * .46, TOON ? .36 : .3, 0, TOON ? .2 : .22, `rgba(255,105,130,${.5 * bl})`, 'rgba(255,105,130,0)');
   if (F.freckles) { const r = U.rng(U.hash(look.skin + look.hairColor)); g.fillStyle = 'rgba(140,80,50,.35)'; for (let i = 0; i < 34; i++) { const s = r() < .5 ? -1 : 1; g.beginPath(); g.arc(s * (.1 + r() * .34), .14 + r() * .22, .006 + r() * .006, 0, 7); g.fill(); } }
   if (F.mole) { g.fillStyle = 'rgba(60,30,20,.75)'; g.beginPath(); g.arc(F.mole[0], F.mole[1], .011, 0, 7); g.fill(); }
   if (F.beard) {   // 수염: 개별 점(모근)으로 그려 실사 느낌
-    const r = U.rng(U.hash(look.hairColor + 'b')), dens = F.beard === 'stubble' ? 900 : 1300;
-    g.fillStyle = rgba(look.hairColor, F.beard === 'stubble' ? .35 : .6);
+    const r = U.rng(U.hash(look.hairColor + 'b')), dens = F.beard === 'stubble' ? 1400 : F.beard === 'full' ? 3200 : F.beard === 'mustache' ? 700 : 1500;
+    if (F.beard === 'full' || F.beard === 'stubble') { gr0(g, 0, .62, .5, rgba(shade(look.hairColor, .05), F.beard === 'full' ? .28 : .1)); }   // v38 수염 자리 푸르스름한 그늘
+    g.fillStyle = rgba(look.hairColor, F.beard === 'stubble' ? .3 : .62);
     for (let i = 0; i < dens; i++) { const x = (r() - .5) * 1.15, y = .3 + r() * .85;
-      const inBeard = F.beard === 'stubble' ? (y > .4 + Math.abs(x) * .15 && Math.abs(x) < .58 - (y - .3) * .1 && !(Math.abs(x) < .2 && y > .45 && y < .62 && y > .5)) : (Math.hypot(x, (y - .76) * 1.1) < .19 || (y > .4 && y < .47 && Math.abs(x) < .2));
+      const lipZone = Math.abs(x) < .21 && y > .48 && y < .6, mus = y > .4 && y < .475 && Math.abs(x) < .21 - (y - .4) * .3;
+      const inBeard = F.beard === 'stubble' || F.beard === 'full' ? (y > .4 + Math.abs(x) * .15 && Math.abs(x) < .58 - (y - .3) * .1 && !lipZone) : F.beard === 'mustache' ? mus : (Math.hypot(x, (y - .76) * 1.1) < .19 || mus);
       if (inBeard) { g.beginPath(); g.arc(x, y, .0045 + r() * .003, 0, 7); g.fill(); } }
   }
   baseCache.set(look, cv); return cv;
@@ -234,10 +306,12 @@ function drawFace(cv, look, exName, st = {}) {
   const gz = st.gaze || [0, 0];
   // 눈
   const ex = (TOON ? .33 : .31) + (F.eyeGap || 0), es = (F.eyeSize || 1) * EYE_K, EY = TOON ? .1 : .05;
+  const AS = F.asym || {};
   for (const s of [-1, 1]) {
     let mode = e.eyes; if (mode === 'wink') mode = s > 0 ? 'happy' : 'open'; if (st.blink && mode !== 'happy') mode = 'closed';
-    g.save(); g.translate(s * ex, EY); g.rotate(-s * (F.eyeTilt || 0)); if (s < 0) g.scale(-1, 1);   // 항상 +x = 바깥 눈꼬리
-    const w = (TOON ? .1 : .11) * es, open = { open: 1, wide: 1.3, half: .55, down: .62 }[mode] || 0, h = (TOON ? .066 : .05) * es * Math.max(open, .01);
+    const esS = es * (1 + s * (AS.eyeS || 0));   // v38 좌우 눈 크기·높이 미세 차이
+    g.save(); g.translate(s * ex, EY + s * (AS.eyeY || 0)); g.rotate(-s * (F.eyeTilt || 0)); if (s < 0) g.scale(-1, 1);   // 항상 +x = 바깥 눈꼬리
+    const w = (TOON ? .1 : .11) * esS, open = { open: 1, wide: 1.3, half: .55, down: .62 }[mode] || 0, h = (TOON ? .066 : .05) * esS * Math.max(open, .01) * (TOON ? 1 : (F.eyeOpen || 1));
     if (F.shadow) { gr = g.createRadialGradient(.01, -.05, 0, .01, -.05, .17); gr.addColorStop(0, rgba(F.shadow, .5)); gr.addColorStop(1, rgba(F.shadow, 0)); g.fillStyle = gr; g.beginPath(); g.arc(.01, -.05, .17, 0, 7); g.fill(); }
     if (F.stage) {   // v17 무대 메이크업: 애교살 하이라이트 + 눈두덩 글리터
       gr = g.createRadialGradient(0, h * 1.3 + .012, 0, 0, h * 1.3 + .012, w * 1.05); gr.addColorStop(0, 'rgba(255,236,232,.45)'); gr.addColorStop(1, 'rgba(255,236,232,0)'); g.fillStyle = gr; g.beginPath(); g.ellipse(0, h * 1.3 + .012, w * 1.05, .032, 0, 0, 7); g.fill();
@@ -245,10 +319,10 @@ function drawFace(cv, look, exName, st = {}) {
     g.strokeStyle = '#1b1210'; g.lineCap = 'round'; g.lineJoin = 'round';
     if (open > 0) {
       const upper = () => { g.moveTo(-w, .006); g.bezierCurveTo(-w * .5, -h * 1.3, w * .45, -h * 1.35, w, -.008 - (fem ? .006 : 0)); };
-      g.beginPath(); upper(); g.bezierCurveTo(w * .5, h * .95, -w * .45, h * .95, -w, .006); g.closePath(); g.fillStyle = '#fbf6f1'; g.fill();
+      g.beginPath(); upper(); g.bezierCurveTo(w * .5, h * .95, -w * .45, h * .95, -w, .006); g.closePath(); g.fillStyle = TOON ? '#fbf6f1' : '#ddd2c6'; g.fill();   // v38 흰자는 순백이 아닌 살짝 따뜻한 톤
       g.save(); g.clip();
       g.fillStyle = 'rgba(200,120,120,.12)'; g.fillRect(-w, -h, w * .35, h * 2); g.fillRect(w * .65, -h, w * .35, h * 2);   // 흰자 가장자리 혈색
-      const ir = (TOON ? .068 : .052) * es, ix = -.006 + gz[0] * s * w * .3, iy = (mode === 'down' ? h * .45 : TOON ? h * .05 : -h * .1) + gz[1] * h * .4;
+      const ir = (TOON ? .068 : .047) * esS, ix = -.006 + gz[0] * s * w * .3, iy = (mode === 'down' ? h * .45 : TOON ? h * .05 : -h * .1) + gz[1] * h * .4;
       if (TOON) { gr = g.createLinearGradient(0, iy - ir, 0, iy + ir); gr.addColorStop(0, shade(F.eyeColor, -.12)); gr.addColorStop(.55, F.eyeColor); gr.addColorStop(1, shade(F.eyeColor, .32)); }
       else { gr = g.createRadialGradient(ix, iy, ir * .2, ix, iy, ir); gr.addColorStop(0, shade(F.eyeColor, .2)); gr.addColorStop(.62, F.eyeColor); gr.addColorStop(.9, shade(F.eyeColor, -.08)); gr.addColorStop(1, '#0d0704'); }
       g.fillStyle = gr; g.beginPath(); g.arc(ix, iy, ir, 0, 7); g.fill(); if (TOON) { g.lineWidth = .006; g.strokeStyle = shade(F.eyeColor, -.25); g.stroke(); }
@@ -259,8 +333,12 @@ function drawFace(cv, look, exName, st = {}) {
       else { g.fillStyle = 'rgba(255,255,255,.95)'; g.beginPath(); g.arc(ix - .016, iy - .017, ir * .2, 0, 7); g.fill();
         g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.arc(ix + .014, iy + .012, ir * .09, 0, 7); g.fill(); }
       gr = g.createLinearGradient(0, -h * 1.4, 0, -h * .2); gr.addColorStop(0, 'rgba(60,30,25,.45)'); gr.addColorStop(1, 'rgba(60,30,25,0)'); g.fillStyle = gr; g.fillRect(-w, -h * 1.5, w * 2, h * 1.3);
+      if (!TOON) { g.fillStyle = 'rgba(214,120,120,.55)'; g.beginPath(); g.ellipse(-w * .9, .004, w * .09, h * .35, 0, 0, 7); g.fill(); }   // v38 눈물샘(눈 안쪽 분홍 살)
       g.restore();
-      g.beginPath(); upper(); g.lineWidth = (TOON ? .02 : .013) + (F.liner || 0) * .012; g.stroke();
+      g.beginPath(); upper(); g.lineWidth = (TOON ? .02 : .0105) + (F.liner || 0) * .012; g.stroke();
+      if (!TOON && (F.epi || 0) > .05) {   // v38 몽고주름(동아시아·동남아시아계): 위 눈꺼풀 피부가 눈 안쪽 구석을 살짝 덮음
+        g.save(); g.globalAlpha = Math.min(1, F.epi * 1.1); g.fillStyle = look.skin; g.beginPath(); g.moveTo(-w * 1.12, .016); g.quadraticCurveTo(-w * .78, -h * .35, -w * .3, -h * 1.12); g.lineTo(-w * .3, -h * 2.2); g.lineTo(-w * 1.15, -h * 2.2); g.closePath(); g.fill();
+        g.strokeStyle = 'rgba(95,50,40,.35)'; g.lineWidth = .004; g.beginPath(); g.moveTo(-w * 1.08, .014); g.quadraticCurveTo(-w * .78, -h * .3, -w * .3, -h * 1.1); g.stroke(); g.restore(); g.strokeStyle = '#1b1210'; }
       if (TOON) { g.beginPath(); g.moveTo(-w * .7, h * .7); g.bezierCurveTo(-w * .2, h * 1.05, w * .4, h * 1.0, w * .85, h * .45); g.lineWidth = .006; g.strokeStyle = 'rgba(60,30,25,.5)'; g.stroke(); g.strokeStyle = '#1b1210'; }
       if ((F.liner || 0) > .3 || (TOON && fem)) { const lnr = Math.max(F.liner || 0, .6); g.beginPath(); g.moveTo(w * .85, -.012); g.lineTo(w + .04 * lnr, -.036 * lnr - .006); g.lineWidth = .014; g.stroke(); }
       { const n = TOON ? (fem ? 5 : 0) : (fem ? 11 : 6); g.strokeStyle = '#120c0a'; g.lineWidth = TOON ? .009 : fem ? .0042 : .003; for (let k = 0; k < n; k++) { const q = .12 + k / (n - 1) * .86, x = -w + q * 2 * w, y = -h * 1.3 * Math.sin(q * Math.PI) * .95 - .002, L = (TOON ? .03 * (q > .55 ? 1.3 : .7) : fem ? .02 : .01) * (.6 + q * .7);
@@ -279,7 +357,7 @@ function drawFace(cv, look, exName, st = {}) {
   g.strokeStyle = shade(look.hairColor, -.05); g.lineCap = 'round';
   for (const s of [-1, 1]) {
     g.save(); g.translate(s * ex, 0); if (s < 0) g.scale(-1, 1);
-    const iy = by + (e.browIn || 0) * .035 + .008, oy = by - (F.browTilt || 0) * .12 + .02;
+    const bA = s * (AS.browY || 0), iy = by + bA + (e.browIn || 0) * .035 + .008, oy = by + bA - (F.browTilt || 0) * .12 + .02;   // v38 좌우 눈썹 높이 차이
     const cy = by - .035 - (F.browArch || .5) * .03, P = q => { const a = 1 - q; return [a * a * -.14 + 2 * a * q * 0 + q * q * .16, a * a * iy + 2 * a * q * cy + q * q * oy]; };
     g.globalAlpha = .35; g.beginPath(); g.moveTo(-.14, iy); g.quadraticCurveTo(.0, cy, .16, oy); g.lineWidth = .024 * bt; g.stroke(); g.globalAlpha = 1;
     const rr = U.rng(U.hash(look.hairColor + s)), n = Math.round((TOON ? 18 : 46) * bt); g.lineWidth = .0035; if (TOON) { g.globalAlpha = .9; g.beginPath(); g.moveTo(-.14, iy); g.quadraticCurveTo(.0, cy, .16, oy); g.lineWidth = .02 * bt; g.stroke(); g.globalAlpha = 1; g.lineWidth = .0035; }
@@ -294,7 +372,7 @@ function drawFace(cv, look, exName, st = {}) {
   // 입
   const M = MOUTHS[e.mouth] || MOUTHS.neutral, my = TOON ? .52 : .53, mw = (TOON ? .155 : .21) * (F.lipW || 1) * M.ws, lf = (F.lipFull || 1) * (fem ? 1.15 : .8) * (TOON ? .9 : 1);
   const lip = fem ? F.lipColor : F.lipColor || '#c08a80';
-  const L = [-mw, my - M.cuL], R = [mw, my - M.cuR], midTop = my + M.line;
+  const L = [-mw, my - M.cuL + (AS.mouth || 0)], R = [mw, my - M.cuR - (AS.mouth || 0)], midTop = my + M.line;   // v38 입꼬리 높이 좌우 차이
   const opn = M.open * (TOON ? .085 : .07) + (+st.talk || 0) * .042;
   if (opn > 0) {
     g.beginPath(); g.moveTo(...L); g.quadraticCurveTo(0, midTop - .006, ...R); g.quadraticCurveTo(0, midTop + opn * 2, ...L); g.fillStyle = '#4a1820'; g.fill();
@@ -345,24 +423,29 @@ const BODY = {
   athletic: { b: 1.03, limb: 1.05, mu: .75, belly: 0, hip: .97 },   // 운동으로 탄탄
   stocky:   { b: 1.15, limb: 1.12, mu: .45, belly: .55, hip: 1.04 }, // 다부진 · 굵은 뼈대
   curvy:    { b: 1.04, limb: 1.04, mu: 0,  belly: .25, hip: 1.12 },  // 볼륨 있는 여성
+  muscular: { b: 1.08, limb: 1.12, mu: 1,   belly: 0,   hip: .98 },   // v38 근육질(넓은 어깨·굵은 팔)
+  plus:     { b: 1.27, limb: 1.24, mu: .1,  belly: 1.2, hip: 1.17 },  // v38 플러스 사이즈(통통·큰 체형)
 };
 const M_PROF = [[0, -.12], [.12, -.11], [.148, -.04], [.16, .06], [.15, .16], [.16, .27], [.185, .38], [.2, .45], [.17, .5], [.1, .53], [.05, .56]];
 const F_PROF = [[0, -.12], [.13, -.11], [.16, -.04], [.162, .04], [.128, .15], [.138, .25], [.152, .33], [.148, .4], [.155, .45], [.13, .5], [.08, .53], [.045, .56]];
 /* 조각된 두상: 구의 정점을 얼굴 해부학대로 변위 (UV 유지 → 얼굴 텍스처 정렬 그대로) */
-function sculptHead(r, fem) {
-  const g = new T.SphereGeometry(r, 72, 54), p = g.attributes.position, v = new T.Vector3();
+function sculptHead(r, fem, H = {}) {   // v38 H: 개인별 골격(콧대·눈썹뼈·눈두덩·광대·입 돌출·턱끝·턱 너비·비대칭)
+  const seg = NC.isMobile ? [52, 40] : [72, 54], g = new T.SphereGeometry(r, seg[0], seg[1]), p = g.attributes.position, v = new T.Vector3();
+  const BR = H.bridge ?? 1, RD = H.ridge ?? 1, SK = H.socket ?? 1, CH = H.cheek ?? 1, PG = H.prog ?? 1, CN = H.chin ?? 1, JW = H.jaw ?? 1, AS = H.asym || 0;
   const B = (a, b, a0, b0, sa, sb) => Math.exp(-((a - a0) * (a - a0) / (sa * sa) + (b - b0) * (b - b0) / (sb * sb)));
   for (let i = 0; i < p.count; i++) {
     v.fromBufferAttribute(p, i); const n = v.clone().normalize(), a = Math.atan2(n.x, n.z), b = Math.asin(U.clamp(-n.y, -1, 1)), front = Math.max(0, Math.cos(a));
-    let d = .03 * B(a, b, 0, -.2, .6, .1) * front * (fem ? .6 : 1);                 // 눈썹뼈
-    d += .045 * B(a, b, 0, .14, .07, .2);                                             // 콧대
-    d += .028 * B(a, b, 0, .55, .2, .09);                                             // 입술 돌출
-    d += .04 * B(a, b, 0, .84, .2, .11);                                              // 턱끝
-    for (const s of [-1, 1]) { d -= .032 * B(a, b, s * .31, .04, .14, .09); d += .028 * B(a, b, s * .55, .23, .2, .13); d -= .03 * B(a, b, s * .72, .55, .2, .22); d -= .02 * B(a, b, s * .2, .42, .08, .08); }
+    let d = .03 * RD * B(a, b, 0, -.2, .6, .1) * front * (fem ? .6 : 1);            // 눈썹뼈 (유럽·남아시아계 ↑ · 동아시아계 ↓)
+    d += .045 * BR * B(a, b, 0, .14, .07, .2);                                        // 콧대 높이
+    d += .028 * PG * B(a, b, 0, .55, .2 * (.8 + .2 * PG), .09);                       // 입·윗턱 돌출
+    d += .04 * CN * B(a, b, 0, .84, .2, .11);                                         // 턱끝
+    for (const s of [-1, 1]) { const k = 1 + s * AS; d -= .032 * SK * k * B(a, b, s * .31, .04, .14, .09); d += .028 * CH * k * B(a, b, s * .55, .23, .2, .13); d -= .03 * (2 - CH) * B(a, b, s * .72, .55, .2, .22); d -= .02 * B(a, b, s * .2, .42, .08, .08); }
+    if (BR < .85) d -= .012 * (.85 - BR) / .25 * B(a, b, 0, .05, .25, .15);                               // 낮은 콧대 → 미간·눈 사이가 평평
     d -= .05 * B(a, b, Math.PI, .2, .6, .5) * (1 - front);                            // 뒤통수 정리
     if (TOON) { d *= .4; for (const s of [-1, 1]) d += .03 * B(a, b, s * .55, .4, .28, .22); }
     let k = 1 + d; v.multiplyScalar(k);
-    if (b > .2) v.x *= 1 - (TOON ? (fem ? .14 : .1) : (fem ? .2 : .14)) * Math.min(1, (b - .2) / .8) * (.4 + .6 * front);   // 턱선 V
+    if (b > .2) v.x *= 1 - (TOON ? (fem ? .14 : .1) : (fem ? .2 : .14) * (2.2 - 1.2 * JW)) * Math.min(1, (b - .2) / .8) * (.4 + .6 * front);   // 턱선 (v38 각진 턱 ↔ 갸름한 턱)
+    if (b > -.05 && b < .45) v.x *= 1 + .05 * (CH - 1) * front * Math.exp(-((b - .2) * (b - .2)) / .04);                                 // 광대 너비
     if (b > .35) v.z += r * .03 * front * Math.min(1, (b - .35) / .5);                // 아래턱 앞으로
     p.setXYZ(i, v.x, v.y, v.z);
   }
@@ -459,6 +542,11 @@ function clothMat(color, kind, o = {}) {
   const { pattern: _pt, ...so } = o; const m = NC.mat.std(color, so); if (!TL) return m;
   if (o.pattern && o.pattern !== 'solid') { m.map = patternTex(o.pattern, color); m.color.setRGB(1, 1, 1); { const fn = fabricNormal(o.pattern === 'knit' ? 'knit' : kind === 'denim' ? 'denim' : 'cotton'); m.normalMap = fn || TL.texture('fabric', 'normal', {}, [9, 9]); m.normalScale.set(fn ? .9 : .5, fn ? .9 : .5); } m.onBeforeCompile = rimInject('1.0,1.0,1.0', '0.25'); return m; }
   if (kind === 'sequin') { m.normalMap = TL.texture('sequin', 'normal', {}, [10, 10]); m.normalScale.set(.9, .9); m.metalness = .55; m.roughness = .3; m.envMapIntensity = 1.6; }
+  else if (kind === 'satin') {   // v38 실크·새틴: 매끈한 광택 + 흐르는 드레이프 주름(잔 원단결 없음)
+    const fn = fabricNormal('cotton'); if (fn) { m.normalMap = fn; m.normalScale.set(.55, .55); } m.roughness = .26; m.metalness = .14; m.envMapIntensity = 1.35; m.onBeforeCompile = rimInject('1.0,0.98,0.95', '0.35'); return m; }
+  else if (kind === 'velvet') {   // v38 벨벳: 빛을 흡수하는 깊은 색 + 가장자리에서 밝게 빛나는 결(시인)
+    const v = new T.MeshPhysicalMaterial({ color: NC.col(color), roughness: .92, metalness: 0 }); if ('sheen' in v) v.sheen = NC.col(color).lerp(new T.Color('#ffffff'), .45);
+    const fn = fabricNormal('cotton'); if (fn) { v.normalMap = fn; v.normalScale.set(.7, .7); } v.onBeforeCompile = rimInject('1.0,0.92,0.95', '0.9'); return v; }
   else { m.map = TL.texture('fabric', 'map', {}, [kind === 'denim' ? 6 : 9, kind === 'denim' ? 6 : 9]); const fn = fabricNormal(kind === 'denim' ? 'denim' : 'cotton'); m.normalMap = fn || TL.texture('fabric', 'normal', {}, [9, 9]); m.normalScale.set(fn ? .9 : .6, fn ? .9 : .6); m.roughness = Math.max(m.roughness, kind === 'denim' ? .78 : .7); }
   m.onBeforeCompile = rimInject('1.0,1.0,1.0', '0.12'); return m;
 }
@@ -489,6 +577,10 @@ function buildHair(skull, look, mHair, r, mHair2) {
     case 'bun': cap(r * 1.06, .5, .5); blob(0, .78, -.72, .46); bangs(front - .6, 1.2, Math.PI / 2 - .55, .18); break;
     case 'curly': cap(r * 1.08, .5, .42); { const rr = U.rng(U.hash(look.hairColor + 'c')); for (let i = 0; i < 22; i++) { const a = rr() * Math.PI * 2, el = .25 + rr() * 1.2; if (Math.cos(a - front) > .55 && el < .55) continue; blob(Math.cos(a) * Math.cos(el) * 1.05, Math.sin(el) * 1.05, Math.sin(a) * Math.cos(el) * -1.05, .3); } } break;
     case 'buzz': cap(r * 1.03, .5, .5); break;
+    case 'fade': cap(r * 1.025, .5, .52); blob(0, .66, .02, .9, .36, .9); break;   // v38 페이드(옆·뒤는 짧게, 윗머리만 살짝)
+    case 'afro': { cap(r * 1.08, .5, .42); blob(0, .5, -.3, 1.36, 1.18, 1.26);   // v38 아프로: 둥근 큰 볼륨 + 곱슬 결(표면 작은 덩어리)
+      const rr = U.rng(U.hash(look.hairColor + 'afro')); for (let i = 0; i < 26; i++) { const a = rr() * Math.PI * 2, el = -.1 + rr() * 1.4; if (-Math.sin(a) > .5 && el < .75) continue; blob(Math.cos(a) * Math.cos(el) * 1.32, .5 + Math.sin(el) * 1.08, -.3 - Math.sin(a) * Math.cos(el) * 1.2, .26); } } break;
+    case 'curtain': cap(r * 1.07, .5, .45); bangs(front - 1.02, .86, Math.PI / 2 - .52, .32); bangs(front + .16, .86, Math.PI / 2 - .52, .32); blob(0, .6, -.1, .98, .45, .98); break;   // v38 90년대 가운데 가르마 커튼 헤어
     case 'twin': cap(r * 1.07, .5, .45); bangs(front - .9, 1.8, Math.PI / 2 - .5, .26);
       for (const s of [-1, 1]) { blob(s * .95, .35, -.25, .3); const t = mesh(cyl(r * .3, r * .1, r * 2.6), mHair, s * r * 1.25, -r * .8, -r * .3); t.rotation.z = s * .32; skull.add(t); const tie = mesh(G('tie', () => new T.TorusGeometry(r * .2, r * .06, 6, 14)), G('tieM', () => std('#ff4f9a', { roughness: .4 })), s * r * 1.02, r * .22, -r * .25); tie.rotation.y = Math.PI / 2; tie.rotation.x = s * .3; skull.add(tie); } break;
     case 'braids': cap(r * 1.07, .5, .45); bangs(front - .9, 1.8, Math.PI / 2 - .5, .24);
@@ -578,7 +670,7 @@ function create(o = {}) {
   const shiny = look.realWear ? { roughness: .82, metalness: 0 } : look.top === 'dress' ? { roughness: .32, metalness: .28 } : look.top === 'jacket' ? { roughness: .45, metalness: .1 } : { roughness: .6 };   // v25 남성 실사 의상 = 무광 울·면
   const pat = look.top === 'dress' ? (['leopard', 'floral'].includes(look.pattern) ? look.pattern : 'solid') : look.pattern;
   const LEATHER_TOP = look.top === 'halter' || look.top === 'stageJacket' || !!look.leather;   // v32 look.leather = 가죽 재킷
-  const mSkin = skinMat(look.skin), mTop = LEATHER_TOP ? leatherMat(look.topColor) : look.metallic ? std(look.topColor, { metalness: .78, roughness: .26, envMapIntensity: 1.5 }) : clothMat(look.topColor, look.top === 'dress' || look.sequin ? 'sequin' : 'fabric', Object.assign({ pattern: pat }, shiny)), mBot = look.bottom === 'cargo' ? clothMat(look.bottomColor, 'fabric', { roughness: .85 }) : clothMat(look.bottomColor, 'denim', { roughness: .8 }),
+  const mSkin = skinMat(look.skin), mTop = LEATHER_TOP ? leatherMat(look.topColor) : look.metallic ? std(look.topColor, { metalness: .78, roughness: .26, envMapIntensity: 1.5 }) : look.satin ? clothMat(look.topColor, 'satin') : look.velvet ? clothMat(look.topColor, 'velvet') : look.denimTop ? clothMat(look.topColor, 'denim', { roughness: .8 }) : clothMat(look.topColor, look.top === 'dress' || look.sequin ? 'sequin' : 'fabric', Object.assign({ pattern: pat }, shiny)), mBot = look.bottom === 'cargo' ? clothMat(look.bottomColor, 'fabric', { roughness: .85 }) : clothMat(look.bottomColor, 'denim', { roughness: .8 }),
     mShoe = std(look.shoeColor || (TOON ? '#f4f4f6' : '#141018'), { roughness: look.shoes === 'sandals' ? .25 : .5, metalness: look.shoes === 'sandals' ? .8 : 0 }), mHair = std(look.hairColor, { roughness: TOON ? .34 : .42, metalness: .05, side: T.DoubleSide }),
     mSleeve = look.top === 'vest' ? std('#f4f2ee') : mTop;
   if (look.set && look.pattern && look.pattern !== 'solid' && look.bottom !== 'skirt') { mBot.map = patternTex(look.pattern, look.topColor); mBot.color.setRGB(1, 1, 1); }   // 상하 같은 패턴 셋업
@@ -626,10 +718,11 @@ function create(o = {}) {
     const vg = G('vneck', () => { const sh = new T.Shape(); sh.moveTo(-.07, .17); sh.lineTo(.07, .17); sh.lineTo(0, -.06); sh.closePath(); return new T.ShapeGeometry(sh); });
     const inner = mesh(vg, look.sailor ? mSkin : std(look.top === 'vest' ? '#f4f2ee' : look.top === 'stageJacket' ? (look.innerColor || '#141016') : (f ? '#f2e6ee' : '#f4f2ee')), 0, .36, .112); inner.rotation.x = -.22; torso.add(inner); }
   if (look.top === 'vest') { const bt = std('#0d0b10'); for (const s of [-1, 1]) { const w = mesh(G('cone', () => new T.ConeGeometry(1, 1, 4)), bt, s * .028, .5, .12, .022, .04, .012); w.rotation.z = s * Math.PI / 2; w.position.y = .505; w.position.z = .118; torso.add(w); } }
+  if (look.top === 'shirt' && look.open) { const vg = G('vneck', () => { const sh = new T.Shape(); sh.moveTo(-.07, .17); sh.lineTo(.07, .17); sh.lineTo(0, -.06); sh.closePath(); return new T.ShapeGeometry(sh); }); const vv = mesh(vg, mSkin, 0, .43, .114 * B, .75, .62, 1); vv.rotation.x = -.22; torso.add(vv); }   // v38 오픈 칼라(단추 2개 풀린 실크 셔츠)
   if (look.top === 'shirt') { const col = mesh(G('collar', () => new T.TorusGeometry(.06, .014, 6, 14)), mTop, 0, .54, .01, 1, .75, 1); col.rotation.x = Math.PI / 2; torso.add(col); }
   if (f) {   // v12: 여성 실루엣 — 가슴 볼륨(의상 재질), 크기는 CV(글래머)
     const bm = LEATHER_TOP ? G('bustMatte' + look.topColor, () => std(look.topColor, { roughness: .62 })) : crop ? mTop : over ? clothMat(look.innerColor || '#f6f6f6', 'fabric') : mTop, bk = (.78 + .5 * CV) * B * (look.idol ? .9 : 1);
-    for (const sd of [-1, 1]) { const bu = mesh(sph(), bm, sd * .056 * B, .352, .068 * B, .064 * bk, .06 * bk, .052 * bk); bu.rotation.x = .25; torso.add(bu); }
+    for (const sd of [-1, 1]) { const bu = mesh(sph(), bm, sd * .058 * B, .35, .062 * B, .07 * bk, .056 * bk, .042 * bk); bu.rotation.x = .38; torso.add(bu); }   // v38 몸통에 자연스럽게 이어지는 완만한 볼륨
   }
   if (look.wings) {   // v14: 패션쇼 느낌의 깃털 날개 액세서리 (등)
     const wm = G('wingM' + look.wings, () => new T.MeshStandardMaterial({ color: look.wings === 'pink' ? 0xffc8e0 : look.wings === 'black' ? 0x1a1420 : 0xfaf6ff, roughness: .55, metalness: .05, side: T.DoubleSide, emissive: look.wings === 'black' ? 0x000000 : 0x302830 }));
@@ -659,8 +752,8 @@ function create(o = {}) {
     const bm3 = G('poloBtn', () => std('#f4f2ec', { roughness: .3 })); for (const y of [.5, .455]) torso.add(mesh(sph(), bm3, 0, y, .113 * B, .006, .006, .003)); }
   // 목 · 머리
   const neck = new T.Group(); neck.position.y = .55; torso.add(neck);
-  neck.add(TOON ? mesh(cyl(f ? .036 : .044 * (1 + .3 * MU), f ? .046 : .054 * (1 + .3 * MU), .15), mSkin, 0, .05, .005) : mesh(cyl(f ? .047 : .056 * (1 + .25 * MU), f ? .056 : .066 * (1 + .25 * MU), .1), mSkin, 0, .03, .005));   // v31 목: 짧고 굵게(실제 비율)
-  const head = new T.Group(); head.position.y = TOON ? .1 : .058; head.scale.setScalar(HEAD_S); neck.add(head);
+  neck.add(TOON ? mesh(cyl(f ? .036 : .044 * (1 + .3 * MU), f ? .046 : .054 * (1 + .3 * MU), .15), mSkin, 0, .05, .005) : mesh(cyl(f ? .047 : .056 * (1 + .25 * MU), f ? .056 : .066 * (1 + .25 * MU), .085), mSkin, 0, .022, .005));   // v31 목: 짧고 굵게(실제 비율)
+  const head = new T.Group(); head.position.y = TOON ? .1 : .044;   /* v38 목이 길어 보이던 문제 → 머리를 1.4cm 낮춤 */ head.scale.setScalar(HEAD_S); neck.add(head);
   const F = look.face, r = .115, sx = .86 * (F.faceW || 1), sy = 1.03 * (F.jaw || 1), sz = .98;
   const skull = new T.Group(); skull.position.set(0, .095, .012); skull.scale.set(sx, sy, sz); head.add(skull);
   const hi = o.hiRes && !(NC.quality && NC.quality.level === 'low');
@@ -668,11 +761,15 @@ function create(o = {}) {
   fcv.width = hi && !NC.isMobile ? FW * 2 : half ? FW / 2 : FW; fcv.height = hi && !NC.isMobile ? FH * 2 : half ? FH / 2 : FH;   // v17: 저사양은 얼굴 텍스처 절반 크기(그리기 CPU ¼)
   const ftex = NC.tex(fcv); ftex.anisotropy = 8;
   const headMat = skinMat(look.skin, ftex); headMat.color.setRGB(1, 1, 1);
-  const headMesh = new T.Mesh(G('head' + look.gender, () => sculptHead(r, f)), headMat); headMesh.userData.noMerge = true; skull.add(headMesh);
+  const q = v => Math.round((v ?? 1) * 20) / 20, HM = { bridge: q(F.bridge), ridge: q(F.ridge), socket: q(F.socket), cheek: q(F.cheek), prog: q(F.prog), chin: q(F.chin), jaw: q(F.jaw), asym: Math.round(((F.asym && F.asym.jaw) || 0) * 40) / 40 };
+  const headMesh = new T.Mesh(G('head' + look.gender + JSON.stringify(HM), () => sculptHead(r, f, HM)), headMat); headMesh.userData.noMerge = true; skull.add(headMesh);   // v38 사람마다 다른 두상(같은 얼굴 재사용 금지)
   const onHead = (a, b, k = 1) => new T.Vector3(r * k * Math.sin(a) * Math.cos(b), -r * k * Math.sin(b), r * k * Math.cos(a) * Math.cos(b));
-  const nose = mesh(sph(), mSkin); nose.position.copy(onHead(0, .24, .975)); nose.position.copy(onHead(0, .27, .955)); const nk = TOON ? (f ? .6 : .74) : 1; if (!f) nose.position.copy(onHead(0, .25, .935)); nose.scale.set((f ? .0105 : .0118) * F.nose * nk / sx, (f ? .016 : .018) * F.nose * nk / sy, (f ? .0135 : .0082) * F.nose * nk);   // v14: 남성 코 — 덜 튀어나오고 넓게 (피노키오 느낌 제거) nose.rotation.x = -.5; skull.add(nose);
+  const nose = mesh(sph(), mSkin); nose.position.copy(onHead(0, .24, .975)); nose.position.copy(onHead(0, .27, .955)); const nk = TOON ? (f ? .6 : .74) : 1; if (!f) nose.position.copy(onHead(0, .25, .935)); nose.scale.set((f ? .0105 : .0118) * F.nose * nk * (F.noseW || 1) / sx, (f ? .016 : .018) * F.nose * nk / sy, (f ? .0135 : .0082) * F.nose * nk * (.55 + .45 * (F.bridge || 1))); if (F.asym) nose.position.x += F.asym.nose * .01;
+  for (const s2 of [-1, 1]) { const al = mesh(sph(), mSkin); al.position.copy(onHead(s2 * .085 * (F.noseW || 1), .3, .955)); al.scale.set(.0085 * (F.noseW || 1) / sx, .0068 / sy, .0075); skull.add(al); }   // v38 콧망울(코볼) — 인종별 코 너비
+  if (!TOON) { nose.scale.z *= .62; nose.rotation.x = -.5; skull.add(nose); }   // v38 코끝 복구(예전엔 주석 안에 있어 빠져 있었음 — 돌출은 낮게)
   for (const s of [-1, 1]) { const ear = mesh(sph(), mSkin); ear.position.copy(onHead(s * 1.48, .06)); ear.scale.set(.009 / sx, .026 / sy, .018); skull.add(ear);
-    if (F.earring) { const er = mesh(sph(), std('#f2d27a', { metalness: .9, roughness: .2 })); er.position.copy(onHead(s * 1.48, .3, 1.02)); er.scale.set(.008 / sx, .008 / sy, .008); skull.add(er); } }
+    if (F.earring && F.hoop) { const hr = mesh(G('hoop', () => new T.TorusGeometry(.016, .0018, 6, 22)), G('hoopM', () => std('#e8c56a', { metalness: .95, roughness: .2 }))); hr.position.copy(onHead(s * 1.48, .42, 1.03)); hr.scale.set(1 / sx, 1 / sy, 1); hr.rotation.y = Math.PI / 2; skull.add(hr); }   // v38 90년대 링 귀걸이
+    else if (F.earring) { const er = mesh(sph(), std('#f2d27a', { metalness: .9, roughness: .2 })); er.position.copy(onHead(s * 1.48, .3, 1.02)); er.scale.set(.008 / sx, .008 / sy, .008); skull.add(er); } }
   const EXL = (TOON ? .33 : .31) + (F.eyeGap || 0), EYL = TOON ? .1 : .05;
   const corneaMat = G('cornea', () => new T.MeshPhysicalMaterial({ color: 0x000000, roughness: .02, metalness: 0, clearcoat: 1, clearcoatRoughness: .02, envMapIntensity: 2.2, transparent: true, blending: T.AdditiveBlending, depthWrite: false }));   // v31 M_Realistic_Eye: 각막 — 환경(HDRI) 반사 + 클리어코트 하이라이트
   const corneaGeo = mergeGeos([-1, 1].map(s => { const c = mesh(sph(), corneaMat); c.position.copy(onHead(s * EXL, EYL - .005, .955)); const es = (F.eyeSize || 1) * EYE_K / 1.3; c.scale.set(.017 * es / sx, .012 * es * (TOON ? 1.3 : 1) / sy, .009); c.updateMatrix(); const g = sph().clone(); g.applyMatrix4(c.matrix); return g; }));
@@ -727,6 +824,8 @@ function create(o = {}) {
       for (const y of [-.2, -.225]) { const rg = mesh(G('fold', () => new T.TorusGeometry(1, .07, 4, 18)), mSleeve, 0, y, 0, faB * 1.0, faB * 1.0, faB * .94); rg.rotation.x = Math.PI / 2; el.add(rg); } }
     if (look.top === 'overshirt') el.add(mesh(cyl(.05, .048, .05), mSleeve, 0, -.01, 0));
     const hand = new T.Group(); hand.position.y = -.27; el.add(hand);
+    if (look.watch && s < 0) { const wm = G('watchM' + (f ? 'g' : 's'), () => std(f ? '#d8b860' : '#c8ccd4', { metalness: .95, roughness: .22 })); const wb = mesh(cyl(1, 1, 1, 14), wm, 0, -.228, 0, faB * 1.12, .02, faB * 1.06); el.add(wb);
+      el.add(mesh(cyl(1, 1, 1, 14), G('watchF', () => std('#101418', { roughness: .1, metalness: .3 })), 0, -.228, faB * 1.02, .013, .006, .013).rotateX(Math.PI / 2)); }   // v38 손목시계
     if (look.sailor) { const cf = mesh(G('cuffT', () => new T.TorusGeometry(.036, .004, 5, 18)), std(look.sailor.trim || '#e8a6c4', { roughness: .6 }), 0, -.225, 0); cf.rotation.x = Math.PI / 2; el.add(cf); }
     const mHand = look.gloves ? G('gloveM', () => leatherMat('#0c0a0e', true)) : mSkin;
     if (look.gloves) el.add(mesh(cyl(.036, .036, .06), mHand, 0, -.235, 0));

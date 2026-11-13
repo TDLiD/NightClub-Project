@@ -48,26 +48,28 @@ function armPts(R, sh, el) {
   const ps = S.getWorldPosition(tmp.a), pe = E.getWorldPosition(tmp.b), ph = H.getWorldPosition(tmp.c);
   return [ps.clone().lerp(pe, .5), pe.clone(), pe.clone().lerp(ph, .5), ph.clone()];
 }
-function armCost(R, sh, el, B, hug) {
+function armCost(R, sh, el, B, hug, ikHand, tgt) {
   const pts = armPts(R, sh, el); let c = 0;
-  for (let i = 0; i < pts.length; i++) { const n = norm(pts[i], B), m = i === 3 ? 1.04 : 1.08; if (n < m) c += (m - n) * (i === 3 ? 1 : 1.4); }
-  if (hug) { const n = norm(pts[3], B); if (n > 1.06 && n < 1.9) c += .35 * (n - 1.06); }   // 감싸는 동작: 손을 몸 표면에 붙임
+  if (tgt) { const dd = pts[3].distanceTo(tgt.p); c += 1.6 * tgt.w * Math.max(0, dd - .012); }   // v39 손 목표점 추종(couple.js 가 상대 몸의 실제 허리·등·어깨·볼 위치로 계산)
+  for (let i = 0; i < pts.length; i++) { if (ikHand && i === 3) continue; const n = norm(pts[i], B), m = i === 3 ? 1.04 : 1.08; if (n < m) c += (m - n) * (i === 3 ? 1 : 1.4); }   // v39 IK 로 표면 바깥에 정확히 놓은 손은 건드리지 않고 팔꿈치·아래팔만 검사
+  if (hug && !ikHand && !tgt) { const n = norm(pts[3], B); if (n > 1.06 && n < 1.9) c += .35 * (n - 1.06); }   // 감싸는 동작: 손을 몸 표면에 붙임
   return c;
 }
 const PARAMS = [['sh', 0], ['sh', 1], ['sh', 2], ['el', 0]], PW = [.25, 1, 1, 1.2];   // 팔을 '들어 올려' 빼기보다 옆·뒤로 돌려 감싸도록 가중
 function solveArm(A, B, side, dt, hug) {
-  const R = A.R, [sh, el] = ARMS[side], u = A.u;
-  let c0 = armCost(R, sh, el, B, hug); if (c0 <= 1e-4) return 0;
+  const R = A.R, [sh, el] = ARMS[side], u = A.u, ik = false, ht = u.handTgt && performance.now() - u.handTgt.t < 150 ? u.handTgt : null, tp = ht && ht[side ? 'R' : 'L'], tgt = tp && ht.w > .02 ? { p: tp, w: ht.w } : null;
+  const armCostX = (R2, sh2, el2, B2, hug2) => armCost(R2, sh2, el2, B2, hug2, ik, tgt), LIM = tgt ? 1.5 : .75, ITER = tgt ? 6 : 4;
+  let c0 = armCostX(R, sh, el, B, hug); if (c0 <= 1e-4) return 0;
   u.cfix = u.cfix || {}; const fx = u.cfix;
-  for (let it = 0; it < 4 && c0 > 1e-4; it++) {
+  for (let it = 0; it < ITER && c0 > 1e-4; it++) {
     const grad = [0, 0, 0, 0], d = .035;
-    PARAMS.forEach(([j, ax], i) => { const J = j === 'sh' ? R[sh] : R[el], key = ['x', 'y', 'z'][ax]; J.rotation[key] += d; grad[i] = (armCost(R, sh, el, B, hug) - c0) / d; J.rotation[key] -= d; });
+    PARAMS.forEach(([j, ax], i) => { const J = j === 'sh' ? R[sh] : R[el], key = ['x', 'y', 'z'][ax]; J.rotation[key] += d; grad[i] = (armCostX(R, sh, el, B, hug) - c0) / d; J.rotation[key] -= d; });
     for (let i = 0; i < 4; i++) grad[i] *= PW[i]; const gn = Math.hypot(...grad); if (gn < 1e-5) break;
     const step = Math.min(.09, .04 + c0 * .6);
     PARAMS.forEach(([j, ax], i) => { const J = j === 'sh' ? R[sh] : R[el], key = ['x', 'y', 'z'][ax], dv = -grad[i] / gn * step; J.rotation[key] += dv;
-      const jn = j === 'sh' ? sh : el; fx[jn] = fx[jn] || [0, 0, 0]; fx[jn][ax] = Math.max(-.75, Math.min(.75, fx[jn][ax] + dv)); });
+      const jn = j === 'sh' ? sh : el; fx[jn] = fx[jn] || [0, 0, 0]; fx[jn][ax] = Math.max(-LIM, Math.min(LIM, fx[jn][ax] + dv)); });
     if (R[el].rotation.x > 0) { const over = R[el].rotation.x; R[el].rotation.x = 0; fx[el][0] -= over; }   // 팔꿈치는 앞으로만 굽음
-    c0 = armCost(R, sh, el, B, hug);
+    c0 = armCostX(R, sh, el, B, hug);
   }
   return 1;
 }
