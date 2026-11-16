@@ -30,29 +30,53 @@ function chain(R, sd) {
  *  ① 목표가 상대 몸 안쪽이면 표면 바깥으로 밀어냄  ② 팔꿈치 회전각(스위블)을 여러 개 시험해 위팔·팔꿈치·아래팔이 상대 몸을 덜 뚫는 자세를 고름 */
 const SWIVEL = [0, .35, -.35, .7, -.7, 1.05, -1.05, 1.45, -1.45];
 const _ax = V(), _tmp = V();
-function ikArm(R, sd, target, w, poleW, obs) {
+/* v45 사람처럼: ① 손 목표점은 임계 감쇠 스프링으로 따라감(순간이동·튐 없음) ② 팔꿈치는 145°까지만 굽힘
+ *  ③ 팔이 다 펴지는 거리에서는 '소프트 IK'(완전히 펴지 않고 살짝 굽힌 채 멈춤) ④ 팔꿈치 회전각(스위블)은 이전 프레임 값에서 천천히 이동 */
+const EL_MAX = 2.53, SOFT = .06;
+function ikArm(R, sd, target, w, poleW, obs, opt) {
   if (!target || w <= .001) return null;
-  const { S, E, L1, L2 } = chain(R, sd), par = S.parent; par.updateMatrixWorld(true);
+  const { S, E, H: HH, L1, L2 } = chain(R, sd), par = S.parent; par.updateMatrixWorld(true);
+  const st = S.userData._ik || (S.userData._ik = { p: target.clone(), v: V(), sw: 0, t: performance.now() }), now = performance.now(), dt = Math.min(.05, Math.max(.001, (now - st.t) / 1000)); st.t = now;
+  if (!(opt && opt.raw)) {
+    if (now - (st.seen || 0) > 400) { st.p.copy(HH ? HH.getWorldPosition(V()) : target); st.v.set(0, 0, 0); }   // 오랜만의 호출은 지금 손 위치에서 출발(순간이동 없음)
+    else { const om = (opt && opt.omega) || 9, a = target.clone().sub(st.p).multiplyScalar(om * om).addScaledVector(st.v, -2 * om); st.v.addScaledVector(a, dt); st.p.addScaledVector(st.v, dt); }
+    st.seen = now; target = st.p.clone();
+  }
   const N = NC.Contact && NC.Contact.norm;
   if (obs && N) { const n0 = N(target, obs); if (n0 < 1.05) { const c = obs.hips.clone().lerp(obs.neck, U.clamp((target.y - obs.hips.y) / Math.max(.01, obs.neck.y - obs.hips.y), 0, 1)); const r = target.clone().sub(c); r.y = 0; if (r.lengthSq() > 1e-6) target = c.clone().add(r.multiplyScalar(1.07 / Math.max(.2, n0))).setY(target.y); } }
-  const v = par.worldToLocal(target.clone()).sub(S.position), d = v.length(); if (d < 1e-4) return null;
-  const dc = U.clamp(d, Math.abs(L1 - L2) + .02, (L1 + L2) * .985), dir = v.clone().divideScalar(d);
-  const A = Math.acos(U.clamp((L1 * L1 + dc * dc - L2 * L2) / (2 * L1 * dc), -1, 1)), bend = Math.PI - Math.acos(U.clamp((L1 * L1 + L2 * L2 - dc * dc) / (2 * L1 * L2), -1, 1));
-  const o = (poleW || V(0, -1, 0)).clone().applyQuaternion(par.getWorldQuaternion(new T.Quaternion()).invert());   // 폴 방향(월드) → 몸통 로컬
-  let pl0 = o.sub(dir.clone().multiplyScalar(o.dot(dir))); if (pl0.lengthSq() < 1e-6) pl0 = V(0, -1, 0).sub(dir.clone().multiplyScalar(-dir.y)); pl0.normalize();
-  let best = null;
-  for (const sw of (obs && N ? SWIVEL : [0])) {
-    const pl = pl0.clone().applyAxisAngle(dir, sw), a1 = dir.clone().multiplyScalar(Math.cos(A)).addScaledVector(pl, Math.sin(A)).normalize();
-    let cost = Math.abs(sw) * .02;
-    if (obs && N) { const sp = S.position, el = sp.clone().addScaledVector(a1, L1), hd = sp.clone().addScaledVector(dir, dc);
-      for (const [pt, k] of [[sp.clone().lerp(el, .5), 1.2], [el, 1.5], [el.clone().lerp(hd, .45), 1.4], [el.clone().lerp(hd, .8), 1]]) { const nn = N(par.localToWorld(pt), obs); if (nn < 1.07) cost += (1.07 - nn) * k; } }
-    if (!best || cost < best.cost - 1e-4) best = { cost, pl, a1 };
-    if (best.cost < .001) break;
-  }
-  const { pl, a1 } = best, a2 = dir.clone().multiplyScalar(dc).addScaledVector(a1, -L1).normalize();
+  const Lm = L1 + L2, dMin = Math.sqrt(L1 * L1 + L2 * L2 - 2 * L1 * L2 * Math.cos(Math.PI - EL_MAX)), k0 = Lm * (1 - SOFT), pq = par.getWorldQuaternion(new T.Quaternion()).invert();
+  /* 주어진 손 목표(월드)에 대해 팔꿈치 회전각 후보를 시험해 가장 덜 뚫는 자세를 찾음 */
+  const solve = (tgW, swList) => {
+    const v = par.worldToLocal(tgW.clone()).sub(S.position), d = v.length(); if (d < 1e-4) return null;
+    let dc = Math.max(d, dMin); if (dc > k0) dc = k0 + Lm * SOFT * .93 * (1 - Math.exp(-(dc - k0) / (Lm * SOFT)));   // 소프트 IK: 끝까지 펴지지 않음
+    const dir = v.clone().divideScalar(d), A = Math.acos(U.clamp((L1 * L1 + dc * dc - L2 * L2) / (2 * L1 * dc), -1, 1)), bend = Math.PI - Math.acos(U.clamp((L1 * L1 + L2 * L2 - dc * dc) / (2 * L1 * L2), -1, 1));
+    const o = (poleW || V(0, -1, 0)).clone().applyQuaternion(pq);   // 폴 방향(월드) → 몸통 로컬
+    let pl0 = o.sub(dir.clone().multiplyScalar(o.dot(dir))); if (pl0.lengthSq() < 1e-6) pl0 = V(0, -1, 0).sub(dir.clone().multiplyScalar(-dir.y)); pl0.normalize();
+    let best = null;
+    for (const sw of swList) {
+      const pl = pl0.clone().applyAxisAngle(dir, sw), a1 = dir.clone().multiplyScalar(Math.cos(A)).addScaledVector(pl, Math.sin(A)).normalize();
+      let cost = Math.abs(sw) * .02 + Math.abs(sw - st.sw) * .06;   // v45 이전 각도에서 멀수록 비용 → 팔꿈치가 갑자기 뒤집히지 않음
+      if (obs && N) { const sp = S.position, el = sp.clone().addScaledVector(a1, L1), hd = sp.clone().addScaledVector(dir, dc);
+        for (const [pt, k] of [[sp.clone().lerp(el, .5), 1.2], [el, 1.5], [el.clone().lerp(hd, .3), 1.4], [el.clone().lerp(hd, .6), 1.4], [el.clone().lerp(hd, .85), 1]]) { const nn = N(par.localToWorld(pt), obs); if (nn < 1.08) cost += (1.08 - nn) * k * 3; } }
+      if (!best || cost < best.cost - 1e-4) best = { cost, sw };
+      if (best.cost < .001) break;
+    }
+    return { cost: best.cost, sw: best.sw, d, dc, dir, A, bend, pl0 };
+  };
+  const SWL = obs && N ? SWIVEL.map(x => x + st.sw * .5).concat([st.sw]) : [0];
+  /* v45 감싸 안기(등 뒤·앞 허리)에서 아래팔이 상대 몸을 뚫으면 손 목표를 팔 쪽 옆구리 방향으로 조금씩 미끄러뜨려 봄(사람 팔이 옆구리를 돌아 감싸듯) */
+  let side = null; if (obs && N) { const c = obs.hips.clone().lerp(obs.neck, .6), sh = S.getWorldPosition(V()), rt = (obs.tr || obs.right).clone(); rt.y = 0; rt.normalize(); side = rt.multiplyScalar(Math.sign(sh.sub(c).dot(rt)) || 1); }   // 상대 몸의 좌우축 방향(팔이 있는 쪽)으로만
+  st.slide = st.slide || 0; let pick = solve(side ? target.clone().addScaledVector(side, st.slide) : target, SWL), pickS = st.slide;
+  if (pick && side && (pick.cost > .015 || st.slide > 0)) for (const sl of [0, .04, .08, .12, .16, st.slide - .03, st.slide + .03]) { if (sl < 0 || sl > .18) continue; const r = solve(target.clone().addScaledVector(side, sl), SWL); if (r && r.cost + sl * .35 < pick.cost + pickS * .35 - 1e-4) { pick = r; pickS = sl; } }
+  if (!pick) return null;
+  st.slide += U.clamp(pickS - st.slide, -dt * .35, dt * .35);   // 미끄러짐도 천천히
+  const fin = side && Math.abs(pickS - st.slide) > 1e-3 ? solve(target.clone().addScaledVector(side, st.slide), [pick.sw]) || pick : pick;
+  const best = { sw: pick.sw }, { d, dc, dir, A, bend, pl0 } = fin;
+  { const want = best.sw != null ? best.sw : 0, mx = dt * 2.6; st.sw += U.clamp(want - st.sw, -mx, mx); }   // 스위블은 초당 2.6rad 이하로만 이동
+  const pl = pl0.clone().applyAxisAngle(dir, st.sw), a1 = dir.clone().multiplyScalar(Math.cos(A)).addScaledVector(pl, Math.sin(A)).normalize(), a2 = dir.clone().multiplyScalar(dc).addScaledVector(a1, -L1).normalize();
   const Y = a1.clone().negate(); let Z = a2.clone().addScaledVector(a1, -a2.dot(a1)); if (Z.lengthSq() < 1e-6) Z = pl.clone(); Z.normalize(); const X = V().crossVectors(Y, Z).normalize();
   _m.makeBasis(X, Y, Z); _q.setFromRotationMatrix(_m); S.quaternion.slerp(_q, w);
-  E.rotation.x += (-bend - E.rotation.x) * w; E.rotation.y *= 1 - w; E.rotation.z *= 1 - w;
+  E.rotation.x += (-Math.min(EL_MAX, bend) - E.rotation.x) * w; E.rotation.y *= 1 - w; E.rotation.z *= 1 - w;
   return d - dc;   // 닿지 못한 거리(0 이면 정확히 도달)
 }
 /* 고개: 목·머리를 나눠 목표점을 향함 · tilt = 좌우 기울임 */
@@ -117,15 +141,27 @@ function plan(A, B, lead, act, e) {
 
 /* ═════ 매 프레임: 블루스 · 소파 · 러브샷 · 건네기 ═════ */
 const ST = { sofa: null, love: null, hand: null, stats: { frames: 0, maxMiss: 0 } };
-function applyPlan(A, o, w, Bobs) {
+/* v45 순서: ① 몸(숙임·까치발·고개) → ② 슬로댄스 체중 이동·호흡(life) → ③ 마지막에 팔 IK
+ *  (v44 까지는 팔을 먼저 놓고 나중에 상체를 숙여서 손이 목표에서 10~25cm 벗어났고, contact.js 가 그걸 관절 각도로 억지로 끌어와 팔이 꺾였음) */
+function applyBody(A, o, w) {
   const R = A.R, ww = (o.w ?? 1) * w;
-  /* 손 목표점은 contact.js 의 관절 최적화에 '목표 추종' 항으로 넘김 → 관통 금지 + 목표 도달을 한 번에 풂(직선 IK 를 덮어쓰면 등 뒤로 감는 팔이 몸을 뚫음) */
-  A.u.handTgt = { t: performance.now(), L: o.L ? o.L.clone() : null, R: o.R ? o.R.clone() : null, w: ww * (o.wArm ?? 1) }; void Bobs;
   const hp = o.hp || {}; A.u.handPose = { L: o.L && ww > .5 ? (hp.L || 'touch') : 'relaxed', R: o.R && ww > .5 ? (hp.R || 'touch') : 'relaxed' };   // v40 손 모양: 닿을 땐 손가락을 펴서 표면을 따라, 볼은 감싸듯, 턴은 맞잡기
   if (o.head) aimHead(R, o.head, ww * (o.wHead ?? .5), (o.tilt || 0)); else if (o.tilt) R.head.rotation.z += (o.tilt - R.head.rotation.z) * ww;
   if (o.lean) { R.torso.rotation.x += o.lean * ww; R.knL.rotation.x += o.lean * .4 * ww; R.knR.rotation.x += o.lean * .4 * ww; }
   if (o.toe) R.body.position.y += o.toe * ww;
 }
+/* 팔: 해석적 2관절 IK(+스프링·소프트 IK·스위블 연속)로 직접 놓고, contact.js 는 남은 관통만 아주 조금 보정 */
+function applyArms(A, o, w, Bobs, tgtFn) {
+  const R = A.R, ww = (o.w ?? 1) * w, now = performance.now(), aw = A.u._aw || (A.u._aw = { L: { w: 0, p: null }, R: { w: 0, p: null }, t: now }), dt = Math.min(.05, Math.max(0, (now - aw.t) / 1000)); aw.t = now;
+  A.u.handTgt = null; A.u.ikLock = { t: now, L: 0, R: 0 };
+  A.g.updateMatrixWorld(true);
+  for (const sd of ['L', 'R']) {
+    const tg = tgtFn ? tgtFn(sd) : o[sd], s2 = aw[sd], want = tg ? ww * (o.wArm ?? 1) : 0; if (tg) s2.p = tg.clone();
+    s2.w += (want - s2.w) * Math.min(1, dt * 4.5); if (s2.w < .004 || !s2.p) { s2.w = Math.max(0, s2.w); continue; }
+    ikArm(R, sd, s2.p, s2.w, pole(A, sd), Bobs); A.u.ikLock[sd] = s2.w;
+  }
+}
+const applyPlan = (A, o, w, Bobs) => { applyBody(A, o, w); applyArms(A, o, w, Bobs); };
 function tickBlues() {
   const BL = BLs(); if (!BL || !BL.n) return; const n = BL.n, pg = NC.player.group; if (!pg || !n.g.visible) return;
   pg.updateMatrixWorld(true); n.g.updateMatrixWorld(true);
@@ -138,8 +174,14 @@ function tickBlues() {
   const ob = plan(B, A, !leadA, act ? { k: act.k, out: n.g.userData.bAct ? n.g.userData.bAct.out : (ua.bAct ? ua.bAct.out : 'accept'), dur: act.dur, hit: act.hit } : null, eB);
   // 동작 중엔 동작 목표, 아니면 기본 블루스 홀드(허리·어깨) — 둘 사이는 o.w 로 섞임
   const mix = (o, isLead) => { if (!act) return o; const bse = plan(isLead ? A : B, isLead ? B : A, isLead, null, 0), w = o.w ?? 1; return { ...o, w: 1, L: blendPt(bse.L, o.L, w), R: blendPt(bse.R, o.R, w), head: blendPt(bse.head, o.head, w), wHead: U.lerp(bse.wHead, o.wHead ?? .55, w), tilt: (o.tilt || 0) * w, lean: (o.lean || 0) * w, toe: (o.toe || 0) * w }; };
-  applyPlan(A, mix(oa, leadA), start, B); applyPlan(B, mix(ob, !leadA), start, A);
+  const ma = mix(oa, leadA), mb = mix(ob, !leadA);
+  applyBody(A, ma, start); applyBody(B, mb, start);
   life(A, B, act, e, start, 0, leadA); life(B, A, act, eB, start, 1, !leadA);
+  /* 몸이 다 움직인 뒤 상대 몸의 접촉점을 다시 구해 팔을 놓음(상대가 숙이거나 젖혀진 최종 위치 기준) */
+  pg.updateMatrixWorld(true); n.g.updateMatrixWorld(true); const A2 = body(pg), B2 = body(n.g);
+  const ra = plan(A2, B2, leadA, act ? { k: act.k, out: ua.bAct ? ua.bAct.out : 'accept', dur: act.dur, hit: act.hit } : null, e), rb = plan(B2, A2, !leadA, act ? { k: act.k, out: n.g.userData.bAct ? n.g.userData.bAct.out : (ua.bAct ? ua.bAct.out : 'accept'), dur: act.dur, hit: act.hit } : null, eB);
+  const fa = mixArms(ra, leadA, A2, B2, act), fb = mixArms(rb, !leadA, B2, A2, act);
+  applyArms(A2, { ...ma, L: fa.L, R: fa.R }, start, B2); applyArms(B2, { ...mb, L: fb.L, R: fb.R }, start, A2);
   if (NC.Motion.bridges) { NC.Motion.bridges(ua); NC.Motion.bridges(n.g.userData); }
   ST.stats.frames++;
 }
@@ -160,6 +202,7 @@ function life(A, B, act, e, start, who, lead) {
     if (lead) { const w2 = env(e, 0, act.hit, act.dur - .8, act.dur); R.torso.rotation.x += .04 * w2; R.knL.rotation.x += .05 * w2; }   // 리드: 다가가며 상체를 살짝 기울이고 앞 무릎에 체중
   }
 }
+function mixArms(o, isLead, X, Y, act) { if (!act) return o; const bse = plan(X, Y, isLead, null, 0), w = o.w ?? 1; return { L: blendPt(bse.L, o.L, w), R: blendPt(bse.R, o.R, w) }; }
 const blendPt = (a, b, w) => (!a && !b) ? null : !a ? (w > .02 ? b : null) : !b ? (w < .98 ? a : null) : a.clone().lerp(b, w);
 
 /* 소파에 기대기: 상대는 머리를 내 어깨에 기대고, 나는 가까운 팔로 상대의 먼 어깨를 감쌈 */
@@ -242,12 +285,12 @@ function cleanupHand() { const s = ST.hand; if (!s) return; if (s.prop.parent) s
 
 /* ═════ 틱: 모든 포즈가 정해진 뒤 · contact.js(관통 보정) 바로 앞에서 실행 ═════ */
 function TICK(dt) { try { tickBlues(); tickSofa(dt); tickLove(dt); tickHand(dt); } catch (e) { console.error('[couple]', e); } }
-{ const L = NC.tickers, i = NC.Contact ? L.indexOf(NC.Contact.tick) : -1; if (i >= 0) L.splice(i, 0, TICK); else L.push(TICK); }
+{ const L = NC.tickers, i = NC.Contact ? L.indexOf(NC.Contact.tick) : -1; if (i >= 0) L.splice(i + 1, 0, TICK); else L.push(TICK); }   // v45 contact.js(몸 간격 조정) 뒤에 실행 → 최종 몸 위치 기준으로 손을 놓음
 
 NC.Couple = {
   ST, ikArm, aimHead, plan, handoff, makeProp, bodyX: body,
   sofa(n, dur = 14) { ST.sofa = { n, t: 0, dur }; },
   loveshot(n, dur = 3.4) { const pg = NC.player.group; ST.love = { n, t: 0, dur, g0: pg.userData.holdGlass, g1: n.g.userData.holdGlass }; pg.userData.holdGlass = n.g.userData.holdGlass = true; },
 };
-console.info('[couple] v39 커플 인터랙션: 2관절 IK 손 배치 · 고개 정렬 · 키 차이 보정 · 손에서 손으로 소품 전달');
+console.info('[couple] v45 스프링 IK · 소프트 IK · 팔꿈치 한계 / v39 커플 인터랙션: 2관절 IK 손 배치 · 고개 정렬 · 키 차이 보정 · 손에서 손으로 소품 전달');
 })();

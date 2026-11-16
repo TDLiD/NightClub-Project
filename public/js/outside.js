@@ -260,7 +260,7 @@ NC.tickers.push((dt, t) => {
     if (owner && cur === KL) { Mo.update(owner, dt, { near: true }); if (cam) NC.Avatar.fitLabel(owner, cam); }
     extras.forEach(g => { if (g.visible) { Mo.update(g, dt, { near: true, speed: 1 }); if (cam) NC.Avatar.fitLabel(g, cam); } });
     if (KL.ball) KL.ball.rotation.y += dt * .8;
-    const n = KS.comp; if (n && n.stay === 'outing') {   // 따라다니기
+    const n = KS.comp; if (n && n.stay === 'outing' && !n.karaoke && !(NC.Karaoke && NC.Karaoke.inRoom) && n.state !== 'seated') {   // 따라다니기 (v45: 노래방 룸 안에서는 앉아 있으므로 따라다니지 않음)
       const p = P(), tx = p.x - Math.sin(p.ry) * .9 + Math.cos(p.ry) * .7, tz = p.z - Math.cos(p.ry) * .9 - Math.sin(p.ry) * .7, dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz), u = n.g.userData;
       if (d > .35) { const s = Math.min(d, (d > 2.5 ? 4 : 2.2) * dt); n.x += dx / d * s; n.z += dz / d * s; u.moving = true; n.g.rotation.y = Math.atan2(dx, dz); } else { u.moving = false; u.lookAt = p.group.position; }
       n.g.position.set(n.x, 0, n.z); n.g.visible = true; }

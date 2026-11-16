@@ -367,7 +367,10 @@ function update(a, dt, opt = {}) {
   }
   const cf = u.cfix; if (cf) for (const j in cf) { const tg = p[j] || REST[j] || ZERO, c = cf[j]; p[j] = [tg[0] + c[0], tg[1] + c[1], tg[2] + c[2]]; }   // v26 접촉 보정(contact.js): 팔이 상대 몸을 뚫지 않게 더한 관절 오프셋
   const k = 1 - Math.exp(-dt * 14);
-  for (const j of JOINTS) { const tg = p[j] || REST[j] || ZERO, r = R[j].rotation; r.x += (tg[0] - r.x) * k; r.y += (tg[1] - r.y) * k; r.z += (tg[2] - r.z) * k; }
+  const il = u.ikLock && performance.now() - u.ikLock.t < 200 ? u.ikLock : null;   // v45 couple.js 가 팔을 IK 로 잡고 있으면 그만큼 안무 자세로 끌지 않음(오일러 보간으로 팔이 꺾이던 문제)
+  for (const j of JOINTS) { const tg = p[j] || REST[j] || ZERO, r = R[j].rotation; let kk = k;
+    if (il && (j === 'shL' || j === 'elL' || j === 'shR' || j === 'elR')) { kk = k * (1 - Math.min(1, il[j[2]] || 0)); }
+    r.x += (tg[0] - r.x) * kk; r.y += (tg[1] - r.y) * kk; r.z += (tg[2] - r.z) * kk; }
   R.hips.position.y += ((p.hipsY != null ? p.hipsY : u.hipH) - R.hips.position.y) * k;
   R.body.position.y += ((p.bodyY || 0) - R.body.position.y) * k; R.body.position.x += ((p.bodyX || 0) - R.body.position.x) * k;
   // 호흡: 어깨가 아주 미세하게 오르내림

@@ -21,8 +21,8 @@ function spawn(def, role) {
     u.habit = def.habit || pk(['drinker', 'none', 'flirt', 'phone', 'none', 'drinker']);
     u.idlePose = def.pose && def.pose !== 'dance' ? def.pose : (def.pose ? null : pk([null, null, 'talk', 'drink', 'lean', 'pocket', null]));   // v32 대기 포즈
   }
-  if (def.model && NC.VRMKit && NC.VRMKit.ok) NC.VRMKit.attach(g, def.model, { tint: def.tint });
-  else if (def.realModel && NC.RealHuman && NC.RealHuman.ok) NC.RealHuman.pin(g, def.realModel, { skin: def.realSkin });   // v41 페르소나 고정 실사 GLB
+  /* v45 VRM 은 init 의 일괄 배정(인물별 스타일 포함)에서 차례로 입힘 */
+  if (def.realModel && NC.RealHuman && NC.RealHuman.ok) NC.RealHuman.pin(g, def.realModel, { skin: def.realSkin });   // v41 페르소나 고정 실사 GLB
   const n = {
     id: def.id, name: def.name, def, role, persona: role === 'persona' ? def : (role === 'crowd' ? { likes: [], lines: null, pullPush: .4 } : null),
     trait: def.trait || 'outgoing', gender: (def.look && def.look.gender) || def.gender || 'f', tag: def.tag || '', job: def.job ? (role === 'persona' ? `${def.age} · ${def.job} · ${def.mbti}` : def.job) : '',
@@ -74,6 +74,7 @@ function update(n, dt) {
   const u = n.g.userData, P = NC.player;
   if (n.state === 'off') return;
   if (n.cool > 0) n.cool -= dt;
+  if (u.seated && n.state !== 'seated' && n.state !== 'talk' && n.state !== 'blues') NC.unseatAvatar(n.g);   // v45 앉은 자세로 걸어 다니는 상태 방지
   if (n.state === 'wander') {
     if (n.pause > 0) {
       n.pause -= dt; u.moving = false;
@@ -129,6 +130,20 @@ NC.NPC = {
     if (NC.VRMKit && NC.VRMKit.ok && Array.isArray(data.crowdModels) && data.crowdModels.length && !(NC.quality && NC.quality.level === 'low')) {
       const max = data.crowdModelMax || 6; let k = 0;
       npcs.filter(n => n.role === 'crowd').forEach(n => { if (k >= max) return; const pool = data.crowdModels.filter(m => !m.gender || m.gender === n.gender); if (!pool.length) return; const m = pool[k % pool.length]; NC.VRMKit.attach(n.g, m.model, { tint: m.tint }); k++; });
+    }
+    /* v45 모든 여성 인물을 하린·서진과 같은 3D(VRM) 캐릭터로 — 인물마다 얼굴(평소 표정·눈동자·피부)·헤어·옷 색과 무늬가 다름
+     *  남성 인물은 남성 VRM 파일이 생기면 npcs.json "vrmModels": { "m": "models/파일.vrm" } 로 같은 방식 적용
+     *  ?procedural 을 주소에 붙이면 끔 · 저사양/모바일은 가까운 순서로 최대 vrmLiteMax(기본 6)명 */
+    if (NC.VRMKit && NC.VRMKit.ok && !/[?&]procedural/.test(location.search)) {
+      const all = data.vrmAll !== false, VM = all ? Object.assign({ f: 'models/sample_girl.vrm' }, data.vrmModels || {}) : {}, lite2 = (NC.quality && NC.quality.level === 'low') || NC.isMobile, cap2 = lite2 ? (data.vrmLiteMax || 6) : 99;
+      const styleOf = (n, d) => ({ look: n.g.userData.look || d.look || {}, seed: U.hash((d.id || d.name) + ':vrm'), trait: d.trait, age: d.age });
+      const assign = () => { if (!NC.NPC.ready) return setTimeout(assign, 1500); let k = 0;
+        npcs.slice().sort((a, b) => (b.role === 'persona') - (a.role === 'persona') || (b.def.always ? 1 : 0) - (a.def.always ? 1 : 0)).forEach(n => {
+          if (n.g.userData.vrm || n.g.userData.vrmPending || n.def.realModel) return; const url = n.def.model || VM[n.gender]; if (!url || (k >= cap2 && !n.def.model)) return; k++;
+          n.g.userData.vrmPending = true; NC.VRMKit.enqueue(n.g, url, { tint: n.def.tint || null, style: styleOf(n, n.def) }); });
+        const lk = g => g && g.userData && g.userData.look; [NC.DJ, NC.Bartender].forEach((g, i) => { if (!all || !g || !lk(g) || lk(g).gender !== 'f' || g.userData.vrmPending || k >= cap2 || lite2) return; g.userData.vrmPending = true; k++; NC.VRMKit.enqueue(g, VM.f, { style: { look: lk(g), seed: 991 + i, trait: i ? 'cool' : 'outgoing', age: 28 } }); });
+      };
+      setTimeout(assign, lite ? 4000 : 600);
     }
     /* v24 여성 DJ 「루나」 — 글램 스테이지 룩(크롭 블레이저 · 레더 · 부츠 · 핑크 투톤 포니테일) */
     /* v35 DJ 루나: 1.25배 크게(무대 어디서나 눈에 띄게) · 은빛 메탈릭 크롭 재킷 + 핑크 투톤 하이 포니테일 + 레더 + 니하이 부츠 · 신나는 하이프 댄스 */

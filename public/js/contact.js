@@ -57,15 +57,16 @@ function armCost(R, sh, el, B, hug, ikHand, tgt) {
 }
 const PARAMS = [['sh', 0], ['sh', 1], ['sh', 2], ['el', 0]], PW = [.25, 1, 1, 1.2];   // 팔을 '들어 올려' 빼기보다 옆·뒤로 돌려 감싸도록 가중
 function solveArm(A, B, side, dt, hug) {
-  const R = A.R, [sh, el] = ARMS[side], u = A.u, ik = false, ht = u.handTgt && performance.now() - u.handTgt.t < 150 ? u.handTgt : null, tp = ht && ht[side ? 'R' : 'L'], tgt = tp && ht.w > .02 ? { p: tp, w: ht.w } : null;
-  const armCostX = (R2, sh2, el2, B2, hug2) => armCost(R2, sh2, el2, B2, hug2, ik, tgt), LIM = tgt ? 1.5 : .75, ITER = tgt ? 6 : 4;
+  const lk = u0 => u0.ikLock && performance.now() - u0.ikLock.t < 150 ? (u0.ikLock[side ? 'R' : 'L'] || 0) : 0;
+  const R = A.R, [sh, el] = ARMS[side], u = A.u, lock = lk(A.u), ik = lock > .3, ht = u.handTgt && performance.now() - u.handTgt.t < 150 ? u.handTgt : null, tp = ht && ht[side ? 'R' : 'L'], tgt = tp && ht.w > .02 ? { p: tp, w: ht.w } : null;
+  const armCostX = (R2, sh2, el2, B2, hug2) => armCost(R2, sh2, el2, B2, hug2, ik, tgt), LIM = ik ? .35 : tgt ? 1.5 : .75, ITER = ik ? 2 : tgt ? 6 : 4;   // v45 IK 로 놓은 팔은 관통만 살짝(작은 한도·적은 반복)
   let c0 = armCostX(R, sh, el, B, hug); if (c0 <= 1e-4) return 0;
   u.cfix = u.cfix || {}; const fx = u.cfix;
   for (let it = 0; it < ITER && c0 > 1e-4; it++) {
     const grad = [0, 0, 0, 0], d = .035;
     PARAMS.forEach(([j, ax], i) => { const J = j === 'sh' ? R[sh] : R[el], key = ['x', 'y', 'z'][ax]; J.rotation[key] += d; grad[i] = (armCostX(R, sh, el, B, hug) - c0) / d; J.rotation[key] -= d; });
     for (let i = 0; i < 4; i++) grad[i] *= PW[i]; const gn = Math.hypot(...grad); if (gn < 1e-5) break;
-    const step = Math.min(.09, .04 + c0 * .6);
+    const step = ik ? Math.min(.03, .012 + c0 * .2) : Math.min(.09, .04 + c0 * .6);
     PARAMS.forEach(([j, ax], i) => { const J = j === 'sh' ? R[sh] : R[el], key = ['x', 'y', 'z'][ax], dv = -grad[i] / gn * step; J.rotation[key] += dv;
       const jn = j === 'sh' ? sh : el; fx[jn] = fx[jn] || [0, 0, 0]; fx[jn][ax] = Math.max(-LIM, Math.min(LIM, fx[jn][ax] + dv)); });
     if (R[el].rotation.x > 0) { const over = R[el].rotation.x; R[el].rotation.x = 0; fx[el][0] -= over; }   // 팔꿈치는 앞으로만 굽음
