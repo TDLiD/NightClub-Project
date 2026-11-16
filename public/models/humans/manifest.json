@@ -1,8 +1,474 @@
 {
-  "_설명": "v41 근거리 실사 휴먼. 리깅된 GLB(Mixamo · Character Creator · Ready Player Me · Rigify · Unreal 내보내기)를 이 폴더에 넣고 models 에 등록하세요. 비어 있으면 기존 스킨드 절차적 몸만 사용합니다.",
-  "near": 6,
-  "max": 4,
-  "maxMobile": 1,
-  "models": [
+ "_설명": "v46 실사 인물 라이브러리 — Microsoft Rocketbox 아바타(MIT) 변환본. near/max: 고해상도(표정 블렌드셰이프 67종) 근거리 인원 · mid/maxMid: 경량 LOD 거리·인원 · assign: npcs.json id → 모델 id(얼굴 중복 최소) · staff: DJ·바텐더·웨이터·무대 댄서용 남은 모델.",
+ "near": 7,
+ "max": 6,
+ "maxMobile": 2,
+ "mid": 45,
+ "maxMid": 60,
+ "maxMidMobile": 8,
+ "source": "https://github.com/microsoft/Microsoft-Rocketbox",
+ "license": "MIT (Copyright (c) Microsoft Corporation) — models/humans/LICENSE_ROCKETBOX.md",
+ "models": [
+  {
+   "id": "f_01",
+   "url": "models/humans/f_01.glb",
+   "lod": "models/humans/f_01_lod.glb",
+   "gender": "f",
+   "skin": "#d09b7b",
+   "hair": "#503722",
+   "src": "Female_Adult_01"
+  },
+  {
+   "id": "f_02",
+   "url": "models/humans/f_02.glb",
+   "lod": "models/humans/f_02_lod.glb",
+   "gender": "f",
+   "skin": "#d49b7b",
+   "hair": "#17100c",
+   "src": "Female_Adult_02"
+  },
+  {
+   "id": "f_03",
+   "url": "models/humans/f_03.glb",
+   "lod": "models/humans/f_03_lod.glb",
+   "gender": "f",
+   "skin": "#bd8466",
+   "hair": "#0a0907",
+   "src": "Female_Adult_03"
+  },
+  {
+   "id": "f_04",
+   "url": "models/humans/f_04.glb",
+   "lod": "models/humans/f_04_lod.glb",
+   "gender": "f",
+   "skin": "#d19778",
+   "hair": "#56452f",
+   "src": "Female_Adult_04"
+  },
+  {
+   "id": "f_05",
+   "url": "models/humans/f_05.glb",
+   "lod": "models/humans/f_05_lod.glb",
+   "gender": "f",
+   "skin": "#cc9170",
+   "hair": "#171210",
+   "src": "Female_Adult_05"
+  },
+  {
+   "id": "f_06",
+   "url": "models/humans/f_06.glb",
+   "lod": "models/humans/f_06_lod.glb",
+   "gender": "f",
+   "skin": "#cd9d7d",
+   "hair": "#271a12",
+   "src": "Female_Adult_07"
+  },
+  {
+   "id": "f_07",
+   "url": "models/humans/f_07.glb",
+   "lod": "models/humans/f_07_lod.glb",
+   "gender": "f",
+   "skin": "#c49271",
+   "hair": "#302016",
+   "src": "Female_Adult_08"
+  },
+  {
+   "id": "f_08",
+   "url": "models/humans/f_08.glb",
+   "lod": "models/humans/f_08_lod.glb",
+   "gender": "f",
+   "skin": "#c48a6a",
+   "hair": "#31231b",
+   "src": "Female_Adult_09"
+  },
+  {
+   "id": "f_09",
+   "url": "models/humans/f_09.glb",
+   "lod": "models/humans/f_09_lod.glb",
+   "gender": "f",
+   "skin": "#c88e65",
+   "hair": "#84631f",
+   "src": "Female_Adult_11"
+  },
+  {
+   "id": "f_10",
+   "url": "models/humans/f_10.glb",
+   "lod": "models/humans/f_10_lod.glb",
+   "gender": "f",
+   "skin": "#c58d6b",
+   "hair": "#120c09",
+   "src": "Female_Adult_12"
+  },
+  {
+   "id": "f_11",
+   "url": "models/humans/f_11.glb",
+   "lod": "models/humans/f_11_lod.glb",
+   "gender": "f",
+   "skin": "#cd946f",
+   "hair": "#5e4d39",
+   "src": "Female_Adult_13"
+  },
+  {
+   "id": "f_12",
+   "url": "models/humans/f_12.glb",
+   "lod": "models/humans/f_12_lod.glb",
+   "gender": "f",
+   "skin": "#cc9570",
+   "hair": "#2b1d14",
+   "src": "Female_Adult_14"
+  },
+  {
+   "id": "f_13",
+   "url": "models/humans/f_13.glb",
+   "lod": "models/humans/f_13_lod.glb",
+   "gender": "f",
+   "skin": "#cc8f6e",
+   "hair": "#3e2a1e",
+   "src": "Female_Adult_15"
+  },
+  {
+   "id": "f_14",
+   "url": "models/humans/f_14.glb",
+   "lod": "models/humans/f_14_lod.glb",
+   "gender": "f",
+   "skin": "#d59c79",
+   "hair": "#573e2a",
+   "src": "Female_Adult_17"
+  },
+  {
+   "id": "f_15",
+   "url": "models/humans/f_15.glb",
+   "lod": "models/humans/f_15_lod.glb",
+   "gender": "f",
+   "skin": "#c8926d",
+   "hair": "#bb9567",
+   "src": "Female_Party_01"
+  },
+  {
+   "id": "f_16",
+   "url": "models/humans/f_16.glb",
+   "lod": "models/humans/f_16_lod.glb",
+   "gender": "f",
+   "skin": "#c88a58",
+   "hair": "#19110a",
+   "src": "Female_Party_02"
+  },
+  {
+   "id": "f_17",
+   "url": "models/humans/f_17.glb",
+   "lod": "models/humans/f_17_lod.glb",
+   "gender": "f",
+   "skin": "#a97145",
+   "hair": "#1d160f",
+   "src": "Business_Female_01"
+  },
+  {
+   "id": "f_18",
+   "url": "models/humans/f_18.glb",
+   "lod": "models/humans/f_18_lod.glb",
+   "gender": "f",
+   "skin": "#cf9674",
+   "hair": "#684d35",
+   "src": "Business_Female_02"
+  },
+  {
+   "id": "f_19",
+   "url": "models/humans/f_19.glb",
+   "lod": "models/humans/f_19_lod.glb",
+   "gender": "f",
+   "skin": "#d19879",
+   "hair": "#130e0b",
+   "src": "Business_Female_03"
+  },
+  {
+   "id": "f_20",
+   "url": "models/humans/f_20.glb",
+   "lod": "models/humans/f_20_lod.glb",
+   "gender": "f",
+   "skin": "#d0997a",
+   "hair": "#221a16",
+   "src": "Business_Female_04"
+  },
+  {
+   "id": "m_01",
+   "url": "models/humans/m_01.glb",
+   "lod": "models/humans/m_01_lod.glb",
+   "gender": "m",
+   "skin": "#bd9076",
+   "hair": "#130c09",
+   "src": "Male_Adult_01"
+  },
+  {
+   "id": "m_02",
+   "url": "models/humans/m_02.glb",
+   "lod": "models/humans/m_02_lod.glb",
+   "gender": "m",
+   "skin": "#cd9d7c",
+   "hair": "#130d0a",
+   "src": "Male_Adult_02"
+  },
+  {
+   "id": "m_03",
+   "url": "models/humans/m_03.glb",
+   "lod": "models/humans/m_03_lod.glb",
+   "gender": "m",
+   "skin": "#ae755a",
+   "hair": "#3c2c24",
+   "src": "Male_Adult_03"
+  },
+  {
+   "id": "m_04",
+   "url": "models/humans/m_04.glb",
+   "lod": "models/humans/m_04_lod.glb",
+   "gender": "m",
+   "skin": "#6e4b35",
+   "hair": "#0d0907",
+   "src": "Male_Adult_04"
+  },
+  {
+   "id": "m_05",
+   "url": "models/humans/m_05.glb",
+   "lod": "models/humans/m_05_lod.glb",
+   "gender": "m",
+   "skin": "#ba8f76",
+   "hair": "#1a1310",
+   "src": "Male_Adult_05"
+  },
+  {
+   "id": "m_06",
+   "url": "models/humans/m_06.glb",
+   "lod": "models/humans/m_06_lod.glb",
+   "gender": "m",
+   "skin": "#c79576",
+   "hair": "#1a120c",
+   "src": "Male_Adult_06"
+  },
+  {
+   "id": "m_07",
+   "url": "models/humans/m_07.glb",
+   "lod": "models/humans/m_07_lod.glb",
+   "gender": "m",
+   "skin": "#b37e5a",
+   "hair": "#130d0a",
+   "src": "Male_Adult_07"
+  },
+  {
+   "id": "m_08",
+   "url": "models/humans/m_08.glb",
+   "lod": "models/humans/m_08_lod.glb",
+   "gender": "m",
+   "skin": "#c48e6a",
+   "hair": "#0f0b08",
+   "src": "Male_Adult_08"
+  },
+  {
+   "id": "m_09",
+   "url": "models/humans/m_09.glb",
+   "lod": "models/humans/m_09_lod.glb",
+   "gender": "m",
+   "skin": "#c6926e",
+   "hair": "#12100e",
+   "src": "Male_Adult_09"
+  },
+  {
+   "id": "m_10",
+   "url": "models/humans/m_10.glb",
+   "lod": "models/humans/m_10_lod.glb",
+   "gender": "m",
+   "skin": "#c78c58",
+   "hair": "#0d0803",
+   "src": "Male_Adult_10"
+  },
+  {
+   "id": "m_11",
+   "url": "models/humans/m_11.glb",
+   "lod": "models/humans/m_11_lod.glb",
+   "gender": "m",
+   "skin": "#dd9f80",
+   "hair": "#24160f",
+   "src": "Male_Adult_11"
+  },
+  {
+   "id": "m_12",
+   "url": "models/humans/m_12.glb",
+   "lod": "models/humans/m_12_lod.glb",
+   "gender": "m",
+   "skin": "#684530",
+   "hair": "#0b0806",
+   "src": "Male_Adult_12"
+  },
+  {
+   "id": "m_13",
+   "url": "models/humans/m_13.glb",
+   "lod": "models/humans/m_13_lod.glb",
+   "gender": "m",
+   "skin": "#c28e73",
+   "hair": "#402319",
+   "src": "Male_Adult_13"
+  },
+  {
+   "id": "m_14",
+   "url": "models/humans/m_14.glb",
+   "lod": "models/humans/m_14_lod.glb",
+   "gender": "m",
+   "skin": "#c28767",
+   "hair": "#5f3d2f",
+   "src": "Male_Adult_14"
+  },
+  {
+   "id": "m_15",
+   "url": "models/humans/m_15.glb",
+   "lod": "models/humans/m_15_lod.glb",
+   "gender": "m",
+   "skin": "#d0a083",
+   "hair": "#584833",
+   "src": "Male_Adult_16"
+  },
+  {
+   "id": "m_16",
+   "url": "models/humans/m_16.glb",
+   "lod": "models/humans/m_16_lod.glb",
+   "gender": "m",
+   "skin": "#6b4d2f",
+   "hair": "#000000",
+   "src": "Male_Adult_17"
+  },
+  {
+   "id": "m_17",
+   "url": "models/humans/m_17.glb",
+   "lod": "models/humans/m_17_lod.glb",
+   "gender": "m",
+   "skin": "#4a2d21",
+   "hair": "#020201",
+   "src": "Male_Adult_18"
+  },
+  {
+   "id": "m_18",
+   "url": "models/humans/m_18.glb",
+   "lod": "models/humans/m_18_lod.glb",
+   "gender": "m",
+   "skin": "#b3846d",
+   "hair": "#170d0a",
+   "src": "Male_Adult_20"
+  },
+  {
+   "id": "m_19",
+   "url": "models/humans/m_19.glb",
+   "lod": "models/humans/m_19_lod.glb",
+   "gender": "m",
+   "skin": "#c79274",
+   "hair": "#0d0806",
+   "src": "Business_Male_01"
+  },
+  {
+   "id": "m_20",
+   "url": "models/humans/m_20.glb",
+   "lod": "models/humans/m_20_lod.glb",
+   "gender": "m",
+   "skin": "#d09c79",
+   "hair": "#0b0907",
+   "src": "Business_Male_02"
+  },
+  {
+   "id": "m_21",
+   "url": "models/humans/m_21.glb",
+   "lod": "models/humans/m_21_lod.glb",
+   "gender": "m",
+   "skin": "#ce9677",
+   "hair": "#1a1613",
+   "src": "Business_Male_03"
+  },
+  {
+   "id": "m_22",
+   "url": "models/humans/m_22.glb",
+   "lod": "models/humans/m_22_lod.glb",
+   "gender": "m",
+   "skin": "#b07b63",
+   "hair": "#614438",
+   "src": "Business_Male_04"
+  },
+  {
+   "id": "m_23",
+   "url": "models/humans/m_23.glb",
+   "lod": "models/humans/m_23_lod.glb",
+   "gender": "m",
+   "skin": "#a06c4c",
+   "hair": "#0f0a07",
+   "src": "Business_Male_05"
+  },
+  {
+   "id": "m_24",
+   "url": "models/humans/m_24.glb",
+   "lod": "models/humans/m_24_lod.glb",
+   "gender": "m",
+   "skin": "#c38465",
+   "hair": "#0c0a07",
+   "src": "Business_Male_06"
+  },
+  {
+   "id": "m_25",
+   "url": "models/humans/m_25.glb",
+   "lod": "models/humans/m_25_lod.glb",
+   "gender": "m",
+   "skin": "#bf8462",
+   "hair": "#5b3e2e",
+   "src": "Business_Male_07"
+  }
+ ],
+ "assign": {
+  "harin": "f_03",
+  "seojin": "f_10",
+  "jiho": "m_09",
+  "sua": "f_09",
+  "minhyuk": "m_21",
+  "jihyun": "f_19",
+  "subin": "f_06",
+  "minjae": "m_20",
+  "haneul": "f_14",
+  "yerin": "f_20",
+  "dohyun": "m_19",
+  "seoyeon": "f_05",
+  "jiwoo": "m_10",
+  "jaesuk": "f_18",
+  "jo": "f_02",
+  "sophia": "f_15",
+  "naomi": "f_17",
+  "yuna": "f_12",
+  "chloe": "f_04",
+  "amina": "f_16",
+  "jake": "m_15",
+  "marcus": "m_17",
+  "taejun": "m_11",
+  "doyun": "m_02",
+  "leo": "m_06",
+  "lena": "f_01",
+  "hyejung": "f_07",
+  "mikyung": "f_13",
+  "yuka": "f_11",
+  "eunsook": "f_08",
+  "nicole": "f_15",
+  "dongsu": "m_01",
+  "junho": "m_08",
+  "marco": "m_24",
+  "kenji": "m_18"
+ },
+ "staff": {
+  "f": [],
+  "m": [
+   "m_03",
+   "m_04",
+   "m_05",
+   "m_12",
+   "m_13",
+   "m_14",
+   "m_16",
+   "m_22",
+   "m_23",
+   "m_25"
   ]
+ },
+ "player": {
+  "m": "m_07",
+  "f": "f_13"
+ }
 }

@@ -17,7 +17,7 @@ const NC = window.NC; if (!NC) return;
 const T = NC.THREE, U = NC.util, Q = NC.quality || {};
 const RH = NC.RealHuman = { ok: !!T.GLTFLoader, list: [], cfg: null, cache: new Map(), stats: { attached: 0, loads: 0 } };
 if (!RH.ok) { RH.attach = () => Promise.resolve(null); return; }
-const loader = new T.GLTFLoader();
+const loader = new T.GLTFLoader(); if (window.MeshoptDecoder && loader.setMeshoptDecoder) loader.setMeshoptDecoder(window.MeshoptDecoder);   // v46 압축 GLB
 
 /* ── 뼈 이름 정규화 + 후보 ── */
 const norm = n => String(n || '').toLowerCase().replace(/^(mixamorig\d*[:_]?|cc_base_|rig[:_]|def[-_]|armature[|:_]|bip0?1[ _]?|b_|j_bip_c_|j_)/, '').replace(/[\s_.:-]/g, '');
@@ -51,6 +51,9 @@ function findBones(root) {
     B['ul' + s] = get(HB.ul(s)); B['ll' + s] = get(HB.ll(s)); B['foot' + s] = get(HB.foot(s));
     FING.forEach((fn, i) => { for (let k = 1; k <= 3; k++) B[`f${s}${i}_${k}`] = get(cands([`hand${fn}${k}`, `${fn}${k}`, `${fn}0${k}`, `finger${fn}${k}`, `${fn}finger${k}`], s)); });
     for (let k = 1; k <= 3; k++) B[`t${s}_${k}`] = get(cands([`handthumb${k}`, `thumb${k}`, `thumb0${k}`, `fingerthumb${k}`], s));
+    /* v46 3ds Max Biped(Rocketbox): Finger0=엄지, Finger1~4=검지~새끼, 마디는 FingerN · FingerN1 · FingerN2 */
+    FING.forEach((fn, i) => { const n = i + 1; if (!B[`f${s}${i}_1`]) B[`f${s}${i}_1`] = get(cands([`finger${n}`], s)); if (!B[`f${s}${i}_2`]) B[`f${s}${i}_2`] = get(cands([`finger${n}1`], s)); if (!B[`f${s}${i}_3`]) B[`f${s}${i}_3`] = get(cands([`finger${n}2`], s)); });
+    if (!B[`t${s}_1`]) { B[`t${s}_1`] = get(cands(['finger0'], s)); B[`t${s}_2`] = get(cands(['finger01'], s)); B[`t${s}_3`] = get(cands(['finger02'], s)); }
     B['eye' + s] = get(cands(['eye'], s));
   }
   // 'arm' 후보가 forearm 을 먼저 잡는 것 방지 / 'leg' 가 upleg 를 잡는 것 방지
@@ -136,12 +139,14 @@ RH.attach = async (root, url, opt = {}) => {
   // 부모가 먼저 오도록 정렬(깊이)
   const depth = o => { let d = 0; while (o.parent) { d++; o = o.parent; } return d; }; J.sort((a, b) => depth(a.b) - depth(b.b));
   // 재질: 피부에 클럽 조명용 피하산란(SSS) 셰이더 · 그림자
-  const skinNames = (opt.skin || []).map(x => x.toLowerCase());
+  const skinNames = (opt.skin || []).map(x => x.toLowerCase()), noSkin = (opt.noSkin || []).map(x => x.toLowerCase());
   const matSet = new Set(); model.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m && matSet.add(m)); }); const multi = matSet.size > 1;   // 재질이 하나뿐(옷+피부 한 텍스처)인 모델은 피부 셰이더를 옷에 씌우지 않음
   model.traverse(o => { if (!o.isMesh) return; o.frustumCulled = false; if (Q.shadows) o.castShadow = true;
     (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (!m) return; const n = ((m.name || '') + ' ' + (o.name || '')).toLowerCase();
-      if (NC.Avatar && NC.Avatar.skinCompile && m.isMeshStandardMaterial && (skinNames.some(k => n.includes(k)) || /skin/.test(n) || (multi && /body|head|face/.test(n))) && !/hair|cloth|shirt|pant|shoe|eye|lash|brow|teeth|tongue/.test(n)) { m.onBeforeCompile = NC.Avatar.skinCompile; m.customProgramCacheKey = () => 'realSkin'; m.needsUpdate = true; }
-      if (m.envMapIntensity != null) m.envMapIntensity = Math.min(m.envMapIntensity, 1); }); });
+      if (NC.Avatar && NC.Avatar.skinCompile && m.isMeshStandardMaterial && !noSkin.some(k => n.includes(k)) && (skinNames.some(k => n.includes(k)) || /skin/.test(n) || (multi && /body|head|face/.test(n))) && !/hair|cloth|shirt|pant|shoe|eye|lash|brow|teeth|tongue/.test(n)) { m.onBeforeCompile = NC.Avatar.skinCompile; m.customProgramCacheKey = () => 'realSkin'; m.needsUpdate = true; }
+      if (m.envMapIntensity != null) m.envMapIntensity = Math.min(m.envMapIntensity, 1);
+      if (/opacity|hair|lash/.test(n) && m.map) { m.transparent = false; m.alphaTest = .42; m.alphaToCoverage = true; m.side = T.DoubleSide; m.depthWrite = true; m.roughness = .48; }   // v46 머리카락·속눈썹 카드: 알파 테스트 + 커버리지(정렬 문제 없이 가는 머리결)
+      if (opt.lod) { m.normalScale && m.normalScale.set(.7, .7); } }); });
   // 절차적 메시 숨김(잔·마이크·이름표 유지)
   const keep = new Set(); [u.glass, u.mic].forEach(g => g && g.traverse(o => keep.add(o)));
   const hidden = []; R.body.traverse(o => { if ((o.isMesh || o.isSprite) && o.visible && !keep.has(o)) { hidden.push(o); o.visible = false; } });
@@ -182,18 +187,50 @@ function apply(r, dt) {
   for (const s of ['L', 'R']) { const e = r.Bn['eye' + s]; if (e && u.gaze) { e.rotation.y = U.clamp(u.gaze[0], -1, 1) * .35; e.rotation.x = U.clamp(u.gaze[1], -1, 1) * .25; } }
 }
 
-/* ── 거리 기반 LOD: 가까운 N명만 실사 ── */
+/* ── v46 거리 기반 3단계: 근거리 N명 = 고해상도(표정·손가락) · 중거리 = 경량 LOD 모델 · 원거리 = 기존 절차적 몸 ──
+ *  인물 → 모델은 manifest.assign(npcs.json id)로 고정(같은 사람은 항상 같은 얼굴), 직원·댄서는 staff 목록에서 */
 let acc = 0;
+const staffKey = new WeakMap(); let staffN = { f: 0, m: 0 };
+function rootsAll() {
+  const out = [];
+  (NC.npcs || []).forEach(n => n.g && out.push({ g: n.g, id: n.def && (n.def.id || n.def.name) || n.id || n.name, gender: n.gender || (n.g.userData.look || {}).gender }));
+  (NC.Waiters ? NC.Waiters.list : []).forEach((o, i) => o.g && out.push({ g: o.g, id: 'staff:w' + i, gender: (o.g.userData.look || {}).gender || 'm', staff: true }));
+  [['dj', NC.DJ], ['bar', NC.Bartender]].forEach(([k, g]) => g && g.userData && g.userData.rig && out.push({ g, id: 'staff:' + k, gender: (g.userData.look || {}).gender || 'f', staff: true }));
+  (NC.Stage && NC.Stage.dancers || []).forEach((d, i) => d.g && out.push({ g: d.g, id: 'staff:d' + i, gender: (d.g.userData.look || {}).gender || 'f', staff: true }));
+  const P = NC.player && NC.player.group; if (P && P.userData && P.userData.rig && !P.userData.customModel) out.push({ g: P, id: 'player', gender: (P.userData.look || {}).gender || 'm', staff: true, me: true });   // 내 캐릭터
+  (NC.remotes || new Map()).forEach((r, k) => r && r.g && r.g.userData && r.g.userData.rig && out.push({ g: r.g, id: 'remote:' + k, gender: (r.g.userData.look || {}).gender || 'm', staff: true }));
+  return out;
+}
+function modelFor(C, r) {
+  const M = C._byId || (C._byId = Object.fromEntries((C.models || []).map(m => [m.id, m])));
+  const a = (C.assign && C.assign[r.id]) || (r.me && C.player && C.player[r.gender === 'f' ? 'f' : 'm']); if (a && M[a]) return M[a];
+  const gk = r.gender === 'm' ? 'm' : 'f';
+  if (!staffKey.has(r.g)) { const pool = (C.staff && C.staff[gk] && C.staff[gk].length ? C.staff[gk] : (C.models || []).filter(m => m.gender === gk).map(m => m.id)); staffKey.set(r.g, pool[(staffN[gk]++) % pool.length]); }
+  return M[staffKey.get(r.g)] || null;
+}
+let budget = 0;   // 한 번(0.35초)에 새로 입히는 인원 제한 → 시작할 때 수십 명을 한꺼번에 파싱해 멈추는 것 방지
+function want(r, url, opt) {   // 같은 사람의 모델 교체: 새 파일을 먼저 받아 둔 뒤 한 번에 바꿈(깜빡임 최소)
+  const u = r.g.userData, cur = u.real; if (cur && (cur.url === url || cur.next === url)) return;
+  if (cur && cur.pending) return; if (budget <= 0) return; budget--;
+  if (!cur) { RH.attach(r.g, url, opt); return; }
+  cur.next = url; load(url).then(() => { if (u.real !== cur) return; RH.detach(r.g); RH.attach(r.g, url, opt); }).catch(() => { cur.next = null; });
+}
 function lod() {
   const C = RH.cfg; if (!C || !C.models || !C.models.length) return;
-  const cam = NC.camera; if (!cam) return; const cp = cam.position, near = C.near || 6, max = NC.isMobile ? (C.maxMobile ?? 1) : Q.level === 'low' ? Math.min(1, C.max ?? 4) : (C.max ?? 4);
+  const cam = NC.camera; if (!cam) return; const cp = cam.position, mob = NC.isMobile, low = Q.level === 'low';
+  const near = C.near || 7, mid = C.mid || 45, maxN = mob ? (C.maxMobile ?? 2) : low ? Math.min(2, C.max ?? 6) : (C.max ?? 6), maxM = mob || low ? (C.maxMidMobile ?? 8) : (C.maxMid ?? 60);
   const cand = [];
-  (NC.npcs || []).forEach(n => { const g = n.g; if (!g || !g.parent || !g.visible || !g.userData.rig || g.userData.vrm) return; if (g.userData.real && g.userData.real.pinned) return;
-    const pool = C.models.filter(m => !m.gender || m.gender === g.userData.gender); if (!pool.length) return;
-    const d = g.getWorldPosition(V1).distanceTo(cp); if (d < near) cand.push({ g, d, pool, n }); });
-  cand.sort((a, b) => a.d - b.d); const want = new Set(cand.slice(0, max).map(c => c.g));
-  RH.list.slice().forEach(r => { if (!r.pinned && !want.has(r.root)) RH.detach(r.root); });
-  cand.slice(0, max).forEach(c => { if (c.g.userData.real) return; const m = c.pool[(U.hash(c.n.name || c.n.id || 'x') >>> 0) % c.pool.length]; RH.attach(c.g, m.url, { skin: m.skin, scale: m.scale }); });
+  rootsAll().forEach(r => { const g = r.g; if (!g.parent || !g.userData.rig || g.userData.vrm) return; if (g.userData.real && g.userData.real.pinned) return;
+    const m = modelFor(C, r); if (!m) return; let vis = g.visible; for (let p = g.parent; vis && p; p = p.parent) vis = p.visible;
+    const d = r.me ? 0 : g.getWorldPosition(V1).distanceTo(cp); cand.push({ r, m, d: vis ? d : 1e9 }); });
+  cand.sort((a, b) => a.d - b.d);
+  let nN = 0, nM = 0; budget = NC.isMobile ? 1 : 2;
+  cand.forEach(c => {
+    if (c.d < near && nN < maxN) { nN++; want(c.r, c.m.url, { noSkin: ['_body'], skin: ['_head'] }); }
+    else if (c.d < mid && nM < maxM && c.m.lod) { nM++; want(c.r, c.m.lod, { noSkin: ['_body'], skin: ['_head'], lod: true }); }
+    else if (c.r.g.userData.real && !c.r.g.userData.real.pending) RH.detach(c.r.g);
+  });
+  RH.stats.near = nN; RH.stats.mid = nM;
 }
 NC.tickers.push(dt => {
   acc += dt; if (acc > .35) { acc = 0; try { lod(); } catch (e) { console.warn('[real] lod', e); } }
@@ -201,5 +238,5 @@ NC.tickers.push(dt => {
 });
 RH.pin = (root, url, opt = {}) => RH.attach(root, url, Object.assign({ pinned: true }, opt));
 /* 설정 불러오기(없으면 꺼짐) */
-fetch('models/humans/manifest.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(j => { if (!j) return; RH.cfg = j; console.info('[real] 실사 모델 ' + (j.models || []).length + '개 · 근거리 ' + (j.near || 6) + 'm · 최대 ' + (j.max ?? 4) + '명'); }).catch(() => {});
+if (!/[?&](noreal|procedural)\b/.test(location.search)) fetch('models/humans/manifest.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(j => { if (!j) return; RH.cfg = j; console.info('[real] 실사 모델 ' + (j.models || []).length + '개 · 근거리 ' + (j.near || 6) + 'm · 최대 ' + (j.max ?? 4) + '명'); }).catch(() => {});
 })();
