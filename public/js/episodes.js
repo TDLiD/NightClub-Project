@@ -167,8 +167,9 @@ function pickReal(g, id) {
 function makeGuests(nF, nM, off = 0) {    // 자리 채우기용 손님 생성 (npcs.json 의 기본 손님은 플로어를 돌아다니게 남겨 둠)
   const out = [], hair = ['#1a120c', '#3b2417', '#5a3a22', '#2a1a10', '#8a5a2a', '#c8a070'];
   for (let i = 0; i < nF + nM; i++) { const f = i < nF, j = i + off; let nm = f ? NAMES_F[j % NAMES_F.length] : NAMES_M[j % NAMES_M.length];
-    const mid = pickReal(f ? 'f' : 'm', `guest_${j}`); if (mid) { const east = (NC.RealHuman.modelOf(mid) || {}).look !== 'west', L = east ? (f ? NAMES_F : NAMES_M) : (f ? NAMES_WF : NAMES_WM), c = gCount[(east ? 'e' : 'w') + (f ? 'f' : 'm')]++; nm = L[c % L.length]; }   // v48 이름 = 실제 3D 외모(동양 모델 → 한국 이름 · 서양 모델 → 외국 이름)
-    { const RC = NC.RealHuman && NC.RealHuman.cfg, AN = RC && RC.assignName, fx = AN && AN[nm]; if (fx && NC.RealHuman.modelOf(fx)) RC.assign[`guest_${j}`] = fx; }   // v55 manifest.assignName: 이름으로 모델 고정(이름은 그대로 유지)
+    const RC = NC.RealHuman && NC.RealHuman.cfg, gk = f ? 'f' : 'm', pi = (makeGuests.pi = makeGuests.pi || { f: 0, m: 0 })[gk]++, pe = RC && RC.guestPlan && RC.guestPlan[gk] && RC.guestPlan[gk][pi];   // v55 manifest.guestPlan: 테이블 손님 이름·모델 고정(성별 순번)
+    if (pe && NC.RealHuman.modelOf(pe[1])) { RC.assign[`guest_${j}`] = pe[1]; nm = pe[0]; } else
+    { const mid = pickReal(f ? 'f' : 'm', `guest_${j}`); if (mid) { const east = (NC.RealHuman.modelOf(mid) || {}).look !== 'west', L = east ? (f ? NAMES_F : NAMES_M) : (f ? NAMES_WF : NAMES_WM), c = gCount[(east ? 'e' : 'w') + (f ? 'f' : 'm')]++; nm = L[c % L.length]; } }   // v48 이름 = 실제 3D 외모(동양 모델 → 한국 이름 · 서양 모델 → 외국 이름)
     const n = NC.NPC.spawn({ id: `guest_${j}`, name: nm, gender: f ? 'f' : 'm', color: pk(f ? TOPS_F : TOPS_M), hair: pk(hair), trait: pk(['outgoing', 'shy', 'cool']), tag: '🍸 테이블 손님', job: '손님' }, 'crowd'); n.guest = true; out.push(n); }
   return out;
 }
