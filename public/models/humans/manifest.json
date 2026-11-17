@@ -5,7 +5,7 @@
  "maxMobile": 2,
  "mid": 45,
  "maxMid": 60,
- "maxMidMobile": 8,
+ "maxMidMobile": 20,
  "source": "https://github.com/microsoft/Microsoft-Rocketbox",
  "license": "MIT (Copyright (c) Microsoft Corporation) — models/humans/LICENSE_ROCKETBOX.md",
  "models": [
@@ -16,7 +16,12 @@
    "gender": "f",
    "skin": "#d09b7b",
    "hair": "#503722",
-   "src": "Female_Adult_01"
+   "src": "Female_Adult_01",
+   "label": "핑크 셔츠 & 청바지",
+   "full": "models/humans/full/f_01.jpg",
+   "portrait": "profile/real/f_01.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "f_02",
@@ -25,7 +30,12 @@
    "gender": "f",
    "skin": "#d49b7b",
    "hair": "#17100c",
-   "src": "Female_Adult_02"
+   "src": "Female_Adult_02",
+   "label": "니트 & 데님 스커트",
+   "full": "models/humans/full/f_02.jpg",
+   "portrait": "profile/real/f_02.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "f_03",
@@ -34,7 +44,12 @@
    "gender": "f",
    "skin": "#bd8466",
    "hair": "#0a0907",
-   "src": "Female_Adult_03"
+   "src": "Female_Adult_03",
+   "label": "퍼플 캐미솔",
+   "full": "models/humans/full/f_03.jpg",
+   "portrait": "profile/real/f_03.jpg",
+   "look": "east",
+   "wear": "dressy"
   },
   {
    "id": "f_04",
@@ -43,7 +58,12 @@
    "gender": "f",
    "skin": "#d19778",
    "hair": "#56452f",
-   "src": "Female_Adult_04"
+   "src": "Female_Adult_04",
+   "label": "레더 재킷 & 카고",
+   "full": "models/humans/full/f_04.jpg",
+   "portrait": "profile/real/f_04.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "f_05",
@@ -52,7 +72,12 @@
    "gender": "f",
    "skin": "#cc9170",
    "hair": "#171210",
-   "src": "Female_Adult_05"
+   "src": "Female_Adult_05",
+   "label": "핑크 블레이저",
+   "full": "models/humans/full/f_05.jpg",
+   "portrait": "profile/real/f_05.jpg",
+   "look": "east",
+   "wear": "casual"
   },
   {
    "id": "f_06",
@@ -61,7 +86,12 @@
    "gender": "f",
    "skin": "#cd9d7d",
    "hair": "#271a12",
-   "src": "Female_Adult_07"
+   "src": "Female_Adult_07",
+   "label": "브라운 레더 & 부츠",
+   "full": "models/humans/full/f_06.jpg",
+   "portrait": "profile/real/f_06.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "f_07",
@@ -70,7 +100,12 @@
    "gender": "f",
    "skin": "#c49271",
    "hair": "#302016",
-   "src": "Female_Adult_08"
+   "src": "Female_Adult_08",
+   "label": "그래픽 티 & 찢청",
+   "full": "models/humans/full/f_07.jpg",
+   "portrait": "profile/real/f_07.jpg",
+   "look": "east",
+   "wear": "casual"
   },
   {
    "id": "f_08",
@@ -79,7 +114,12 @@
    "gender": "f",
    "skin": "#c48a6a",
    "hair": "#31231b",
-   "src": "Female_Adult_09"
+   "src": "Female_Adult_09",
+   "label": "베이지 카디건",
+   "full": "models/humans/full/f_08.jpg",
+   "portrait": "profile/real/f_08.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "f_09",
@@ -88,7 +128,12 @@
    "gender": "f",
    "skin": "#c88e65",
    "hair": "#84631f",
-   "src": "Female_Adult_11"
+   "src": "Female_Adult_11",
+   "label": "브라운 미니 원피스",
+   "full": "models/humans/full/f_09.jpg",
+   "portrait": "profile/real/f_09.jpg",
+   "look": "east",
+   "wear": "dressy"
   },
   {
    "id": "f_10",
@@ -97,7 +142,12 @@
    "gender": "f",
    "skin": "#c58d6b",
    "hair": "#120c09",
-   "src": "Female_Adult_12"
+   "src": "Female_Adult_12",
+   "label": "블랙 집업 & 쇼츠",
+   "full": "models/humans/full/f_10.jpg",
+   "portrait": "profile/real/f_10.jpg",
+   "look": "east",
+   "wear": "casual"
   },
   {
    "id": "f_11",
@@ -106,7 +156,12 @@
    "gender": "f",
    "skin": "#cd946f",
    "hair": "#5e4d39",
-   "src": "Female_Adult_13"
+   "src": "Female_Adult_13",
+   "label": "그레이 베스트",
+   "full": "models/humans/full/f_11.jpg",
+   "portrait": "profile/real/f_11.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "f_12",
@@ -115,7 +170,12 @@
    "gender": "f",
    "skin": "#cc9570",
    "hair": "#2b1d14",
-   "src": "Female_Adult_14"
+   "src": "Female_Adult_14",
+   "label": "크림 랩 재킷",
+   "full": "models/humans/full/f_12.jpg",
+   "portrait": "profile/real/f_12.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "f_13",
@@ -124,7 +184,12 @@
    "gender": "f",
    "skin": "#cc8f6e",
    "hair": "#3e2a1e",
-   "src": "Female_Adult_15"
+   "src": "Female_Adult_15",
+   "label": "블루 셔츠 & 스커트",
+   "full": "models/humans/full/f_13.jpg",
+   "portrait": "profile/real/f_13.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "f_14",
@@ -133,7 +198,12 @@
    "gender": "f",
    "skin": "#d59c79",
    "hair": "#573e2a",
-   "src": "Female_Adult_17"
+   "src": "Female_Adult_17",
+   "label": "민트 티 & 스키니",
+   "full": "models/humans/full/f_14.jpg",
+   "portrait": "profile/real/f_14.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "f_15",
@@ -142,7 +212,12 @@
    "gender": "f",
    "skin": "#c8926d",
    "hair": "#bb9567",
-   "src": "Female_Party_01"
+   "src": "Female_Party_01",
+   "label": "화이트 캐미솔 & 쇼츠",
+   "full": "models/humans/full/f_15.jpg",
+   "portrait": "profile/real/f_15.jpg",
+   "look": "west",
+   "wear": "dressy"
   },
   {
    "id": "f_16",
@@ -151,7 +226,12 @@
    "gender": "f",
    "skin": "#c88a58",
    "hair": "#19110a",
-   "src": "Female_Party_02"
+   "src": "Female_Party_02",
+   "label": "패턴 미니 원피스",
+   "full": "models/humans/full/f_16.jpg",
+   "portrait": "profile/real/f_16.jpg",
+   "look": "west",
+   "wear": "dressy"
   },
   {
    "id": "f_17",
@@ -160,7 +240,12 @@
    "gender": "f",
    "skin": "#a97145",
    "hair": "#1d160f",
-   "src": "Business_Female_01"
+   "src": "Business_Female_01",
+   "label": "블랙 팬츠 수트",
+   "full": "models/humans/full/f_17.jpg",
+   "portrait": "profile/real/f_17.jpg",
+   "look": "west",
+   "wear": "suit"
   },
   {
    "id": "f_18",
@@ -169,7 +254,12 @@
    "gender": "f",
    "skin": "#cf9674",
    "hair": "#684d35",
-   "src": "Business_Female_02"
+   "src": "Business_Female_02",
+   "label": "버건디 수트",
+   "full": "models/humans/full/f_18.jpg",
+   "portrait": "profile/real/f_18.jpg",
+   "look": "west",
+   "wear": "suit"
   },
   {
    "id": "f_19",
@@ -178,7 +268,12 @@
    "gender": "f",
    "skin": "#d19879",
    "hair": "#130e0b",
-   "src": "Business_Female_03"
+   "src": "Business_Female_03",
+   "label": "베이지 스커트 수트",
+   "full": "models/humans/full/f_19.jpg",
+   "portrait": "profile/real/f_19.jpg",
+   "look": "east",
+   "wear": "suit"
   },
   {
    "id": "f_20",
@@ -187,7 +282,12 @@
    "gender": "f",
    "skin": "#d0997a",
    "hair": "#221a16",
-   "src": "Business_Female_04"
+   "src": "Business_Female_04",
+   "label": "그레이 팬츠 수트",
+   "full": "models/humans/full/f_20.jpg",
+   "portrait": "profile/real/f_20.jpg",
+   "look": "west",
+   "wear": "suit"
   },
   {
    "id": "m_01",
@@ -196,7 +296,12 @@
    "gender": "m",
    "skin": "#bd9076",
    "hair": "#130c09",
-   "src": "Male_Adult_01"
+   "src": "Male_Adult_01",
+   "label": "스트라이프 티 & 반바지",
+   "full": "models/humans/full/m_01.jpg",
+   "portrait": "profile/real/m_01.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_02",
@@ -205,7 +310,12 @@
    "gender": "m",
    "skin": "#cd9d7c",
    "hair": "#130d0a",
-   "src": "Male_Adult_02"
+   "src": "Male_Adult_02",
+   "label": "크림 니트",
+   "full": "models/humans/full/m_02.jpg",
+   "portrait": "profile/real/m_02.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_03",
@@ -214,7 +324,12 @@
    "gender": "m",
    "skin": "#ae755a",
    "hair": "#3c2c24",
-   "src": "Male_Adult_03"
+   "src": "Male_Adult_03",
+   "label": "트위드 재킷",
+   "full": "models/humans/full/m_03.jpg",
+   "portrait": "profile/real/m_03.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_04",
@@ -223,7 +338,12 @@
    "gender": "m",
    "skin": "#6e4b35",
    "hair": "#0d0907",
-   "src": "Male_Adult_04"
+   "src": "Male_Adult_04",
+   "label": "그레이 후드 재킷",
+   "full": "models/humans/full/m_04.jpg",
+   "portrait": "profile/real/m_04.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_05",
@@ -232,7 +352,12 @@
    "gender": "m",
    "skin": "#ba8f76",
    "hair": "#1a1310",
-   "src": "Male_Adult_05"
+   "src": "Male_Adult_05",
+   "label": "사파리 베스트",
+   "full": "models/humans/full/m_05.jpg",
+   "portrait": "profile/real/m_05.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_06",
@@ -241,7 +366,12 @@
    "gender": "m",
    "skin": "#c79576",
    "hair": "#1a120c",
-   "src": "Male_Adult_06"
+   "src": "Male_Adult_06",
+   "label": "레드 헨리넥",
+   "full": "models/humans/full/m_06.jpg",
+   "portrait": "profile/real/m_06.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_07",
@@ -250,7 +380,12 @@
    "gender": "m",
    "skin": "#b37e5a",
    "hair": "#130d0a",
-   "src": "Male_Adult_07"
+   "src": "Male_Adult_07",
+   "label": "그레이 블레이저",
+   "full": "models/humans/full/m_07.jpg",
+   "portrait": "profile/real/m_07.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_08",
@@ -259,7 +394,12 @@
    "gender": "m",
    "skin": "#c48e6a",
    "hair": "#0f0b08",
-   "src": "Male_Adult_08"
+   "src": "Male_Adult_08",
+   "label": "하늘색 셔츠",
+   "full": "models/humans/full/m_08.jpg",
+   "portrait": "profile/real/m_08.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_09",
@@ -268,7 +408,12 @@
    "gender": "m",
    "skin": "#c6926e",
    "hair": "#12100e",
-   "src": "Male_Adult_09"
+   "src": "Male_Adult_09",
+   "label": "그래픽 티 & 청바지",
+   "full": "models/humans/full/m_09.jpg",
+   "portrait": "profile/real/m_09.jpg",
+   "look": "east",
+   "wear": "casual"
   },
   {
    "id": "m_10",
@@ -277,7 +422,12 @@
    "gender": "m",
    "skin": "#c78c58",
    "hair": "#0d0803",
-   "src": "Male_Adult_10"
+   "src": "Male_Adult_10",
+   "label": "레드 트랙 재킷",
+   "full": "models/humans/full/m_10.jpg",
+   "portrait": "profile/real/m_10.jpg",
+   "look": "east",
+   "wear": "casual"
   },
   {
    "id": "m_11",
@@ -286,7 +436,12 @@
    "gender": "m",
    "skin": "#dd9f80",
    "hair": "#24160f",
-   "src": "Male_Adult_11"
+   "src": "Male_Adult_11",
+   "label": "카키 반팔 셔츠",
+   "full": "models/humans/full/m_11.jpg",
+   "portrait": "profile/real/m_11.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_12",
@@ -295,7 +450,12 @@
    "gender": "m",
    "skin": "#684530",
    "hair": "#0b0806",
-   "src": "Male_Adult_12"
+   "src": "Male_Adult_12",
+   "label": "데님 재킷",
+   "full": "models/humans/full/m_12.jpg",
+   "portrait": "profile/real/m_12.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_13",
@@ -304,7 +464,12 @@
    "gender": "m",
    "skin": "#c28e73",
    "hair": "#402319",
-   "src": "Male_Adult_13"
+   "src": "Male_Adult_13",
+   "label": "아가일 니트",
+   "full": "models/humans/full/m_13.jpg",
+   "portrait": "profile/real/m_13.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_14",
@@ -313,7 +478,12 @@
    "gender": "m",
    "skin": "#c28767",
    "hair": "#5f3d2f",
-   "src": "Male_Adult_14"
+   "src": "Male_Adult_14",
+   "label": "셔츠 & 치노",
+   "full": "models/humans/full/m_14.jpg",
+   "portrait": "profile/real/m_14.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_15",
@@ -322,7 +492,12 @@
    "gender": "m",
    "skin": "#d0a083",
    "hair": "#584833",
-   "src": "Male_Adult_16"
+   "src": "Male_Adult_16",
+   "label": "블루 티",
+   "full": "models/humans/full/m_15.jpg",
+   "portrait": "profile/real/m_15.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_16",
@@ -331,7 +506,12 @@
    "gender": "m",
    "skin": "#6b4d2f",
    "hair": "#000000",
-   "src": "Male_Adult_17"
+   "src": "Male_Adult_17",
+   "label": "블루 윈드브레이커",
+   "full": "models/humans/full/m_16.jpg",
+   "portrait": "profile/real/m_16.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_17",
@@ -340,7 +520,12 @@
    "gender": "m",
    "skin": "#4a2d21",
    "hair": "#020201",
-   "src": "Male_Adult_18"
+   "src": "Male_Adult_18",
+   "label": "후드 티",
+   "full": "models/humans/full/m_17.jpg",
+   "portrait": "profile/real/m_17.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_18",
@@ -349,7 +534,12 @@
    "gender": "m",
    "skin": "#b3846d",
    "hair": "#170d0a",
-   "src": "Male_Adult_20"
+   "src": "Male_Adult_20",
+   "label": "브라운 후드",
+   "full": "models/humans/full/m_18.jpg",
+   "portrait": "profile/real/m_18.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_19",
@@ -358,7 +548,12 @@
    "gender": "m",
    "skin": "#c79274",
    "hair": "#0d0806",
-   "src": "Business_Male_01"
+   "src": "Business_Male_01",
+   "label": "블랙 수트 & 레드 타이",
+   "full": "models/humans/full/m_19.jpg",
+   "portrait": "profile/real/m_19.jpg",
+   "look": "east",
+   "wear": "suit"
   },
   {
    "id": "m_20",
@@ -367,7 +562,12 @@
    "gender": "m",
    "skin": "#d09c79",
    "hair": "#0b0907",
-   "src": "Business_Male_02"
+   "src": "Business_Male_02",
+   "label": "그레이 수트",
+   "full": "models/humans/full/m_20.jpg",
+   "portrait": "profile/real/m_20.jpg",
+   "look": "east",
+   "wear": "suit"
   },
   {
    "id": "m_21",
@@ -376,7 +576,12 @@
    "gender": "m",
    "skin": "#ce9677",
    "hair": "#1a1613",
-   "src": "Business_Male_03"
+   "src": "Business_Male_03",
+   "label": "차콜 수트",
+   "full": "models/humans/full/m_21.jpg",
+   "portrait": "profile/real/m_21.jpg",
+   "look": "west",
+   "wear": "suit"
   },
   {
    "id": "m_22",
@@ -385,7 +590,12 @@
    "gender": "m",
    "skin": "#b07b63",
    "hair": "#614438",
-   "src": "Business_Male_04"
+   "src": "Business_Male_04",
+   "label": "조끼 정장",
+   "full": "models/humans/full/m_22.jpg",
+   "portrait": "profile/real/m_22.jpg",
+   "look": "west",
+   "wear": "suit"
   },
   {
    "id": "m_23",
@@ -394,7 +604,12 @@
    "gender": "m",
    "skin": "#a06c4c",
    "hair": "#0f0a07",
-   "src": "Business_Male_05"
+   "src": "Business_Male_05",
+   "label": "블랙 수트 & 퍼플 셔츠",
+   "full": "models/humans/full/m_23.jpg",
+   "portrait": "profile/real/m_23.jpg",
+   "look": "west",
+   "wear": "suit"
   },
   {
    "id": "m_24",
@@ -403,7 +618,12 @@
    "gender": "m",
    "skin": "#c38465",
    "hair": "#0c0a07",
-   "src": "Business_Male_06"
+   "src": "Business_Male_06",
+   "label": "화이트 셔츠",
+   "full": "models/humans/full/m_24.jpg",
+   "portrait": "profile/real/m_24.jpg",
+   "look": "west",
+   "wear": "casual"
   },
   {
    "id": "m_25",
@@ -412,7 +632,12 @@
    "gender": "m",
    "skin": "#bf8462",
    "hair": "#5b3e2e",
-   "src": "Business_Male_07"
+   "src": "Business_Male_07",
+   "label": "화이트 셔츠 & 넥타이",
+   "full": "models/humans/full/m_25.jpg",
+   "portrait": "profile/real/m_25.jpg",
+   "look": "west",
+   "wear": "casual"
   }
  ],
  "assign": {
@@ -420,7 +645,7 @@
   "seojin": "f_10",
   "jiho": "m_09",
   "sua": "f_09",
-  "minhyuk": "m_21",
+  "minhyuk": "m_10",
   "jihyun": "f_19",
   "subin": "f_06",
   "minjae": "m_20",
@@ -428,7 +653,7 @@
   "yerin": "f_20",
   "dohyun": "m_19",
   "seoyeon": "f_05",
-  "jiwoo": "m_10",
+  "jiwoo": "m_07",
   "jaesuk": "f_18",
   "jo": "f_02",
   "sophia": "f_15",
@@ -470,5 +695,57 @@
  "player": {
   "m": "m_07",
   "f": "f_13"
- }
+ },
+ "playerPool": {
+  "f": [
+   "f_03",
+   "f_09",
+   "f_05",
+   "f_07",
+   "f_10",
+   "f_19",
+   "f_15",
+   "f_16",
+   "f_01",
+   "f_02",
+   "f_04",
+   "f_06",
+   "f_08",
+   "f_11",
+   "f_12",
+   "f_13",
+   "f_14",
+   "f_17",
+   "f_18",
+   "f_20"
+  ],
+  "m": [
+   "m_09",
+   "m_10",
+   "m_19",
+   "m_20",
+   "m_01",
+   "m_02",
+   "m_03",
+   "m_04",
+   "m_05",
+   "m_06",
+   "m_07",
+   "m_08",
+   "m_11",
+   "m_12",
+   "m_13",
+   "m_14",
+   "m_15",
+   "m_16",
+   "m_17",
+   "m_18",
+   "m_21",
+   "m_22",
+   "m_23",
+   "m_24",
+   "m_25"
+  ]
+ },
+ "_v48": "label=스타일 이름 · full/portrait=미리보기·프로필 렌더(Blender Cycles) · look=east|west(외모) · wear=dressy|casual|suit · playerPool=플레이어 캐릭터 번호 순서(characterNo 1..N)"
 }

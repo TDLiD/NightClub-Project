@@ -134,7 +134,7 @@ NC.NPC = {
     /* v45 모든 여성 인물을 하린·서진과 같은 3D(VRM) 캐릭터로 — 인물마다 얼굴(평소 표정·눈동자·피부)·헤어·옷 색과 무늬가 다름
      *  남성 인물은 남성 VRM 파일이 생기면 npcs.json "vrmModels": { "m": "models/파일.vrm" } 로 같은 방식 적용
      *  ?procedural 을 주소에 붙이면 끔 · 저사양/모바일은 가까운 순서로 최대 vrmLiteMax(기본 6)명 */
-    if (NC.VRMKit && NC.VRMKit.ok && !/[?&]procedural/.test(location.search)) {
+    if (NC.VRMKit && NC.VRMKit.ok && !/[?&]procedural/.test(location.search) && !(NC.RealHuman && NC.RealHuman.active && NC.RealHuman.active())) {   // v52 실사 모델이 켜져 있으면 NPC 에 VRM 을 입히지 않음(실사 모델과 충돌 → 투명 인물)
       const all = data.vrmAll !== false, VM = all ? Object.assign({ f: 'models/sample_girl.vrm' }, data.vrmModels || {}) : {}, lite2 = (NC.quality && NC.quality.level === 'low') || NC.isMobile, cap2 = lite2 ? (data.vrmLiteMax || 6) : 99;
       const styleOf = (n, d) => ({ look: n.g.userData.look || d.look || {}, seed: U.hash((d.id || d.name) + ':vrm'), trait: d.trait, age: d.age });
       const assign = () => { if (!NC.NPC.ready) return setTimeout(assign, 1500); let k = 0;

@@ -315,17 +315,19 @@ function shared(k, f) { return SH[k] || (SH[k] = f()); }
 /* ═════ 6. 조립 ═════ */
 Face.build = (o) => {
   const { look, skull, head, r, lod: LOD0, mSkin } = o; if (!ON) return null;
-  const lod = LOD0 || (LOWQ ? 'low' : 'mid'), P = uniqueIdentity(look), L = marks(P), hi = lod === 'hi';
+  const RHo = NC.RealHuman, lod = LOD0 || (LOWQ ? 'low' : 'mid'),   /* v48.1 얼굴 해상도는 v47 과 동일(실사 모델이 덮고 있는 동안에는 아래 applyTex 가 생성을 미룸) */ P = uniqueIdentity(look), L = marks(P), hi = lod === 'hi';
   skull.scale.set(.86 * P.fw, 1.03 * P.fl, .98);
   const H = buildHead(P, L, r, lod, P.hairColor), TW = hi ? 1024 : lod === 'low' ? 256 : 512;
   const skinM = new T.MeshStandardMaterial({ color: new T.Color(NC.Avatar && NC.Avatar.realSkin ? NC.Avatar.realSkin(P.skin) : P.skin), roughness: .55, metalness: 0, morphTargets: true });
-  const applyTex = () => { const TX = skinTextures(P, L, TW); skinM.map = TX.map; skinM.normalMap = TX.normalMap; skinM.roughnessMap = TX.roughnessMap; skinM.roughness = 1; skinM.color.setRGB(1, 1, 1); skinM.needsUpdate = true; };
+  let meshRef = null; const byReal = () => { let o = meshRef; while (o && !(o.userData && o.userData.rig)) o = o.parent; return !!(o && o.userData.real); };
+  const applyTex = () => { if (meshRef && byReal()) { skinM.userData.texPending = applyTex; return; }   /* v48 실사 모델이 덮고 있는 얼굴은 피부 텍스처 생성을 미룸(실사 모델이 벗겨질 때 생성) */
+    const TX = skinTextures(P, L, TW); skinM.map = TX.map; skinM.normalMap = TX.normalMap; skinM.roughnessMap = TX.roughnessMap; skinM.roughness = 1; skinM.color.setRGB(1, 1, 1); skinM.needsUpdate = true; };
   if (hi || TEX.has(P.seed + ':' + TW)) applyTex(); else TQ.push(applyTex);   // 피부 텍스처는 프레임마다 하나씩(생성 순간 끊김 방지)
   skinM.normalScale.set(.4, .4); skinM.emissive = new T.Color(P.skin).multiplyScalar(.01);
   if (NC.Avatar && NC.Avatar.skinCompile) { skinM.onBeforeCompile = NC.Avatar.skinCompile; skinM.customProgramCacheKey = () => 'face42'; }
   const hairM = new T.MeshStandardMaterial({ color: new T.Color(P.hairColor).multiplyScalar(.85), roughness: .75, metalness: 0, side: T.DoubleSide, morphTargets: true });
   const beardM = new T.MeshStandardMaterial({ color: new T.Color(P.hairColor).multiplyScalar(.9), roughness: .8, metalness: 0, side: T.DoubleSide, morphTargets: true });
-  const mesh = new T.Mesh(H.g, [skinM, hairM, beardM]); mesh.userData.noMerge = true; mesh.name = 'face42'; skull.add(mesh);
+  const mesh = new T.Mesh(H.g, [skinM, hairM, beardM]); meshRef = mesh; mesh.userData.noMerge = true; mesh.name = 'face42'; skull.add(mesh);
   // 귀 — 귓바퀴 테두리 · 오목한 귓속(콘카) · 귓불
   const earG = shared('ear' + lod, () => { const g = new T.SphereGeometry(1, lod === 'low' ? 14 : 22, lod === 'low' ? 10 : 16), p = g.attributes.position, v = new T.Vector3();
     for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const q = Math.hypot(v.y, v.z * 1.1); if (v.x > 0) v.x *= .3 + .7 * sst(.35, .82, q) + .35 * gau(q, .86, .09); else v.x *= .55; if (v.y < -.55) { v.z *= 1.1; v.x *= 1.15; } p.setXYZ(i, v.x, v.y, v.z); } g.computeVertexNormals(); return g; });

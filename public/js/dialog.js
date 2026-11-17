@@ -43,7 +43,8 @@ D.close = function (reason) {
   const c = D.cur; if (!c) return; const n = c.n, P = NC.player; D.cur = null;
   el.panel.style.display = 'none'; P.busy = false; P.group.userData.lookAt = null; n.g.userData.lookAt = null; n.g.userData.talk = false; P.group.userData.hideLabel = n.g.userData.hideLabel = false;
   if (window.speechSynthesis) speechSynthesis.cancel();
-  if (n.state === 'seated' || P.seat) { if (NC.VIP) NC.VIP.endSession(n, reason); }
+  if (n._seatTalk) { n._seatTalk = false; }   // v48 앉은 손님과의 대화: 끝나도 손님·나 모두 자리 유지
+  else if (n.state === 'seated' || P.seat) { if (NC.VIP) NC.VIP.endSession(n, reason); }
   else { n.state = 'wander'; n.pause = 1.5; n.wp = null; }
   if (reason === 'left') n.cool = 60; else if (reason !== 'switch') n.cool = Math.max(n.cool, 8);
   NC.emit('dialog:close', n, reason);
@@ -89,6 +90,12 @@ function doCheers(fromNpc) {
 const CHIP = (label, fn, cls) => { const b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls; b.onclick = fn; el.chips.appendChild(b); };
 function chips() {
   const c = D.cur; el.chips.innerHTML = ''; if (!c) return; const n = c.n, P = NC.player;
+  /* v48 브루스 중·브루스 후: 조명 바꾸기를 옵션 맨 위에 — 누르면 테마 버튼이 펼쳐짐(브루스 중 고른 조명은 끝나도 유지) */
+  const BLk = NC.Karaoke && NC.Karaoke.BL, W = NC.world;
+  if ((n.bluesDanced || (BLk && BLk.n === n)) && W && W.THEMES && W.setTheme) {
+    CHIP(c.lightOpen ? '💡 조명 닫기 ▲' : '💡 조명 바꾸기 ▼', () => { c.lightOpen = !c.lightOpen; chips(); }, 'light');
+    if (c.lightOpen) Object.entries(W.THEMES).forEach(([id, t]) => CHIP((W.themeId === id ? '✅ ' : '🎨 ') + t.name, () => { W.setTheme(id); if (BLk && BLk.n) BLk.prevTheme = id; NC.ui.toast('🎨 조명: ' + t.name); chips(); }, 'light sub'));
+  }
   if (NC.dialogChipsOverride) { try { if (NC.dialogChipsOverride(n, CHIP, c)) return; } catch (e) { console.error(e); } }   // v9: 부르스 등 특수 상황 전용 칩
   if (n.ended) CHIP('💌 가상 인스타 교환 (엔딩)', () => { NC.Wallet.add(50, `${n.name}님과 엔딩`); Mo.trigger(n.g, 'game:win'); Mo.trigger(P.group, 'game:win', { silent: true }); sys(`🎉 ${n.name}님과 가상 인스타 교환 성공! (게임 내 엔딩 · 실제 연락처 아님)`); n.aff = 100; renderHead(); setTimeout(() => D.close('ending'), 2600); }, 'pri');
   if (n.history.length <= 1) (NC.openers || []).forEach(o => CHIP('🗨 ' + o.t, () => send(o.t)));
@@ -135,8 +142,13 @@ D.focus = function (camera) {
 
 /* E 상호작용: 근처 NPC에게 말 걸기 */
 NC.interactProviders.push(() => {
-  const P = NC.player, out = []; if (P.seat || P.busy) return out;
-  (NC.npcs || []).forEach(n => { if (!n.enabled || n.state !== 'wander' || !n.g.visible) return; const d = Math.hypot(n.x - P.x, n.z - P.z); if (d < 3) out.push({ label: `💬 ${n.name}에게 부킹 말 걸기 (E)`, dist: d, run: () => { if (n.cool > 0) return NC.ui.toast(`${n.name}님은 잠시 쉬는 중이에요 😅 (${Math.ceil(n.cool)}초)`); D.open(n); } }); });
+  const P = NC.player, out = []; if (P.busy || (P.seat && P.seat.kind !== 'table')) return out;
+  const vs = NC.VIP && NC.VIP.session, BL = NC.Karaoke && NC.Karaoke.BL;
+  (NC.npcs || []).forEach(n => { if (!n.enabled || !n.g.visible) return;
+    /* v48 테이블에 앉아 있는 손님에게도 부킹 말 걸기(가까이 가면) — 노래방·VIP 세션·블루스 상대는 제외 */
+    const seated = n.state === 'seated' && !n.booked && !n.karaoke && !(vs && vs.npc === n) && !(BL && BL.n === n);
+    if (n.state !== 'wander' && !seated) return; if (P.seat && !seated) return;
+    const d = Math.hypot(n.x - P.x, n.z - P.z); if (d < (seated ? (P.seat ? 2.8 : 3.3) : 3)) out.push({ label: `💬 ${n.name}에게 부킹 말 걸기 (E)`, dist: d, run: () => { if (n.cool > 0) return NC.ui.toast(`${n.name}님은 잠시 쉬는 중이에요 😅 (${Math.ceil(n.cool)}초)`); if (seated) n._seatTalk = true; D.open(n); } }); });
   return out;
 });
 })();

@@ -137,6 +137,7 @@ const clock = new T.Clock(); let tAcc = 0; const camTarget = new T.Vector3(), ca
  *  · PC: 초당 20프레임으로 제한   · 탭이 안 보이면 브라우저가 알아서 멈춤 */
 const startEl = $('#start'), LITE_START = (NC.quality && NC.quality.level === 'low') || matchMedia('(pointer:coarse)').matches;
 let idleAcc = 1;
+NC._enterDone = () => { if (!NC._ovFrames || NC._warmBusy) return; setTimeout(() => requestAnimationFrame(() => { const o = document.getElementById('enterOv'); if (o) { o.classList.add('fade'); setTimeout(() => o.remove(), 260); } }), 0); };
 function frame() {
   requestAnimationFrame(frame);
   if (!P.group && startEl && startEl.style.display !== 'none') {
@@ -145,9 +146,12 @@ function frame() {
     const dt0 = Math.min(idleAcc, .05); idleAcc = 0; tAcc += dt0;
     const a = tAcc * .12; camera.position.set(Math.sin(a) * 18, 7.5, -4 + Math.cos(a) * 12); camera.lookAt(0, 2, -9);
     if (!LITE_START) W.update(dt0, tAcc, []);
-    (NC.render || ((s, c) => NC.renderer.render(s, c)))(NC.scene, camera); return;
+    /* v48 입장 화면 배경: 실사 모델이 켜져 있으면 사람(절차적 옛 캐릭터)은 숨기고 공간만 보여 줌 → 어느 화면에서도 옛 캐릭터가 보이지 않음 + 배경 부하↓ */
+    const hideP = NC.RealHuman && NC.RealHuman.active && NC.RealHuman.active(), hid = [];
+    if (hideP) (NC.RealHuman.allRoots ? NC.RealHuman.allRoots() : [(NC.npcs || []).map(n => n.g), (NC.Waiters ? NC.Waiters.list : []).map(o => o.g), [NC.DJ, NC.Bartender], (NC.Stage && NC.Stage.dancers || []).map(d => d.g)].flat()).forEach(g => { if (g && g.visible) { g.visible = false; hid.push(g); } });
+    (NC.render || ((s, c) => NC.renderer.render(s, c)))(NC.scene, camera); hid.forEach(g => { g.visible = true; }); return;
   }
-  if (NC._enterWait) { NC._enterWait--; clock.getDelta(); if (!NC._enterWait) setTimeout(() => requestAnimationFrame(() => { const o = document.getElementById('enterOv'); if (o) o.remove(); }), 0); if (NC._enterWait) return; }   // v36 모바일: 첫 3D 화면(셰이더 준비)을 그리기 전에 '입장 중' 화면을 먼저 보여 줌
+  if (NC._enterWait) { NC._enterWait--; clock.getDelta(); if (!NC._enterWait) { NC._ovFrames = true; NC._enterDone(); } if (NC._enterWait) return; }   // v36 모바일: 첫 3D 화면(셰이더 준비)을 그리기 전에 '입장 중' 화면을 먼저 보여 줌
   const dt = Math.min(clock.getDelta(), .05); tAcc += dt; const t = tAcc;
   const agents = []; if (P.group) agents.push({ x: P.x, z: P.z, me: true });
   (NC.npcs || []).forEach(n => { if (n.g.visible) agents.push(n); }); (NC.Waiters ? NC.Waiters.list : []).forEach(o => agents.push(o)); NC.remotes.forEach(r => agents.push({ x: r.g.position.x, z: r.g.position.z }));
@@ -206,9 +210,10 @@ function frame() {
 /* ───────── 데이터 로딩 ───────── */
 const getJSON = async url => { const r = await fetch(url, { cache: 'no-store' }); if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); };
 NC.dataReady = (async () => {
-  const [nd, dd, wd, gd] = await Promise.all(['data/npcs.json', 'data/dialogs.json', 'data/waiter.json', 'data/minigames.json'].map(getJSON));
+  const [nd, dd, wd, gd] = await Promise.all(['data/npcs.json', 'data/dialogs.json', 'data/waiter.json', 'data/minigames.json'].map(getJSON).concat(NC.RealHuman && NC.RealHuman.ready ? [NC.RealHuman.ready] : []));   // v48 실사 매니페스트 확인 후 NPC 생성
   NC.fallbackLines = dd.fallback || {}; NC.openers = dd.open || [];
   NC.NPC.init(nd); NC.Waiters.init(wd); NC.Games.init(gd);
+  if (NC.RealHuman && NC.RealHuman.prestart) setTimeout(() => NC.RealHuman.prestart(), 800);   // v48 시작 화면에서 실사 모델 미리 받기
 })();
 NC.dataReady.catch(e => { console.error(e); $('#err').textContent = '데이터 파일(data/*.json)을 읽지 못했습니다. 파일을 더블클릭하지 말고 서버(npm start)로 여세요.'; $('#go').disabled = true; });
 
@@ -247,9 +252,13 @@ $('#modeSel').addEventListener('click', e => { const b = e.target.closest('butto
 
 NC.begin = function () {
   const look = NC.settings.look;
-  P.group = NC.Avatar.create({ name: NC.settings.name + ' (나)', look, seed: cfg.seed, expr: 'smile', hiRes: true });
+  const RH = NC.RealHuman, realOn = !!(RH && RH.active && RH.active());
+  P.group = NC.Avatar.create({ name: NC.settings.name + ' (나)', look, seed: cfg.seed, expr: 'smile', hiRes: !realOn });   // v48 실사 모델이 있으면 절차적 고해상도 얼굴 생략
   if (NC.VRMKit && NC.VRMKit.playerUrl) { if (/\.glb$/i.test(NC.VRMKit.playerName || '') && NC.RealHuman) NC.RealHuman.pin(P.group, NC.VRMKit.playerUrl); else NC.VRMKit.attach(P.group, NC.VRMKit.playerUrl); }   /* v41 .glb = 실사 휴먼 */ P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry; NC.scene.add(P.group);
-  if (NC.isMobile) { const o = document.createElement('div'); o.id = 'enterOv'; o.innerHTML = '<div>🪩<br><b>입장 중…</b><br><small>조명과 무대를 준비하고 있어요</small></div>'; document.body.appendChild(o); NC._enterWait = 2; }
+  if (NC.isMobile || realOn) { const o = document.createElement('div'); o.id = 'enterOv'; o.innerHTML = '<div>🪩<br><b>입장 중…</b><br><small>캐릭터와 조명을 준비하고 있어요</small><span class="eoBar"><i></i></span></div>'; document.body.appendChild(o); NC._enterWait = 2; }
+  /* v48 입장 워밍업: 옛 절차적 캐릭터가 잠깐 보였다 바뀌는 문제·입장 직후 수 초 멈춤 → 오버레이 뒤에서 모든 실사 모델 장착 + 셰이더·텍스처 GPU 업로드를 끝낸 뒤 공개 */
+  NC._warmBusy = realOn;
+  if (realOn) setTimeout(() => RH.warm(p => { const b = document.querySelector('#enterOv .eoBar i'); if (b) b.style.width = Math.round(10 + 90 * p) + '%'; }).catch(e => console.warn(e)).then(() => { RH._warmed = true; NC._warmBusy = false; NC._enterDone && NC._enterDone(); }), 30);
   cam.yaw = 0; $('#start').style.display = 'none'; $('#hud').style.display = ''; $('#emotes').style.display = '';
   NC.Audio.init(); NC.emit('start');
   NC.ui.toast(NC.mode === 'online' ? '입장했어요! 🪩 근처 사람에게 E로 부킹 초대 · 🤵 웨이터에게 AI 부킹' : '입장했어요! 🪩 손님 근처에서 E로 말 걸기 · 🤵 웨이터에게 팁 부킹');
@@ -257,7 +266,9 @@ NC.begin = function () {
 // v13: 게임 중 내 캐릭터 교체(설정 → 캐릭터 변경). 위치·방향 유지, VRM 이 있으면 다시 연결
 NC.rebuildPlayer = look => {
   const old = P.group; if (!old) return; NC.settings.look = look;
-  const g = NC.Avatar.create({ name: NC.settings.name + ' (나)', look, seed: cfg.seed, expr: 'smile', hiRes: true });
+  const RH = NC.RealHuman, rm = RH && RH.active && RH.active() && look && look.realModel && RH.modelOf(look.realModel);
+  const g = NC.Avatar.create({ name: NC.settings.name + ' (나)', look, seed: cfg.seed, expr: 'smile', hiRes: !rm });
+  if (rm && !(NC.VRMKit && NC.VRMKit.playerUrl)) { g.visible = false; RH.attach(g, rm.url, { noSkin: ['_body'], skin: ['_head'] }).finally(() => { g.visible = true; }); }   // v48 바꾼 실사 캐릭터를 바로 입힘(절차적 몸이 잠깐 보이지 않게)
   if (NC.VRMKit && NC.VRMKit.playerUrl) { if (/\.glb$/i.test(NC.VRMKit.playerName || '') && NC.RealHuman) NC.RealHuman.pin(g, NC.VRMKit.playerUrl); else NC.VRMKit.attach(g, NC.VRMKit.playerUrl); }
   g.position.copy(old.position); g.rotation.y = old.rotation.y; NC.scene.add(g); NC.scene.remove(old); P.group = g;
   NC.emit('player:look', look);

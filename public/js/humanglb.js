@@ -100,20 +100,104 @@ function flushMorph(F, dt) {
 }
 
 /* ── 로드 · 부착 ── */
-function load(url) { if (!RH.cache.has(url)) { RH.stats.loads++; RH.cache.set(url, new Promise((res, rej) => loader.load(url, res, undefined, rej))); } return RH.cache.get(url); }
+const LOADED = new Set();
+function load(url) { if (!RH.cache.has(url)) { RH.stats.loads++; RH.cache.set(url, new Promise((res, rej) => loader.load(url, g => { LOADED.add(url); res(g); }, undefined, rej))); } return RH.cache.get(url); }
 const DOWN = new T.Vector3(0, -1, 0), V1 = new T.Vector3(), V2 = new T.Vector3(), qA = new T.Quaternion(), qB = new T.Quaternion(), qR = new T.Quaternion(), qI = new T.Quaternion(), qC = new T.Quaternion(), box = new T.Box3();
 const FIT = ['torso', 'neck', 'head', 'shL', 'elL', 'shR', 'elR', 'legL', 'knL', 'legR', 'knR'];
 
-RH.attach = async (root, url, opt = {}) => {
+/* ═════ v47 손 컨트롤러(HandPoseController) ═════
+ *  v41~v46 은 rig 손 회전을 '뼈 방향'만 맞춰 복사해서, rig 손바닥(-Z)과 모델 손바닥(T포즈에서 아래)이 90° 어긋나 손목이 비틀려 보였음.
+ *  → 모델 손의 실제 축(손가락 방향·손바닥 방향)을 쟀다가 rig 손의 같은 두 축에 맞춰 회전을 만들고,
+ *    아래팔 기준 손목 한계(굽힘·젖힘 65°, 비틀림 45°)를 쿼터니언 스윙-트위스트로 강제함.
+ *  손가락: 모델 손가락마다 '손바닥 쪽으로 접히는 축'을 구해 rig 손가락 굽힘량(마디별)을 그 축으로만 적용 → 옆으로 꺾이거나 뒤로 젖혀지지 않음. */
+const _m4 = new T.Matrix4(), _x = new T.Vector3(), _y = new T.Vector3(), _z = new T.Vector3();
+function basisQ(f, p, out) {   // f = 손가락 방향, p = 손바닥 방향 → 직교 기저 쿼터니언
+  _x.copy(f).normalize(); _y.copy(p).addScaledVector(_x, -p.dot(_x)).normalize(); _z.crossVectors(_x, _y);
+  _m4.makeBasis(_x, _y, _z); return out.setFromRotationMatrix(_m4);
+}
+const WR = { twist: .78, swing: 1.13 };   // 손목 한계(rad): 비틀림 45° · 굽힘/젖힘 65°
+function handCtl(hand, Bn, ms, rs) {
+  const H = Bn['hand' + ms], LA = Bn['la' + ms], mid = Bn[`f${ms}1_1`], idx = Bn[`f${ms}0_1`], pin = Bn[`f${ms}3_1`];
+  if (!H || !LA || !mid || !idx || !pin || H.parent !== LA && !LA.children.includes(H.parent)) return null;
+  H.updateMatrixWorld(true);
+  const wp = o => o.getWorldPosition(new T.Vector3()), hq = H.getWorldQuaternion(new T.Quaternion()), hqi = hq.clone().invert();
+  const fL = wp(mid).sub(wp(H)).applyQuaternion(hqi).normalize();                       // 손 로컬: 손가락 방향
+  const pL = new T.Vector3(0, -1, 0).applyQuaternion(hqi); pL.addScaledVector(fL, -pL.dot(fL)).normalize();   // T포즈 손바닥 = 아래
+  const bq = basisQ(fL, pL, new T.Quaternion()).invert();
+  const fing = [];
+  for (let i = 0; i < 4; i++) for (let k = 1; k <= 3; k++) { const b = Bn[`f${ms}${i}_${k}`]; if (!b) continue; const nx = Bn[`f${ms}${i}_${k + 1}`] || (k < 3 ? null : null);
+    const bqi = b.getWorldQuaternion(new T.Quaternion()).invert(), dir = (nx ? wp(nx).sub(wp(b)) : wp(b).sub(wp(b.parent))).applyQuaternion(bqi).normalize(), pal = new T.Vector3(0, -1, 0).applyQuaternion(bqi);
+    const ax = new T.Vector3().crossVectors(dir, pal); if (ax.lengthSq() < 1e-6) continue; fing.push({ b, i, k, rest: b.quaternion.clone(), ax: ax.normalize() }); }
+  const th = []; for (let k = 1; k <= 3; k++) { const b = Bn[`t${ms}_${k}`]; if (!b) continue; const nx = Bn[`t${ms}_${k + 1}`];
+    const bqi = b.getWorldQuaternion(new T.Quaternion()).invert(), dir = (nx ? wp(nx).sub(wp(b)) : wp(b).sub(wp(b.parent))).applyQuaternion(bqi).normalize(), pal = new T.Vector3(0, -1, 0).applyQuaternion(bqi), ax = new T.Vector3().crossVectors(dir, pal);
+    if (ax.lengthSq() > 1e-6) th.push({ b, k, rest: b.quaternion.clone(), ax: ax.normalize() }); }
+  return { rig: hand, rs, ms, H, LA, fL, pL, bq, rest: H.quaternion.clone(), restI: H.quaternion.clone().invert(), fing, th, q: new T.Quaternion(), init: false };
+}
+const _q1 = new T.Quaternion(), _q2 = new T.Quaternion(), _q3 = new T.Quaternion(), _v1 = new T.Vector3(), _v2 = new T.Vector3(), _ax = new T.Vector3();
+function clampTwistSwing(q, axis, tMax, sMax) {   // q 를 axis 둘레 비틀림 + 나머지 스윙으로 나눠 각각 한계 적용
+  const d = q.x * axis.x + q.y * axis.y + q.z * axis.z; _q1.set(axis.x * d, axis.y * d, axis.z * d, q.w); if (_q1.lengthSq() < 1e-9) _q1.identity(); else _q1.normalize();
+  _q2.copy(_q1).invert().premultiply(q);   // swing = q * twist^-1
+  const lim = (qq, m) => { if (qq.w < 0) { qq.x = -qq.x; qq.y = -qq.y; qq.z = -qq.z; qq.w = -qq.w; } const a = 2 * Math.acos(Math.min(1, qq.w)); if (a > m) { const k = Math.sin(m / 2) / Math.max(1e-6, Math.sin(a / 2)); qq.x *= k; qq.y *= k; qq.z *= k; qq.w = Math.cos(m / 2); } };
+  lim(_q1, tMax); lim(_q2, sMax); return q.copy(_q2).multiply(_q1);
+}
+function applyHand(c, R, dt) {
+  const rq = c.rig.getWorldQuaternion(_q3);
+  _v1.set(0, -1, 0).applyQuaternion(rq); _v2.set(0, 0, -1).applyQuaternion(rq);                 // rig 손: 손가락 = -Y, 손바닥 = -Z
+  const want = basisQ(_v1, _v2, new T.Quaternion()).multiply(c.bq);                            // 모델 손의 월드 회전
+  const lw = c.H.parent.getWorldQuaternion(_q1.clone()).invert().multiply(want);              // 부모(아래팔) 기준
+  const delta = c.restI.clone().multiply(lw); clampTwistSwing(delta, c.fL, WR.twist, WR.swing);   // 손목 한계
+  const tgt = c.rest.clone().multiply(delta);
+  if (!c.init) { c.q.copy(tgt); c.init = true; } else c.q.slerp(tgt, 1 - Math.exp(-dt * 22));   // 아주 짧은 감쇠(떨림 방지)
+  c.H.quaternion.copy(c.q);
+  const F = c.rig.userData.fingers || [], th = c.rig.userData.thumb;
+  for (const f of c.fing) { const rf = F[f.i]; if (!rf) continue; const curl = f.k === 1 ? Math.max(0, rf.k1.rotation.x - .05) : f.k === 2 ? Math.max(0, rf.k2.rotation.x) : Math.max(0, rf.k2.rotation.x * .7);
+    f.b.quaternion.copy(f.rest).multiply(_q2.setFromAxisAngle(f.ax, Math.min(1.45, curl))); }
+  if (th) { const c0 = Math.max(0, th.rotation.x - .3); for (const t of c.th) t.b.quaternion.copy(t.rest).multiply(_q2.setFromAxisAngle(t.ax, t.k === 1 ? .22 + c0 * .35 : .12 + c0 * .5)); }
+}
+/* ═════ v47 몸 충돌체(BodyCollisionSystem) — 실사 모델의 실제 뼈 위치로 매 프레임 갱신하는 캡슐 ═════
+ *  몸통(좌우 2줄 · 아래는 골반 폭, 위는 어깨 폭) · 목 · 머리 · 위팔 · 아래팔 · 허벅지. norm(p) < 1 이면 안쪽(관통) */
+function capsules(r) {
+  const B = r.Bn, w = o => o ? o.getWorldPosition(new T.Vector3()) : null, k = r.sc;
+  const hp = w(B.hips), sp = w(B.spine || B.chest), ch = w(B.chest || B.spine), nk = w(B.neck), hd = w(B.head);
+  if (!hp || !ch || !nk || !hd) return null;
+  const uL = w(B.uaL), uR = w(B.uaR), tL = w(B.ulL), tR = w(B.ulR), rt = (uL && uR ? uL.clone().sub(uR) : new T.Vector3(1, 0, 0)), sw = rt.length(); rt.normalize();
+  const hw = tL && tR ? tL.distanceTo(tR) : sw * .55, up = hd.clone().sub(nk).normalize(), fw = new T.Vector3().crossVectors(rt, up).normalize();
+  const C = [], cap = (a, b, ra, rb, tag) => a && b && C.push({ a, b, ra, rb, tag });
+  const chF = ch.clone().addScaledVector(fw, .012 * k), hpF = hp.clone().addScaledVector(fw, .005 * k);
+  for (const sgn of [-1, 1]) { cap(hpF.clone().addScaledVector(rt, sgn * hw * .22), chF.clone().addScaledVector(rt, sgn * sw * .16), .1 * k, .095 * k, 'torso');
+    cap(chF.clone().addScaledVector(rt, sgn * sw * .16), nk.clone().addScaledVector(rt, sgn * sw * .14).addScaledVector(up, -.03 * k), .092 * k, .07 * k, 'torso'); }
+  cap(nk, hd, .052 * k, .055 * k, 'neck');
+  const hc = hd.clone().addScaledVector(up, .085 * k).addScaledVector(fw, .015 * k); cap(hc, hc.clone().addScaledVector(up, .001), .098 * k, .098 * k, 'head');
+  for (const ms of ['L', 'R']) { cap(w(B['ua' + ms]), w(B['la' + ms]), .046 * k, .04 * k, 'arm'); cap(w(B['la' + ms]), w(B['hand' + ms]), .038 * k, .03 * k, 'arm'); cap(w(B['ul' + ms]), w(B['ll' + ms]), .075 * k, .055 * k, 'leg'); }
+  return { C, rt, up, fw, hd: hc };
+}
+const _cp = new T.Vector3();
+function segPt(c, p, out) { const ab = _v1.copy(c.b).sub(c.a), l2 = ab.lengthSq(); const t = l2 < 1e-9 ? 0 : U.clamp(_v2.copy(p).sub(c.a).dot(ab) / l2, 0, 1); out.copy(c.a).addScaledVector(ab, t); return t; }
+RH.frame = 0;
+RH.body = root => { const r = root && root.userData && root.userData.real; if (!r || r.pending) return null; if (r.bodyF !== RH.frame) { r.body = capsules(r); r.bodyF = RH.frame; } return r.body; };
+/* 정규화 거리(1 = 표면) — couple.js 의 팔 IK·접촉 검사가 이걸로 실제 몸을 피함 */
+RH.norm = (root, p, tags) => { const b = RH.body(root); if (!b) return 9; let m = 9; for (const c of b.C) { if (tags && !tags.includes(c.tag)) continue; const t = segPt(c, p, _cp), r0 = c.ra + (c.rb - c.ra) * t, d = _cp.distanceTo(p) / r0; if (d < m) m = d; } return m; };
+/* 접촉점 투영(ContactAnchorSystem): 목표 점을 실제 몸 표면 + 손 두께만큼 바깥으로 옮기고 표면 법선을 돌려줌 */
+RH.project = (root, p, off = .022, tags = ['torso', 'neck', 'head']) => {
+  const b = RH.body(root); if (!b) return null; let best = null;
+  for (const c of b.C) { if (!tags.includes(c.tag)) continue; const t = segPt(c, p, _cp), r0 = c.ra + (c.rb - c.ra) * t, d = _cp.distanceTo(p) - r0; if (!best || d < best.d) best = { d, c: _cp.clone(), r0 }; }
+  if (!best || best.d > .25) return null; const n = p.clone().sub(best.c); if (n.lengthSq() < 1e-8) n.copy(b.fw); n.normalize();
+  return { p: best.c.clone().addScaledVector(n, best.r0 + off), n };
+};
+/* 실제 팔 길이·어깨 위치(couple.js IK 가 rig 대신 모델 치수로 계산하도록) — rs: rig 쪽(L = 아바타 오른쪽) */
+RH.armGeo = (root, rs) => { const r = root && root.userData && root.userData.real; if (!r || r.pending) return null; const ms = rs === 'L' ? 'R' : 'L', B = r.Bn, a = B['ua' + ms], e = B['la' + ms], h = B['hand' + ms]; if (!a || !e || !h) return null;
+  const pa = a.getWorldPosition(new T.Vector3()), pe = e.getWorldPosition(new T.Vector3()), ph = h.getWorldPosition(new T.Vector3()); return { S: pa, L1: pa.distanceTo(pe), L2: pe.distanceTo(ph) + .055 * r.sc }; };
+
+const attach0 = async (root, url, opt = {}) => {
   const u = root.userData; if (!u || !u.rig || u.vrm || u.real) return null;
-  u.real = { pending: true, url }; let gltf;
-  try { gltf = await load(url); } catch (e) { console.warn('[real] 로드 실패', url, e); u.real = null; RH.cache.delete(url); return null; }
+  u.real = { pending: true, url, t0: performance.now() }; let gltf;
+  try { gltf = await load(url); } catch (e) { console.warn('[real] 로드 실패', url, e); u.real = null; u.realFail = (u.realFail || 0) + 1; (u.realBad || (u.realBad = new Set())).add(url); RH.cache.delete(url); return null; }
   if (!u.real || u.real.url !== url || (!root.parent && !opt.pinned)) { if (u.real && u.real.pending && u.real.url === url) u.real = null; return null; }
   const model = cloneSkinned(gltf.scene); model.updateMatrixWorld(true);
   const Bn = findBones(model);
-  if (!Bn.hips || !Bn.uaL || !Bn.uaR || !Bn.ulL || !Bn.ulR) { console.warn('[real] 휴머노이드 뼈를 못 찾음', url); u.real = null; return null; }
+  if (!Bn.hips || !Bn.uaL || !Bn.uaR || !Bn.ulL || !Bn.ulR) { console.warn('[real] 휴머노이드 뼈를 못 찾음', url); u.real = null; (u.realBad || (u.realBad = new Set())).add(url); return null; }
   // 방향: 모델의 왼팔(LeftArm)이 +X 쪽이면 -Z 를 보는 모델 → 180° (rig 는 +Z 를 봄; rig L(−X) = 아바타의 오른쪽)
-  const holder = new T.Group(), facingNegZ = Bn.uaL.getWorldPosition(V1).x < Bn.uaR.getWorldPosition(V2).x;   // 앞(+Z)을 보는 모델은 오른팔이 −X
+  const holder = new T.Group(); holder.userData.realHolder = true; const facingNegZ = Bn.uaL.getWorldPosition(V1).x < Bn.uaR.getWorldPosition(V2).x;   // 앞(+Z)을 보는 모델은 오른팔이 −X
   holder.add(model); if (facingNegZ) model.rotation.y = Math.PI;
   // 키: 뼈 높이로 잼(Mixamo 처럼 cm 단위 아마추어·스케일 노드가 섞여 있어도 정확) — 맨 위 뼈(HeadTop_End/머리) ~ 맨 아래 뼈(발끝)
   holder.updateMatrixWorld(true); let yT = -Infinity, yB = Infinity, top = null; model.traverse(o => { if (o.isBone || o.type === 'Bone') { const y = o.getWorldPosition(V1).y; if (y > yT) { yT = y; top = o; } yB = Math.min(yB, y); } });
@@ -123,17 +207,17 @@ RH.attach = async (root, url, opt = {}) => {
   // 리타깃 준비: 목표(루트 기준) = rig 관절 회전 × C,  C = (뼈 방향 → rig 아래방향) × 휴지 회전
   root.updateMatrixWorld(true); const rInv = root.getWorldQuaternion(new T.Quaternion()).invert();
   const rq = o => o.getWorldQuaternion(new T.Quaternion()).premultiply(rInv), rp = o => root.worldToLocal(o.getWorldPosition(new T.Vector3()));
-  const R = u.rig, J = [];
+  const R = u.rig, J = [], HC = [];
   const link = (src, b, child) => { if (!src || !b) return; const C = new T.Quaternion(); if (child) { const d = rp(child).sub(rp(b)); if (d.lengthSq() > 1e-8) C.setFromUnitVectors(d.normalize(), DOWN); } C.multiply(rq(b)); J.push({ src, b, C }); };
   // rig L(−X 쪽) = 아바타의 오른쪽 = 모델 Right*
   link(R.hips, Bn.hips, null); link(R.torso, Bn.spine || Bn.chest, null); link(R.neck, Bn.neck, null); link(R.head, Bn.head, null);
   for (const [rs, ms] of [['L', 'R'], ['R', 'L']]) {
     if (Bn['clav' + ms]) J.push({ clav: true, b: Bn['clav' + ms], arm: R['sh' + rs], rest: Bn['clav' + ms].quaternion.clone() });
     link(R['sh' + rs], Bn['ua' + ms], Bn['la' + ms]); link(R['el' + rs], Bn['la' + ms], Bn['hand' + ms]);
-    const hand = u.hands && u.hands[rs]; if (hand) { link(hand, Bn['hand' + ms], Bn[`f${ms}1_1`] || null);
-      const F = hand.userData.fingers || [], th = hand.userData.thumb;   // rig 손가락 0(검지)…3(새끼) — 좌우 대칭 배치(fx 부호)라 순서 그대로
+    const hand = u.hands && u.hands[rs]; if (hand) { const hc = handCtl(hand, Bn, ms, rs); if (hc) HC.push(hc); else { link(hand, Bn['hand' + ms], Bn[`f${ms}1_1`] || null);
+      const F = hand.userData.fingers || [], th = hand.userData.thumb;   // (예비) 손 컨트롤러를 못 만든 모델은 v41 방식
       FING.forEach((_, i) => { const f = F[i]; if (!f) return; link(f.k1, Bn[`f${ms}${i}_1`], Bn[`f${ms}${i}_2`]); link(f.k2, Bn[`f${ms}${i}_2`], Bn[`f${ms}${i}_3`]); link(f.k2, Bn[`f${ms}${i}_3`], null); });
-      if (th) { link(th, Bn[`t${ms}_1`], Bn[`t${ms}_2`]); link(th, Bn[`t${ms}_2`], Bn[`t${ms}_3`]); } }
+      if (th) { link(th, Bn[`t${ms}_1`], Bn[`t${ms}_2`]); link(th, Bn[`t${ms}_2`], Bn[`t${ms}_3`]); } } }
     link(R['leg' + rs], Bn['ul' + ms], Bn['ll' + ms]); link(R['kn' + rs], Bn['ll' + ms], Bn['foot' + ms]); link(R['kn' + rs], Bn['foot' + ms], null);
   }
   // 부모가 먼저 오도록 정렬(깊이)
@@ -150,13 +234,23 @@ RH.attach = async (root, url, opt = {}) => {
   // 절차적 메시 숨김(잔·마이크·이름표 유지)
   const keep = new Set(); [u.glass, u.mic].forEach(g => g && g.traverse(o => keep.add(o)));
   const hidden = []; R.body.traverse(o => { if ((o.isMesh || o.isSprite) && o.visible && !keep.has(o)) { hidden.push(o); o.visible = false; } });
-  const hipsY0 = Bn.hips.position.y, rec = { root, u, model, holder, J, Bn, baseY: holder.position.y, s, hipsY0, hidden, url, face: faceRig(model), pinned: !!opt.pinned, blinkW: 0, redraw0: u.redraw };
+  if (u.procHidden) { u.procHidden.forEach(o => { if (!hidden.includes(o)) hidden.push(o); }); u.procHidden = null; }   // v50 미리 숨겨 둔 절차적 메시도 함께 관리
+  /* v47 척추 분산: rig 는 몸통 관절이 하나 → 모델의 척추 뼈 2~3개(Spine·Spine1·Spine2)에 45·30·25% 로 나눠 휘게(한 덩어리로 꺾이지 않음) */
+  const SP = []; { let b = Bn.spine; for (let i = 0; i < 3 && b; i++) { SP.push({ b, rest: b.quaternion.clone() }); b = b.children.find(c => /spine/i.test(c.name) && (c.isBone || c.type === 'Bone')); } }
+  const hipsY0 = Bn.hips.position.y, rec = { lod: !!opt.lod, k: 0, SP, root, u, model, holder, J, HC, Bn, sc: (u.look && u.look.height || 1.7) / 1.7, sep: new T.Vector3(), baseY: holder.position.y, s, hipsY0, hidden, url, face: faceRig(model), pinned: !!opt.pinned, blinkW: 0, redraw0: u.redraw };
   u.real = rec; u.redraw = () => { u.faceDirty = false; };
   RH.list.push(rec); RH.stats.attached = RH.list.length; return rec;
 };
+/* v51 장착 중 오류가 나도 '대기 중' 상태로 멈추지 않게 정리하고, 그 파일은 이 사람에게 다시 쓰지 않음(다른 모델로 대체) */
+RH.attach = async (root, url, opt = {}) => {
+  try { return await attach0(root, url, opt); }
+  catch (e) { console.warn('[real] 장착 오류 → 다른 모델로 대체', url, e); const u = root.userData;
+    if (u) { (u.realBad || (u.realBad = new Set())).add(url); const keepH = u.real && u.real.holder; root.children.filter(c => c.userData && c.userData.realHolder && c !== keepH).forEach(c => root.remove(c)); if (u.real && !u.real.holder) u.real = null; }
+    return null; }
+};
 RH.detach = root => {
   const u = root.userData, r = u && u.real; if (!r) return; if (r.pending) { u.real = null; return; }
-  r.holder.parent && r.holder.parent.remove(r.holder); r.hidden.forEach(o => { o.visible = true; }); u.redraw = r.redraw0; u.faceDirty = true; u.real = null;
+  r.holder.parent && r.holder.parent.remove(r.holder); r.hidden.forEach(o => { o.visible = true; (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { const f = m && m.userData && m.userData.texPending; if (f && NC.Face && NC.Face.queue) { m.userData.texPending = null; NC.Face.queue.push(f); } }); });   /* v48 미뤄 둔 얼굴 텍스처 생성 */ u.redraw = r.redraw0; u.faceDirty = true; u.real = null;
   const i = RH.list.indexOf(r); if (i >= 0) RH.list.splice(i, 1); RH.stats.attached = RH.list.length;
 };
 
@@ -171,9 +265,12 @@ function apply(r, dt) {
     j.src.getWorldQuaternion(qA).premultiply(qR).multiply(j.C);
     j.b.parent.getWorldQuaternion(qB).premultiply(qR).invert();
     j.b.quaternion.copy(qB.multiply(qA));
+    if (r.SP && r.SP.length > 1 && j.b === r.SP[0].b) { const s0 = r.SP[0], full = _q1.copy(s0.rest).invert().multiply(s0.b.quaternion), W = r.SP.length === 3 ? [.45, .3, .25] : [.55, .45];   // 척추 분산(자식 관절보다 먼저)
+      r.SP.forEach((x, i) => { x.b.quaternion.copy(x.rest).multiply(_q2.identity().slerp(full, W[i])); }); }
   }
   r.Bn.hips.position.y = r.hipsY0 + (R.hips.position.y - u.hipH) * u.figScale / r.s;
-  r.holder.position.set(R.body.position.x * u.figScale, r.baseY + R.body.position.y * u.figScale, R.body.position.z * u.figScale);
+  if (r.HC.length) { r.model.updateMatrixWorld(true); for (const c of r.HC) applyHand(c, R, dt); }
+  r.holder.position.set(R.body.position.x * u.figScale + r.sep.x, r.baseY + R.body.position.y * u.figScale, R.body.position.z * u.figScale + r.sep.z);   // v47 sep: 커플 몸통 관통 보정(보이는 모델만 살짝 띄움)
   const F = r.face; if (F) {
     const W = AK[u.expr] || AK.neutral; for (const k in W) setMorph(F, k, W[k]);
     r.blinkW += ((u.blink ? 1 : 0) - r.blinkW) * Math.min(1, dt * 30); if (r.blinkW > .02) { setMorph(F, 'eyeBlinkLeft', Math.max(W.eyeBlinkLeft || 0, r.blinkW)); setMorph(F, 'eyeBlinkRight', Math.max(W.eyeBlinkRight || 0, r.blinkW)); setMorph(F, 'eyesClosed', r.blinkW); }
@@ -191,6 +288,9 @@ function apply(r, dt) {
  *  인물 → 모델은 manifest.assign(npcs.json id)로 고정(같은 사람은 항상 같은 얼굴), 직원·댄서는 staff 목록에서 */
 let acc = 0;
 const staffKey = new WeakMap(); let staffN = { f: 0, m: 0 };
+/* v50 모든 사람(절차적 Avatar.create 로 만들어진 모든 캐릭터: 추가 웨이터·무대 댄서·화장실·야외·임시 인물 등)을 등록 → 전부 실사 모델 */
+const AV = new Set(); let rootsCache = null, rootsT = 0;
+if (NC.Avatar && NC.Avatar.create && !NC.Avatar._rhWrapped) { const oc = NC.Avatar.create; NC.Avatar.create = function (o) { const g = oc.apply(this, arguments); if (g && !(o && o.name === 'preview')) { AV.add(g); rootsCache = null; const u = g.userData, ps = new Set(); u && u.rig && u.rig.body.traverse(x => { if (x.isMesh || x.isSprite) ps.add(x); }); if (u) u.procSet = ps; } return g; }; NC.Avatar._rhWrapped = true; }   // v51 procSet = 만들 때의 절차적 몸 메시 목록(나중에 손에 드는 소품은 숨기지 않으려고)
 function rootsAll() {
   const out = [];
   (NC.npcs || []).forEach(n => n.g && out.push({ g: n.g, id: n.def && (n.def.id || n.def.name) || n.id || n.name, gender: n.gender || (n.g.userData.look || {}).gender }));
@@ -199,15 +299,25 @@ function rootsAll() {
   (NC.Stage && NC.Stage.dancers || []).forEach((d, i) => d.g && out.push({ g: d.g, id: 'staff:d' + i, gender: (d.g.userData.look || {}).gender || 'f', staff: true }));
   const P = NC.player && NC.player.group; if (P && P.userData && P.userData.rig && !P.userData.customModel) out.push({ g: P, id: 'player', gender: (P.userData.look || {}).gender || 'm', staff: true, me: true });   // 내 캐릭터
   (NC.remotes || new Map()).forEach((r, k) => r && r.g && r.g.userData && r.g.userData.rig && out.push({ g: r.g, id: 'remote:' + k, gender: (r.g.userData.look || {}).gender || 'm', staff: true }));
+  const seen = new Set(out.map(o => o.g));
+  AV.forEach(g => { if (seen.has(g)) return; const u = g.userData; if (!u || !u.rig || u.customModel || u.vrm) return; if (!g.parent) return; out.push({ g, id: 'av:' + g.uuid, gender: (u.look || {}).gender === 'f' ? 'f' : 'm', staff: true }); });
   return out;
 }
-function modelFor(C, r) {
+let modelFor = function (C, r) {
   const M = C._byId || (C._byId = Object.fromEntries((C.models || []).map(m => [m.id, m])));
-  const a = (C.assign && C.assign[r.id]) || (r.me && C.player && C.player[r.gender === 'f' ? 'f' : 'm']); if (a && M[a]) return M[a];
+  const lk = r.g.userData && r.g.userData.look, own = lk && lk.realModel && M[lk.realModel] && M[lk.realModel].gender === (r.gender === 'f' ? 'f' : 'm') ? lk.realModel : null;   // v48 내 캐릭터·다른 접속자: 고른 실사 모델
+  const a = own || (C.assign && C.assign[r.id]) || (r.me && C.player && C.player[r.gender === 'f' ? 'f' : 'm']); if (a && M[a]) return M[a];
   const gk = r.gender === 'm' ? 'm' : 'f';
   if (!staffKey.has(r.g)) { const pool = (C.staff && C.staff[gk] && C.staff[gk].length ? C.staff[gk] : (C.models || []).filter(m => m.gender === gk).map(m => m.id)); staffKey.set(r.g, pool[(staffN[gk]++) % pool.length]); }
   return M[staffKey.get(r.g)] || null;
 }
+const modelFor0 = modelFor;
+modelFor = (C, r) => {   // v51 이 사람에게 실패한 모델이면 같은 성별의 다른 모델로
+  const m = modelFor0(C, r), bad = r.g.userData && r.g.userData.realBad; if (!m || !bad || !(bad.has(m.url) || bad.has(m.lod))) return m;
+  const gk = (m.gender || r.gender) === 'm' ? 'm' : 'f', alt = (C.models || []).filter(x => x.gender === gk && !bad.has(x.url) && !bad.has(x.lod));
+  return alt.length ? alt[(U32(r.g.uuid) % alt.length)] : m;
+};
+function U32(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 let budget = 0;   // 한 번(0.35초)에 새로 입히는 인원 제한 → 시작할 때 수십 명을 한꺼번에 파싱해 멈추는 것 방지
 function want(r, url, opt) {   // 같은 사람의 모델 교체: 새 파일을 먼저 받아 둔 뒤 한 번에 바꿈(깜빡임 최소)
   const u = r.g.userData, cur = u.real; if (cur && (cur.url === url || cur.next === url)) return;
@@ -215,28 +325,94 @@ function want(r, url, opt) {   // 같은 사람의 모델 교체: 새 파일을 
   if (!cur) { RH.attach(r.g, url, opt); return; }
   cur.next = url; load(url).then(() => { if (u.real !== cur) return; RH.detach(r.g); RH.attach(r.g, url, opt); }).catch(() => { cur.next = null; });
 }
-function lod() {
+function lod(force, from) {
   const C = RH.cfg; if (!C || !C.models || !C.models.length) return;
-  const cam = NC.camera; if (!cam) return; const cp = cam.position, mob = NC.isMobile, low = Q.level === 'low';
+  const cam = NC.camera; if (!cam && !from) return; const cp = from || cam.position, mob = NC.isMobile, low = Q.level === 'low';
   const near = C.near || 7, mid = C.mid || 45, maxN = mob ? (C.maxMobile ?? 2) : low ? Math.min(2, C.max ?? 6) : (C.max ?? 6), maxM = mob || low ? (C.maxMidMobile ?? 8) : (C.maxMid ?? 60);
-  const cand = [];
+  const cand = [], BLn = NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n, Dn = NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.n;
+  const pri = new Set([BLn && BLn.g, Dn && Dn.g].filter(Boolean));   // v48.1 블루스 상대·대화 상대는 항상 고해상도(가장 가까운 것으로 취급)
   rootsAll().forEach(r => { const g = r.g; if (!g.parent || !g.userData.rig || g.userData.vrm) return; if (g.userData.real && g.userData.real.pinned) return;
     const m = modelFor(C, r); if (!m) return; let vis = g.visible; for (let p = g.parent; vis && p; p = p.parent) vis = p.visible;
-    const d = r.me ? 0 : g.getWorldPosition(V1).distanceTo(cp); cand.push({ r, m, d: vis ? d : 1e9 }); });
+    const d = r.me || pri.has(g) ? 0 : g.getWorldPosition(V1).distanceTo(cp); cand.push({ r, m, d: vis ? d : 1e9 }); });
   cand.sort((a, b) => a.d - b.d);
-  let nN = 0, nM = 0; budget = NC.isMobile ? 1 : 2;
+  let nN = 0, nM = 0; budget = force ? 999 : NC.isMobile ? 1 : 2; const acts = [];
+  const LO = { noSkin: ['_body'], skin: ['_head'], lod: true }, HI = { noSkin: ['_body'], skin: ['_head'] };
   cand.forEach(c => {
-    if (c.d < near && nN < maxN) { nN++; want(c.r, c.m.url, { noSkin: ['_body'], skin: ['_head'] }); }
-    else if (c.d < mid && nM < maxM && c.m.lod) { nM++; want(c.r, c.m.lod, { noSkin: ['_body'], skin: ['_head'], lod: true }); }
-    else if (c.r.g.userData.real && !c.r.g.userData.real.pending) RH.detach(c.r.g);
+    if (c.d < near && nN < maxN) { nN++; acts.push([c, c.m.url, HI]); }
+    else if (c.m.lod) { nM++; acts.push([c, c.m.lod, LO]); }   // v50 거리·인원 한도 없이 모든 사람에게 실사 모델(옛 절차적 캐릭터로 돌아가지 않음)
+    else if (c.m.url) acts.push([c, c.m.url, HI]);
   });
+  /* v48.1 처리 순서: 아직 실사 모델이 없는 사람(옛 캐릭터로 보이는 중) → 가까운 순 → 고해상도/LOD 교체는 그다음 */
+  acts.sort((a, b) => (a[0].r.g.userData.real ? 1 : 0) - (b[0].r.g.userData.real ? 1 : 0) || a[0].d - b[0].d).forEach(([c, url, o]) => want(c.r, url, o));
   RH.stats.near = nN; RH.stats.mid = nM;
 }
-NC.tickers.push(dt => {
-  acc += dt; if (acc > .35) { acc = 0; try { lod(); } catch (e) { console.warn('[real] lod', e); } }
+/* v47 커플 몸통·머리 관통 보정: 두 실사 모델의 몸통/머리 캡슐이 1cm 넘게 겹치면 보이는 모델만 서로 반씩 밀어냄(부드럽게) */
+function sepCouple(dt) {
+  const BL = NC.Karaoke && NC.Karaoke.BL, P = NC.player && NC.player.group, n = BL && BL.n;
+  const pairs = n && P ? [[P, n.g]] : []; const live = new Set();
+  for (const [ga, gb] of pairs) { const ra = ga.userData.real, rb = gb.userData.real; if (!ra || !rb || ra.pending || rb.pending) continue; live.add(ra); live.add(rb);
+    const A = RH.body(ga), B = RH.body(gb); if (!A || !B) continue; let best = 0, dir = null;
+    for (const ca of A.C) { if (ca.tag !== 'torso' && ca.tag !== 'head') continue; for (const cb of B.C) { if (cb.tag !== 'torso' && cb.tag !== 'head') continue;
+      for (let i = 0; i <= 4; i++) { const pa = ca.a.clone().lerp(ca.b, i / 4), ta = ca.ra + (ca.rb - ca.ra) * i / 4, t = segPt(cb, pa, _cp), rb2 = cb.ra + (cb.rb - cb.ra) * t, d = _cp.distanceTo(pa), pen = ta + rb2 - .012 - d;
+        if (pen > best) { best = pen; dir = pa.clone().sub(_cp); } } } }
+    const want = new T.Vector3(); if (dir) { dir.y = 0; if (dir.lengthSq() > 1e-8) want.copy(dir.normalize()).multiplyScalar(Math.min(.12, best) * .5); }
+    const k = 1 - Math.exp(-dt * 8), toLocal = (g, v, sg) => { const q = g.getWorldQuaternion(new T.Quaternion()).invert(); return v.clone().multiplyScalar(sg).applyQuaternion(q).divideScalar(g.scale.x || 1); };
+    ra.sep.lerp(toLocal(ga, want, 1), k); rb.sep.lerp(toLocal(gb, want, -1), k); RH.stats.pen = best; }
+  RH.list.forEach(r => { if (!live.has(r) && r.sep.lengthSq() > 1e-8) r.sep.multiplyScalar(Math.exp(-dt * 6)); });
+}
+/* v50 실사 모델이 붙기 전에는 절차적 몸(옛 캐릭터)을 숨김 — 새로 생긴 사람도 옛 모습이 보이지 않음 */
+let phF = 0;
+function procHide() {
+  if (!RH.active || !RH.active()) return; const C = RH.cfg, now = performance.now(), full = (++phF % 8) === 0;
+  const keepOf = u => { const k = new Set(); [u.glass, u.mic].forEach(g => g && g.traverse(o => k.add(o))); return k; };
+  const now2 = performance.now(); if (!rootsCache || now2 - rootsT > 350) { rootsCache = rootsAll(); rootsT = now2; }   // v52 사람 목록은 0.35초마다만 새로 만듦(매 프레임 할당 X)
+  rootsCache.forEach(r => { const u = r.g.userData; if (!u || !u.rig || u.vrm || u.customModel) return;
+    if (u.real && !u.real.pending) {   // v51 장착 뒤에 다른 기능이 절차적 몸 메시를 다시 켜면 숨김(8프레임마다 점검)
+      if (!full) return; const H = u.real.hidden, PS = u.procSet; if (!H || !PS) return; let keep = null;
+      PS.forEach(o => { if (o.visible) { keep = keep || keepOf(u); if (!keep.has(o)) { o.visible = false; H.push(o); } } }); return; }
+    if (!modelFor(C, r)) return;
+    const keep = keepOf(u), H = u.procHidden || (u.procHidden = []), PS = u.procSet;
+    (PS || []).forEach(o => { if (o.visible && !keep.has(o)) { o.visible = false; H.push(o); } });
+    if (!PS) u.rig.body.traverse(o => { if ((o.isMesh || o.isSprite) && o.visible && !keep.has(o)) { o.visible = false; H.push(o); } }); });   // 실사 모델이 붙을 때까지 옛 몸은 보이지 않음
+}
+RH.procHide = procHide; RH.allRoots = () => rootsAll().map(r => r.g);
+const TICK = dt => {
+  try { procHide(); } catch (e) { }
+  RH.frame++; acc += dt; if (acc > .35) { acc = 0; try { lod(); } catch (e) { console.warn('[real] lod', e); } }
   for (let i = RH.list.length - 1; i >= 0; i--) { const r = RH.list[i]; if (!r.root.parent) { RH.list.splice(i, 1); continue; } if (!r.root.visible) continue; apply(r, Math.min(dt, .05)); }
-});
+  try { sepCouple(Math.min(dt, .05)); } catch (e) { }
+};
+/* v47 실행 순서: 모든 스크립트(couple.js IK 등)가 등록된 뒤 맨 끝에서 → 이번 프레임의 최종 rig 자세를 모델에 반영 */
+addEventListener('load', () => NC.tickers.push(TICK));
 RH.pin = (root, url, opt = {}) => RH.attach(root, url, Object.assign({ pinned: true }, opt));
 /* 설정 불러오기(없으면 꺼짐) */
-if (!/[?&](noreal|procedural)\b/.test(location.search)) fetch('models/humans/manifest.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(j => { if (!j) return; RH.cfg = j; console.info('[real] 실사 모델 ' + (j.models || []).length + '개 · 근거리 ' + (j.near || 6) + 'm · 최대 ' + (j.max ?? 4) + '명'); }).catch(() => {});
+RH.off = /[?&](noreal|procedural)\b/.test(location.search);
+let readyRes; RH.ready = new Promise(r => { readyRes = r; }); setTimeout(() => readyRes(RH.cfg), 6000);   // v48 매니페스트 확인 전에는 NPC 를 만들지 않음(얼굴 텍스처 낭비·옛 캐릭터 노출 방지)
+RH.active = () => !!(RH.cfg && RH.cfg.models && RH.cfg.models.length && RH.ok);
+RH.modelOf = id => RH.cfg && RH.cfg.models && RH.cfg.models.find(m => m.id === id) || null;
+RH.modelIdFor = n => { const C = RH.cfg; if (!C) return null; const id = n && (n.def && (n.def.id || n.def.name) || n.id || n.name); return (C.assign && C.assign[id]) || null; };
+/* v48 시작 화면에서 미리 받기: NPC·직원의 중거리 모델 + 내 캐릭터 고해상도 모델을 한가할 때 하나씩 내려받아 파싱(입장 순간 멈춤 제거) */
+RH.prestart = async () => {
+  if (!RH.active() || RH._pre) return; RH._pre = true; const C = RH.cfg, mob = NC.isMobile || Q.level === 'low', urls = [];
+  const lk = NC.entry && NC.entry.buildLook ? NC.entry.buildLook() : null, me = lk && lk.realModel && RH.modelOf(lk.realModel); if (me) urls.push(me.url);
+  const ids = new Set(Object.values(C.assign || {})); ['f', 'm'].forEach(g => (C.staff && C.staff[g] || []).forEach(i => ids.add(i)));
+  ids.forEach(i => { const m = RH.modelOf(i); if (m && m.lod) urls.push(m.lod); });
+  const idle = () => new Promise(r => (window.requestIdleCallback ? requestIdleCallback(r, { timeout: 400 }) : setTimeout(r, 30)));
+  for (const u of urls) { if (NC.started && RH._warmed) break; await idle(); try { await load(u); } catch (e) { } }
+  RH.stats.preloaded = urls.length;
+};
+RH.preload = urls => urls.reduce((p, u) => p.then(() => load(u).catch(() => null)), Promise.resolve());
+/* v48 입장 직후 워밍업: 현재 카메라 기준으로 모든 대상에 모델을 즉시 입히고(예산 무제한) 셰이더·텍스처를 미리 GPU 에 올림 */
+RH.warm = async (onProg, maxMs = 3500) => {   // v50 입장 대기 단축(9초→3.5초): 남은 사람은 옛 몸을 숨긴 채 뒤에서 이어서 장착
+  if (!RH.active()) return; { const tg = performance.now(); while (NC.guestsReady && !NC.guestsReady() && performance.now() - tg < 1500) await new Promise(r => setTimeout(r, 80)); }   // 테이블 손님이 다 만들어질 때까지(최대 1.5초)
+  const t0 = performance.now(), P = NC.player && NC.player.group, from = P ? P.getWorldPosition(new T.Vector3()).add(new T.Vector3(0, 2.5, 4)) : null; try { lod(true, from); } catch (e) { console.warn(e); }
+  const pend = () => rootsAll().filter(r => r.g.userData.real && r.g.userData.real.pending).length;
+  while (pend() && performance.now() - t0 < maxMs) { onProg && onProg(1 - pend() / Math.max(1, RH.list.length + pend())); await new Promise(r => setTimeout(r, 60)); try { lod(true, from); } catch (e) { } }
+  { const pu = P && P.userData; while (pu && pu.real && pu.real.pending && performance.now() - t0 < maxMs + 2500) await new Promise(r => setTimeout(r, 60)); }   // 내 캐릭터는 꼭 실사로 시작
+  const rd = NC.renderer; if (!rd) return;
+  try { rd.compile(NC.scene, NC.camera); } catch (e) { }
+  const texs = new Set(); NC.scene.traverse(o => { if (!o.isMesh || !o.visible) return; (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (!m) return; for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap', 'alphaMap']) m[k] && m[k].isTexture && texs.add(m[k]); }); });
+  let i = 0; for (const t of texs) { try { rd.initTexture && rd.initTexture(t); } catch (e) { } if (++i % 6 === 0) { onProg && onProg(.9 + .1 * i / texs.size); await new Promise(r => requestAnimationFrame(r)); if (performance.now() - t0 > maxMs + 1500) break; } }
+};
+if (RH.off) readyRes(null); else fetch('models/humans/manifest.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null).then(j => { if (!j) { readyRes(null); return; } RH.cfg = j; readyRes(j); console.info('[real] 실사 모델 ' + (j.models || []).length + '개 · 근거리 ' + (j.near || 6) + 'm · 최대 ' + (j.max ?? 4) + '명'); }).catch(() => {});
 })();

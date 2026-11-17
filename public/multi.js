@@ -32,6 +32,7 @@
     $('#help').innerHTML = '이동 <b>WASD</b> · 사람 근처 <b>E</b>: 부킹 초대 · 🤵 웨이터: AI 부킹 · 👥 신고/차단 · <b>Enter</b> 채팅 · 🎙 근거리 음성';
   }
 
+  NC.on && NC.on('player:look', look => { if (NC.net && NC.mode === 'online') NC.net.send({ type: 'look', look }); });   // v48 내 캐릭터 변경을 다른 접속자에게
   function addRemote(p) {
     if (remotes.has(p.id) || p.id === myId) return;
     const g = NC.Avatar.create({ name: p.name, look: p.look, seed: U.hash(p.id + p.name) }); g.position.set(p.x, NC.groundY(p.x, p.z), p.z); g.rotation.y = p.r; NC.scene.add(g);
@@ -59,6 +60,7 @@
         r && r(); break;
       }
       case 'join': addRemote(m.p); break;
+      case 'look': { const r = remotes.get(m.id); if (!r) break; const p = { id: r.id, name: r.name, look: m.look, x: r.g.position.x, z: r.g.position.z, r: r.g.rotation.y }; removeRemote(m.id); addRemote(p); break; }   // v48
       case 'leave': case 'hide': removeRemote(m.id); break;
       case 'state': m.s.forEach(([id, x, z, r]) => { const o = remotes.get(id); if (o) { o.tx = x; o.tz = z; o.tr = r; } }); break;
       case 'tables': applyTables(m.t); break;

@@ -152,9 +152,22 @@ function setKind(g, kind) {
 const NAMES_F = ['보라', '하늘', '예슬', '미나', '세라', '다인', '채원', '소율', '가은', '나연', '루나', '제니', '윤아', '슬기', '혜원', '은비'];
 const NAMES_M = ['상철', '동훈', '현우', '준혁', '성민', '태호', '민규', '재원', '우진', '건우', '형준', '대성', '진호', '석진', '영훈', '광수'];
 const TOPS_F = ['#ff5c8a', '#ffd23d', '#9b5cff', '#3de6ff', '#ff8a3d', '#ffffff', '#e0245e', '#7ae6b0'], TOPS_M = ['#2a2a35', '#ffffff', '#3d6aff', '#8a1a2a', '#1a5a3a', '#c0a060', '#5a5a6a'];
+/* v48 테이블 손님 실사 모델: 동양인 외모 모델을 먼저(모델당 최대 3명까지 — 같은 얼굴이 너무 많아지지 않게), 남으면 서양 모델.
+ *  동양인 모델을 manifest 에 추가(look:'east')하면 자동으로 더 많이·덜 겹치게 배정됨 → 목표 비율 동양 8 : 서양 2 */
+const NAMES_WF = ['에밀리', '올리비아', '그레이스', '사라', '애나', '미아', '케이트', '릴리'], NAMES_WM = ['제임스', '이선', '노아', '아담', '톰', '샘', '마이크', '데이비드'];
+const gCount = { ef: 0, em: 0, wf: 0, wm: 0 };
+function pickReal(g, id) {
+  const RH = NC.RealHuman, C = RH && RH.active && RH.active() && RH.cfg; if (!C) return null; C.assign = C.assign || {};
+  if (C.assign[id]) return C.assign[id];
+  const uses = {}; Object.values(C.assign).forEach(m => { uses[m] = (uses[m] || 0) + 1; }); ['f', 'm'].forEach(k => (C.staff && C.staff[k] || []).forEach(m => { uses[m] = (uses[m] || 0) + 1; }));
+  const ms = C.models.filter(m => m.gender === g), east = ms.filter(m => m.look === 'east' && (uses[m.id] || 0) < 3), west = ms.filter(m => m.look !== 'east');
+  const L = (east.length ? east : west.length ? west : ms).slice().sort((a, b) => (uses[a.id] || 0) - (uses[b.id] || 0) || (U.hash(id + a.id) % 7) - (U.hash(id + b.id) % 7));
+  const m = L[0]; if (!m) return null; C.assign[id] = m.id; return m.id;
+}
 function makeGuests(nF, nM, off = 0) {    // 자리 채우기용 손님 생성 (npcs.json 의 기본 손님은 플로어를 돌아다니게 남겨 둠)
   const out = [], hair = ['#1a120c', '#3b2417', '#5a3a22', '#2a1a10', '#8a5a2a', '#c8a070'];
-  for (let i = 0; i < nF + nM; i++) { const f = i < nF, j = i + off, nm = f ? NAMES_F[j % NAMES_F.length] : NAMES_M[j % NAMES_M.length];
+  for (let i = 0; i < nF + nM; i++) { const f = i < nF, j = i + off; let nm = f ? NAMES_F[j % NAMES_F.length] : NAMES_M[j % NAMES_M.length];
+    const mid = pickReal(f ? 'f' : 'm', `guest_${j}`); if (mid) { const east = (NC.RealHuman.modelOf(mid) || {}).look !== 'west', L = east ? (f ? NAMES_F : NAMES_M) : (f ? NAMES_WF : NAMES_WM), c = gCount[(east ? 'e' : 'w') + (f ? 'f' : 'm')]++; nm = L[c % L.length]; }   // v48 이름 = 실제 3D 외모(동양 모델 → 한국 이름 · 서양 모델 → 외국 이름)
     const n = NC.NPC.spawn({ id: `guest_${j}`, name: nm, gender: f ? 'f' : 'm', color: pk(f ? TOPS_F : TOPS_M), hair: pk(hair), trait: pk(['outgoing', 'shy', 'cool']), tag: '🍸 테이블 손님', job: '손님' }, 'crowd'); n.guest = true; out.push(n); }
   return out;
 }
@@ -251,6 +264,8 @@ function tickGroups(dt) {
   });
 }
 (function trySetup() { if ((NC.npcs || []).length && NC.NPC.ready && NC.player && NC.player.group) setupGroups(); else setTimeout(trySetup, 1500); })();
+NC.on && NC.on('start', () => { if ((NC.npcs || []).length && NC.NPC.ready) try { setupGroups(); } catch (e) { console.error(e); } });   // v48 입장 즉시 테이블 손님 생성 → 입장 워밍업(실사 모델 장착)에 포함
+NC.guestsReady = () => online() || GROUPS.length > 0 || makeGuests.done === true;
 
 /* ───── ③ 초청 밴드/가수 ───── */
 const ST = W.zones.stage, FRONT = ST.z1;

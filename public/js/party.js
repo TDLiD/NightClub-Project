@@ -63,7 +63,7 @@ function start(mode) {
   PT.mode = mode; PT.left = DUR[mode]; PT.members = list; PT.pairs = []; PT.huntT = 4; PT.roamT = 6;
   // 조명 · 음악 (처음 시작할 때의 것을 기억해 두었다가 끝나면 복원)
   const A = NC.Audio; if (!prev) { PT.prevTheme = W.themeId || 'neon'; PT.prevMusic = A && A.style; }
-  if (W.setTheme) W.setTheme(mode === 'disco' ? 'neon' : 'warm');
+  if (W.setTheme) W.setTheme('house');   // v52 디스코·블루스 타임 기본 조명 = 💡 전등만(필요하면 조명 메뉴에서 변경)
   // 손님 출동
   list.forEach(n => {
     const u = n.g.userData;

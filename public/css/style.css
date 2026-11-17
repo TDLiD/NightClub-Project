@@ -306,3 +306,17 @@ html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 #talk::-webkit-scrollbar{width:5px}#talk::-webkit-scrollbar-thumb{background:#6b4bc0;border-radius:4px}
 #talk .th,#tChips,.trow,#tSrc,#tCancel{flex-shrink:0}
 @media (max-height:500px) and (orientation:landscape){#tChips button{padding:5px 9px;font-size:12px}#tCancel{padding:5px;font-size:12px}}
+
+/* v48 입장 워밍업 오버레이(PC·모바일 공통) + 진행 막대 */
+#enterOv{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,#3a1a6a,#0b0518);color:#fff;text-align:center;font-size:15px;line-height:1.7;transition:opacity .25s}
+#enterOv.fade{opacity:0}
+#enterOv div{font-size:40px}#enterOv b{font-size:17px}#enterOv small{font-size:12px;opacity:.75}
+#enterOv .eoBar{display:block;width:220px;height:6px;margin:12px auto 0;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+#enterOv .eoBar i{display:block;height:100%;width:8%;background:linear-gradient(90deg,#ff3d9a,#9b5cff);transition:width .2s}
+/* v48 실사 캐릭터 고르기 */
+html.realOn #stGrid .stc img{aspect-ratio:9/16;object-fit:cover;object-position:50% 0;background:#1d1036}
+#stGrid .stc.real b small{display:block;font-weight:400;opacity:.7;font-size:10px}
+html.realOn #cHair,html.realOn #cTop,html.realOn #sws,html.realOn #charMake{display:none!important}
+/* v48 대화 옵션 맨 위 조명 바꾸기 */
+#tChips button.light{background:linear-gradient(135deg,#ffd23d33,#9b5cff44);border-color:#ffd23d}
+#tChips button.light.sub{font-size:11px;padding:3px 8px;border-color:#9b5cff}

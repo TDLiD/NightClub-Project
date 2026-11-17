@@ -130,6 +130,10 @@ wss.on('connection', (ws, req) => {
         releaseRooms(me); roomOwners[r] = me.id; send(me, { type: 'roomClaim', room: r, ok: true }); sendRooms(); break;
       }
       case 'roomRelease': releaseRooms(me); break;
+      case 'look': {                                                 // v48 게임 중 캐릭터 변경 → 다른 접속자 화면에도 반영
+        if (!ops.rate('l:' + me.id, 4, 30e3)) return;
+        me.look = sanitizeLook(m.look, me.color); broadcast({ type: 'look', id: me.id, look: me.look }, me); break;
+      }
       case 'emote': {
         if (!EMOTES.includes(m.name) || !ops.rate('e:' + me.id, 12, 10e3)) return;
         broadcastVisible(me, { type: 'emote', id: me.id, name: m.name }); break;

@@ -35,19 +35,21 @@ const _ax = V(), _tmp = V();
 const EL_MAX = 2.53, SOFT = .06;
 function ikArm(R, sd, target, w, poleW, obs, opt) {
   if (!target || w <= .001) return null;
-  const { S, E, H: HH, L1, L2 } = chain(R, sd), par = S.parent; par.updateMatrixWorld(true);
+  const ch0 = chain(R, sd), { S, E, H: HH } = ch0, par = S.parent; par.updateMatrixWorld(true);
+  /* v47 실사 모델이 입혀져 있으면 모델의 실제 어깨 위치·팔 길이로 계산(rig 와 비율이 달라도 모델 손이 정확히 목표에 닿음) */
+  const geo = opt && opt.geo, L1 = geo ? geo.L1 : ch0.L1, L2 = geo ? geo.L2 : ch0.L2, S0 = geo ? par.worldToLocal(geo.S.clone()) : S.position.clone();
   const st = S.userData._ik || (S.userData._ik = { p: target.clone(), v: V(), sw: 0, t: performance.now() }), now = performance.now(), dt = Math.min(.05, Math.max(.001, (now - st.t) / 1000)); st.t = now;
   if (!(opt && opt.raw)) {
     if (now - (st.seen || 0) > 400) { st.p.copy(HH ? HH.getWorldPosition(V()) : target); st.v.set(0, 0, 0); }   // 오랜만의 호출은 지금 손 위치에서 출발(순간이동 없음)
     else { const om = (opt && opt.omega) || 9, a = target.clone().sub(st.p).multiplyScalar(om * om).addScaledVector(st.v, -2 * om); st.v.addScaledVector(a, dt); st.p.addScaledVector(st.v, dt); }
     st.seen = now; target = st.p.clone();
   }
-  const N = NC.Contact && NC.Contact.norm;
+  const N = obs && obs.realN ? obs.realN : NC.Contact && NC.Contact.norm;   // v47 상대가 실사 모델이면 실제 뼈 캡슐로 관통 검사
   if (obs && N) { const n0 = N(target, obs); if (n0 < 1.05) { const c = obs.hips.clone().lerp(obs.neck, U.clamp((target.y - obs.hips.y) / Math.max(.01, obs.neck.y - obs.hips.y), 0, 1)); const r = target.clone().sub(c); r.y = 0; if (r.lengthSq() > 1e-6) target = c.clone().add(r.multiplyScalar(1.07 / Math.max(.2, n0))).setY(target.y); } }
   const Lm = L1 + L2, dMin = Math.sqrt(L1 * L1 + L2 * L2 - 2 * L1 * L2 * Math.cos(Math.PI - EL_MAX)), k0 = Lm * (1 - SOFT), pq = par.getWorldQuaternion(new T.Quaternion()).invert();
   /* 주어진 손 목표(월드)에 대해 팔꿈치 회전각 후보를 시험해 가장 덜 뚫는 자세를 찾음 */
   const solve = (tgW, swList) => {
-    const v = par.worldToLocal(tgW.clone()).sub(S.position), d = v.length(); if (d < 1e-4) return null;
+    const v = par.worldToLocal(tgW.clone()).sub(S0), d = v.length(); if (d < 1e-4) return null;
     let dc = Math.max(d, dMin); if (dc > k0) dc = k0 + Lm * SOFT * .93 * (1 - Math.exp(-(dc - k0) / (Lm * SOFT)));   // 소프트 IK: 끝까지 펴지지 않음
     const dir = v.clone().divideScalar(d), A = Math.acos(U.clamp((L1 * L1 + dc * dc - L2 * L2) / (2 * L1 * dc), -1, 1)), bend = Math.PI - Math.acos(U.clamp((L1 * L1 + L2 * L2 - dc * dc) / (2 * L1 * L2), -1, 1));
     const o = (poleW || V(0, -1, 0)).clone().applyQuaternion(pq);   // 폴 방향(월드) → 몸통 로컬
@@ -56,7 +58,7 @@ function ikArm(R, sd, target, w, poleW, obs, opt) {
     for (const sw of swList) {
       const pl = pl0.clone().applyAxisAngle(dir, sw), a1 = dir.clone().multiplyScalar(Math.cos(A)).addScaledVector(pl, Math.sin(A)).normalize();
       let cost = Math.abs(sw) * .02 + Math.abs(sw - st.sw) * .06;   // v45 이전 각도에서 멀수록 비용 → 팔꿈치가 갑자기 뒤집히지 않음
-      if (obs && N) { const sp = S.position, el = sp.clone().addScaledVector(a1, L1), hd = sp.clone().addScaledVector(dir, dc);
+      if (obs && N) { const sp = S0, el = sp.clone().addScaledVector(a1, L1), hd = sp.clone().addScaledVector(dir, dc);
         for (const [pt, k] of [[sp.clone().lerp(el, .5), 1.2], [el, 1.5], [el.clone().lerp(hd, .3), 1.4], [el.clone().lerp(hd, .6), 1.4], [el.clone().lerp(hd, .85), 1]]) { const nn = N(par.localToWorld(pt), obs); if (nn < 1.08) cost += (1.08 - nn) * k * 3; } }
       if (!best || cost < best.cost - 1e-4) best = { cost, sw };
       if (best.cost < .001) break;
@@ -92,7 +94,8 @@ function aimHead(R, target, w, tilt = 0) {
 /* ═════ 상대 몸의 접촉점 (월드) ═════ */
 const _c = [V(), V(), V()];
 /* 몸 모델 + 실제 상체·머리 방향(딥처럼 상체가 젖혀져도 등·어깨·볼 위치가 맞게) */
-const body = g => { const B = NC.Contact && NC.Contact.body ? NC.Contact.body(g) : null; if (!B) return null;
+const body = g => { const B = NC.Contact && NC.Contact.body ? NC.Contact.body(g) : null; if (!B) return null; B.g = g;
+  const RH = NC.RealHuman; if (RH && RH.body && RH.body(g)) B.realN = p => RH.norm(g, p, ['torso', 'neck', 'head']);   // v47
   const ax = (o, k) => { o.matrixWorld.extractBasis(_c[0], _c[1], _c[2]); return _c[k].clone().normalize(); };
   B.tr = ax(B.R.torso, 0); B.tu = ax(B.R.torso, 1); B.tf = ax(B.R.torso, 2); B.hr = ax(B.R.head, 0); B.hu = ax(B.R.head, 1); B.hf = ax(B.R.head, 2); return B; };
 const P = {   // 몸통 점은 상체 축(tr·tu·tf), 얼굴 점은 머리 축(hr·hu·hf) 기준 — 표면에서 1~3cm 바깥
@@ -158,8 +161,30 @@ function applyArms(A, o, w, Bobs, tgtFn) {
   for (const sd of ['L', 'R']) {
     const tg = tgtFn ? tgtFn(sd) : o[sd], s2 = aw[sd], want = tg ? ww * (o.wArm ?? 1) : 0; if (tg) s2.p = tg.clone();
     s2.w += (want - s2.w) * Math.min(1, dt * 4.5); if (s2.w < .004 || !s2.p) { s2.w = Math.max(0, s2.w); continue; }
-    ikArm(R, sd, s2.p, s2.w, pole(A, sd), Bobs); A.u.ikLock[sd] = s2.w;
+    /* v47 접촉점: 상대가 실사 모델이면 목표를 실제 몸 표면(+손 두께)으로 옮기고 표면 법선을 구함 */
+    const RH = NC.RealHuman, hold = o.hp && o.hp[sd] === 'grip', face = o.hp && o.hp[sd] === 'cup', real = Bobs && Bobs.g && RH && RH.project && RH.body && RH.body(Bobs.g);
+    const pr = !hold && real ? RH.project(Bobs.g, s2.p, .022, face ? ['head', 'neck'] : ['torso', 'neck']) : null;   // 얼굴 감싸기만 머리에, 나머지는 몸통·목에(목 뒤로 감은 팔이 뒤통수를 뚫지 않게)
+    let tgt = pr ? pr.p : s2.p;
+    if (hold && real && RH.norm(Bobs.g, tgt, ['head', 'neck']) < 1.35) { const hb = RH.body(Bobs.g); tgt = tgt.clone(); tgt.y = Math.max(tgt.y, hb.hd.y + .17); }   // 턴: 맞잡은 손은 상대 머리 위로 지나가게
+    const geo = RH && RH.armGeo ? RH.armGeo(A.g, sd) : null;
+    ikArm(R, sd, tgt, s2.w, pole(A, sd), Bobs, geo ? { geo } : null); A.u.ikLock[sd] = s2.w;
+    handOrient(R, sd, pr && s2.w > .2 ? pr.n : null, s2.w, dt);
+    (A.u.armDbg || (A.u.armDbg = {}))[sd] = { tgt: tgt.clone(), n: pr ? pr.n.clone() : null, w: s2.w };
   }
+  for (const sd of ['L', 'R']) if (aw[sd].w < .004) handOrient(R, sd, null, 0, dt);
+}
+/* v47 손 방향(HandPose): 닿는 손은 손바닥이 상대 몸 쪽(표면 법선 반대), 손가락은 아래팔 방향을 표면에 눕힌 쪽으로.
+ *  rig 손 축: 손가락 = -Y, 손바닥 = -Z. 손목 한계(굽힘 65°·비틀림 45°)는 실사 모델 쪽(humanglb.js)에서 최종 강제 */
+const _hq = new T.Quaternion(), _hq2 = new T.Quaternion(), _hm = new T.Matrix4();
+function handOrient(R, sd, n, w, dt) {
+  const E = R['el' + sd], H = E.children.find(c => c.userData.isHand); if (!H) return;
+  const st = H.userData._ho || (H.userData._ho = { k: 0 }); st.k += ((n ? w : 0) - st.k) * Math.min(1, dt * 6);
+  if (st.k < .005) { if (H.quaternion.w < .99999) H.quaternion.slerp(_hq.identity(), Math.min(1, dt * 6)); return; }
+  if (n) { E.updateMatrixWorld(true); const eq = E.getWorldQuaternion(_hq2), fd = V(0, -1, 0).applyQuaternion(eq);   // 아래팔 방향
+    let f = fd.clone().addScaledVector(n, -fd.dot(n)); if (f.lengthSq() < 1e-4) f = V(0, -1, 0).addScaledVector(n, n.y); f.normalize();
+    const Y = f.clone().negate(), Z = n.clone(), X = V().crossVectors(Y, Z).normalize(); Z.crossVectors(X, Y).normalize();
+    _hm.makeBasis(X, Y, Z); st.q = (st.q || new T.Quaternion()).setFromRotationMatrix(_hm).premultiply(eq.clone().invert()); }
+  if (st.q) H.quaternion.slerp(st.q, Math.min(1, st.k));
 }
 const applyPlan = (A, o, w, Bobs) => { applyBody(A, o, w); applyArms(A, o, w, Bobs); };
 function tickBlues() {

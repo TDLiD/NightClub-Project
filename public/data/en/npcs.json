@@ -202,7 +202,8 @@
     "hair": "#c9a8ff",
     "top": "#ff6fb0",
     "bottom": "#f4f4f6"
-   }
+   },
+   "photo": "real/f_03.jpg"
   },
   {
    "id": "seojin",
@@ -395,7 +396,8 @@
     "hair": "#2a2230",
     "top": "#3a3f6a",
     "bottom": "#2a2a3a"
-   }
+   },
+   "photo": "real/f_10.jpg"
   },
   {
    "id": "jiho",
@@ -579,7 +581,8 @@
      "Name the most exciting song you know!",
      "Team BBQ or team sashimi? This is important"
     ]
-   }
+   },
+   "photo": "real/m_09.jpg"
   },
   {
    "id": "sua",
@@ -765,7 +768,8 @@
     "hair": "#9a6a48",
     "top": "#bfe3ff",
     "bottom": "#c9b6ea"
-   }
+   },
+   "photo": "real/f_09.jpg"
   },
   {
    "id": "minhyuk",
@@ -949,13 +953,14 @@
      "If you advertised yourself, what would the slogan be?",
      "Jjajang vs. jjamppong — with reasons."
     ]
-   }
+   },
+   "photo": "real/m_10.jpg"
   }
  ],
  "npcs": [
   {
    "id": "jihyun",
-   "name": "지현",
+   "name": "Jihyun",
    "gender": "f",
    "age": 27,
    "tag": "🎉 Outgoing",
@@ -1007,11 +1012,13 @@
      "sunglasses": false,
      "earring": true
     }
-   }
+   },
+   "origin": "korean",
+   "photo": "real/f_19.jpg"
   },
   {
    "id": "subin",
-   "name": "수빈",
+   "name": "Emma",
    "gender": "f",
    "age": 25,
    "tag": "🙈 Shy",
@@ -1062,11 +1069,13 @@
      "sunglasses": false,
      "earring": false
     }
-   }
+   },
+   "origin": "western",
+   "photo": "real/f_06.jpg"
   },
   {
    "id": "minjae",
-   "name": "민재",
+   "name": "Minjae",
    "gender": "m",
    "age": 30,
    "tag": "😎 Chic",
@@ -1117,11 +1126,13 @@
      "earring": false,
      "attractive": true
     }
-   }
+   },
+   "origin": "korean",
+   "photo": "real/m_20.jpg"
   },
   {
    "id": "haneul",
-   "name": "하늘",
+   "name": "Katie",
    "gender": "f",
    "age": 26,
    "tag": "😜 Prankster",
@@ -1175,18 +1186,20 @@
      "sunglasses": false,
      "earring": true
     }
-   }
+   },
+   "origin": "western",
+   "photo": "real/f_14.jpg"
   },
   {
    "id": "yerin",
-   "name": "예린",
+   "name": "Rachel",
    "gender": "f",
    "age": 24,
    "tag": "🙈 Shy",
    "trait": "shy",
    "color": "#c9a0ff",
    "hair": "#2a1a12",
-   "job": "24 · Nurse",
+   "job": "24 · International hospital nurse",
    "look": {
     "gender": "f",
     "height": 1.62,
@@ -1228,11 +1241,13 @@
      "sunglasses": false,
      "earring": false
     }
-   }
+   },
+   "origin": "western",
+   "photo": "real/f_20.jpg"
   },
   {
    "id": "dohyun",
-   "name": "도현",
+   "name": "Dohyun",
    "gender": "m",
    "age": 29,
    "tag": "🎉 Outgoing",
@@ -1283,11 +1298,13 @@
      "earring": false,
      "attractive": true
     }
-   }
+   },
+   "origin": "korean",
+   "photo": "real/m_19.jpg"
   },
   {
    "id": "seoyeon",
-   "name": "서연",
+   "name": "Seoyeon",
    "gender": "f",
    "age": 28,
    "tag": "😎 Chic",
@@ -1335,11 +1352,13 @@
      "sunglasses": false,
      "earring": true
     }
-   }
+   },
+   "origin": "korean",
+   "photo": "real/f_05.jpg"
   },
   {
    "id": "jiwoo",
-   "name": "지우",
+   "name": "Daniel",
    "gender": "m",
    "age": 26,
    "tag": "😜 Prankster",
@@ -1395,18 +1414,20 @@
       0.45
      ]
     }
-   }
+   },
+   "origin": "western",
+   "photo": "real/m_07.jpg"
   },
   {
    "id": "jaesuk",
-   "name": "재숙",
+   "name": "Margaret",
    "gender": "f",
    "age": 52,
    "tag": "🎉 Outgoing",
    "trait": "outgoing",
    "color": "#ff6b9d",
    "hair": "#3b2417",
-   "job": "52 · Korean restaurant owner",
+   "job": "52 · Wine bar owner",
    "look": {
     "gender": "f",
     "height": 1.6,
@@ -1457,18 +1478,20 @@
     }
    },
    "always": true,
-   "pose": "dance"
+   "pose": "dance",
+   "origin": "western",
+   "photo": "real/f_18.jpg"
   },
   {
    "id": "jo",
-   "name": "조여사",
+   "name": "Catherine",
    "gender": "f",
    "age": 50,
    "tag": "😎 Chic",
    "trait": "cool",
    "color": "#8e7cff",
    "hair": "#1c1410",
-   "job": "50 · Real estate agent",
+   "job": "50 · Real estate agent (expat clients)",
    "look": {
     "gender": "f",
     "height": 1.6,
@@ -1517,11 +1540,13 @@
     }
    },
    "always": true,
-   "pose": "dance"
+   "pose": "dance",
+   "origin": "western",
+   "photo": "real/f_02.jpg"
   },
   {
    "id": "sophia",
-   "name": "소피아",
+   "name": "Sophia",
    "gender": "f",
    "age": 26,
    "tag": "💃 Dancer",
@@ -1542,11 +1567,13 @@
     "bottomColor": "#ff2d78"
    },
    "dance": "vogue",
-   "walk": "model"
+   "walk": "model",
+   "origin": "western",
+   "photo": "real/f_15.jpg"
   },
   {
    "id": "naomi",
-   "name": "나오미",
+   "name": "Naomi",
    "gender": "f",
    "age": 28,
    "tag": "🔥 B-girl",
@@ -1567,18 +1594,20 @@
     "bottomColor": "#141418"
    },
    "dance": "breaking",
-   "walk": "swagger"
+   "walk": "swagger",
+   "origin": "western",
+   "photo": "real/f_17.jpg"
   },
   {
    "id": "yuna",
-   "name": "유나",
+   "name": "Julia",
    "gender": "f",
    "age": 24,
    "tag": "🍸 Heavy drinker",
    "trait": "playful",
    "color": "#9b5cff",
    "hair": "#241812",
-   "job": "24 · Grad student",
+   "job": "24 · Exchange grad student",
    "look": {
     "gender": "f",
     "skin": "#f7dcc8",
@@ -1592,11 +1621,13 @@
    },
    "dance": "hipSway",
    "walk": "bouncy",
-   "habit": "drinker"
+   "habit": "drinker",
+   "origin": "western",
+   "photo": "real/f_12.jpg"
   },
   {
    "id": "chloe",
-   "name": "클로이",
+   "name": "Chloe",
    "gender": "f",
    "age": 29,
    "tag": "😎 Chic",
@@ -1617,11 +1648,13 @@
     "bottomColor": "#c0c0d0"
    },
    "dance": "bodyRoll",
-   "walk": "model"
+   "walk": "model",
+   "origin": "western",
+   "photo": "real/f_04.jpg"
   },
   {
    "id": "amina",
-   "name": "아미나",
+   "name": "Amina",
    "gender": "f",
    "age": 25,
    "tag": "🎉 Life of the party",
@@ -1642,11 +1675,13 @@
     "bottomColor": "#ffffff"
    },
    "dance": "hipCircle",
-   "walk": "bouncy"
+   "walk": "bouncy",
+   "origin": "western",
+   "photo": "real/f_16.jpg"
   },
   {
    "id": "jake",
-   "name": "제이크",
+   "name": "Jake",
    "gender": "m",
    "age": 30,
    "tag": "💪 Gym rat",
@@ -1667,11 +1702,13 @@
     }
    },
    "dance": "pump",
-   "walk": "swagger"
+   "walk": "swagger",
+   "origin": "western",
+   "photo": "real/m_15.jpg"
   },
   {
    "id": "marcus",
-   "name": "마커스",
+   "name": "Marcus",
    "gender": "m",
    "age": 27,
    "tag": "🎤 Rapper",
@@ -1691,11 +1728,13 @@
     "muscle": 0.5
    },
    "dance": "breaking",
-   "walk": "swagger"
+   "walk": "swagger",
+   "origin": "western",
+   "photo": "real/m_17.jpg"
   },
   {
    "id": "taejun",
-   "name": "태준",
+   "name": "Ryan",
    "gender": "m",
    "age": 33,
    "tag": "🤓 Dad-joke guy",
@@ -1715,11 +1754,13 @@
    },
    "dance": "robot",
    "walk": "shy",
-   "habit": "drinker"
+   "habit": "drinker",
+   "origin": "western",
+   "photo": "real/m_11.jpg"
   },
   {
    "id": "doyun",
-   "name": "도윤",
+   "name": "Andrew",
    "gender": "m",
    "age": 26,
    "tag": "✨ Pretty boy",
@@ -1738,11 +1779,13 @@
     }
    },
    "dance": "disco",
-   "walk": "model"
+   "walk": "model",
+   "origin": "western",
+   "photo": "real/m_02.jpg"
   },
   {
    "id": "leo",
-   "name": "레오",
+   "name": "Leo",
    "gender": "m",
    "age": 31,
    "tag": "🍺 Party drinker",
@@ -1765,7 +1808,9 @@
    },
    "dance": "techno",
    "walk": "bouncy",
-   "habit": "drinker"
+   "habit": "drinker",
+   "origin": "western",
+   "photo": "real/m_06.jpg"
   },
   {
    "id": "lena",
@@ -1823,13 +1868,14 @@
      "earring": false
     }
    },
-   "photo": "girl/Lena.jpeg",
+   "photo": "real/f_01.jpg",
    "always": true,
-   "pose": "dance"
+   "pose": "dance",
+   "origin": "western"
   },
   {
    "id": "hyejung",
-   "name": "혜정",
+   "name": "Hyejung",
    "gender": "f",
    "age": 42,
    "tag": "🎉 Outgoing",
@@ -1879,19 +1925,20 @@
      "earring": false
     }
    },
-   "photo": "girl/혜정.webp",
+   "photo": "real/f_07.jpg",
    "always": true,
-   "pose": "dance"
+   "pose": "dance",
+   "origin": "korean"
   },
   {
    "id": "mikyung",
-   "name": "미경",
+   "name": "Jessica",
    "gender": "f",
    "age": 24,
    "tag": "💃 Dance queen",
    "trait": "outgoing",
    "color": "#c8ccd4",
-   "job": "24 · Department store cosmetics counter",
+   "job": "24 · Cosmetics brand manager",
    "pose": "dance",
    "dance": "hipSway",
    "walk": "model",
@@ -1954,17 +2001,19 @@
     "hair2": null
    },
    "v32": true,
-   "hair": "#1a1210"
+   "hair": "#1a1210",
+   "origin": "western",
+   "photo": "real/f_13.jpg"
   },
   {
    "id": "yuka",
-   "name": "유카",
+   "name": "Ellie",
    "gender": "f",
    "age": 22,
    "tag": "🌸 Shibuya girl",
    "trait": "playful",
    "color": "#f2f0ea",
-   "job": "22 · Language student in Tokyo",
+   "job": "22 · Language student in Seoul",
    "pose": "talk",
    "dance": "shimmy",
    "walk": "bouncy",
@@ -2026,17 +2075,19 @@
     "ethnic": "jp"
    },
    "v32": true,
-   "hair": "#8a5a34"
+   "hair": "#8a5a34",
+   "origin": "western",
+   "photo": "real/f_11.jpg"
   },
   {
    "id": "eunsook",
-   "name": "은숙",
+   "name": "Hannah",
    "gender": "f",
    "age": 31,
    "tag": "🍸 Regular",
    "trait": "cool",
    "color": "#7b2a3a",
-   "job": "31 · Insurance company assistant manager",
+   "job": "31 · Assistant manager, foreign insurer",
    "pose": "drink",
    "dance": "disco",
    "look": {
@@ -2097,11 +2148,13 @@
     "hair2": null
    },
    "v32": true,
-   "hair": "#2a1810"
+   "hair": "#2a1810",
+   "origin": "western",
+   "photo": "real/f_08.jpg"
   },
   {
    "id": "nicole",
-   "name": "니콜",
+   "name": "Nicole",
    "gender": "f",
    "age": 27,
    "tag": "🗽 New Yorker",
@@ -2169,17 +2222,19 @@
     "ethnic": "west"
    },
    "v32": true,
-   "hair": "#b08a52"
+   "hair": "#b08a52",
+   "origin": "western",
+   "photo": "real/f_15.jpg"
   },
   {
    "id": "dongsu",
-   "name": "동수",
+   "name": "Chris",
    "gender": "m",
    "age": 29,
    "tag": "🍺 Salesman",
    "trait": "playful",
    "color": "#25304a",
-   "job": "29 · Construction company sales",
+   "job": "29 · Sales, foreign construction firm",
    "pose": "drink",
    "dance": "stepTouch",
    "walk": "swagger",
@@ -2241,17 +2296,19 @@
     "hair2": null
    },
    "v32": true,
-   "hair": "#141010"
+   "hair": "#141010",
+   "origin": "western",
+   "photo": "real/m_01.jpg"
   },
   {
    "id": "junho",
-   "name": "준호",
+   "name": "Matthew",
    "gender": "m",
    "age": 23,
    "tag": "🎧 Hip-hop kid",
    "trait": "playful",
    "color": "#2f5a3a",
-   "job": "23 · College student (on leave)",
+   "job": "23 · Exchange student",
    "pose": "dance",
    "dance": "runMan",
    "walk": "bouncy",
@@ -2314,11 +2371,13 @@
     "hair2": null
    },
    "v32": true,
-   "hair": "#18110e"
+   "hair": "#18110e",
+   "origin": "western",
+   "photo": "real/m_08.jpg"
   },
   {
    "id": "marco",
-   "name": "마르코",
+   "name": "Marco",
    "gender": "m",
    "age": 34,
    "tag": "🏍 Biker",
@@ -2385,17 +2444,19 @@
     "ethnic": "west"
    },
    "v32": true,
-   "hair": "#1c140e"
+   "hair": "#1c140e",
+   "origin": "western",
+   "photo": "real/m_24.jpg"
   },
   {
    "id": "kenji",
-   "name": "켄지",
+   "name": "Lucas",
    "gender": "m",
    "age": 26,
    "tag": "🕺 Disco",
    "trait": "outgoing",
    "color": "#121014",
-   "job": "26 · Osaka record store clerk",
+   "job": "26 · Itaewon record store clerk",
    "pose": "talk",
    "dance": "disco",
    "walk": "swagger",
@@ -2455,7 +2516,9 @@
     "ethnic": "jp"
    },
    "v32": true,
-   "hair": "#0e0b0a"
+   "hair": "#0e0b0a",
+   "origin": "western",
+   "photo": "real/m_18.jpg"
   }
  ],
  "crowdModels": [],

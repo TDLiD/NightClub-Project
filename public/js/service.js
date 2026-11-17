@@ -219,6 +219,15 @@ function fillCard(n) {
   if (card._html !== html) { card.innerHTML = html; card._html = html; }   // v34 내용이 같으면 다시 그리지 않음(매초 이미지·레이아웃 재생성 → 모바일 버벅임)
 }
 let fillT = 0;
+const MS = { x: -1, y: -1, t: 0 }; addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { MS.x = e.clientX; MS.y = e.clientY; MS.t = performance.now(); } }, { passive: true });
+document.addEventListener('mouseleave', () => { MS.x = -1; });
+const hv = new T.Vector3();
+function hoverOn(n, cam) {   // 상대 몸이 화면에서 차지하는 영역(발~머리, 어깨 폭) 안에 마우스가 있는지
+  if (MS.x < 0 || NC.isMobile) return false; const g = n.g, p = g.getWorldPosition(hv), h = (g.userData.look && g.userData.look.height) || 1.65, sw = innerWidth, sh = innerHeight;
+  const top = p.clone().setY(p.y + h + .05).project(cam), bot = p.clone().project(cam); if (top.z > 1 || bot.z > 1) return false;
+  const yT = (-top.y * .5 + .5) * sh, yB = (-bot.y * .5 + .5) * sh, xc = (bot.x * .5 + .5) * sw, w = Math.max(30, (yB - yT) * .3);
+  return MS.y > yT && MS.y < yB && Math.abs(MS.x - xc) < w;
+}
 NC.tickers.push(dt => {
   // 임시 아바타 걷기(방 안 웨이터·불려 온 손님)
   for (let i = walkers.length - 1; i >= 0; i--) { const w = walkers[i], g = w.g, tg = w.pts[0], dx = tg.x - g.position.x, dz = tg.z - g.position.z, d = Math.hypot(dx, dz);
@@ -233,7 +242,11 @@ NC.tickers.push(dt => {
   if (!n || !n.g || !n.def) { if (cardFor) { card.style.display = 'none'; cardFor = null; } return; }
   if (cardFor !== n) { cardFor = n; fillCard(n); card.style.display = ''; fillT = 0; }
   fillT -= dt; if (fillT < 0) { fillT = 1; fillCard(n); }
-  const cam = NC.camera; if (!cam) return; v3.set(n.g.position.x, n.g.position.y + 1.75, n.g.position.z).project(cam);
+  const cam = NC.camera; if (!cam) return;
+  /* v47 블루스 중에는 시야를 가리지 않게: 마우스가 부킹 상대 위에 있을 때만 카드 표시(터치 기기는 숨김) */
+  const BL = NC.Karaoke && NC.Karaoke.BL, dancing = BL && BL.n === n;
+  if (dancing && !hoverOn(n, cam)) { card.style.opacity = '0'; return; }
+  v3.set(n.g.position.x, n.g.position.y + 1.75, n.g.position.z).project(cam);
   if (v3.z > 1) { card.style.opacity = '0'; return; }
   const sw = innerWidth, sh = innerHeight, talk = document.getElementById('talk'), lim = talk && talk.offsetParent ? talk.getBoundingClientRect().left - 8 : sw - 8;
   const cw = card.offsetWidth || 190, ch = card.offsetHeight || 220; let x = (v3.x * .5 + .5) * sw + 34, y = (-v3.y * .5 + .5) * sh - ch * .35;

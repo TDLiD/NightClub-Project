@@ -591,7 +591,7 @@ const aff = (n, d) => { n.aff = U.clamp(n.aff + d, 0, 100); if (NC.Dialog.cur &&
 const CLUB_ZONES = ['stage', 'dance'];
 function clubMood(on) {                                  // 클럽: DJ 블루스 타임 — 음악 줄이고 조명 어둡게, 끝나면 원래대로
   const AU = NC.Audio;
-  if (on) { BL.prevTheme = W.themeId; if (W.setTheme && W.THEMES && W.THEMES.dim) W.setTheme('dim'); NC.ui.toast('🎧 DJ: "자~ 블루스 타임입니다. 조명 낮춥니다 💗"'); }
+  if (on) { BL.prevTheme = W.themeId; if (W.setTheme) W.setTheme('house');   /* v52 블루스 기본 조명 = 💡 전등만 */ NC.ui.toast('🎧 DJ: "자~ 블루스 타임입니다. 분위기 있게 즐기세요 💗"'); }
   else { if (BL.prevTheme && W.setTheme) W.setTheme(BL.prevTheme); BL.prevVol = null; }
 }
 function startBlues(n) {
@@ -618,7 +618,7 @@ function startBlues(n) {
   D.chips();   // v21 블루스 반주 삭제 — 지금 나오는 MP3 에 맞춰 춤
 }
 function endBlues(reason) {
-  const n = BL.n; if (!n) return; BL.n = null; const P = NC.player;
+  const n = BL.n; if (!n) return; BL.n = null; n.bluesDanced = true; const P = NC.player;   // v48 브루스 후에도 조명 옵션 유지
   if (K.playing && K.playing.singer === 'blues') stop(true);
   if (BL.glass) { P.group.userData.holdGlass = BL.glass[0]; n.g.userData.holdGlass = BL.glass[1]; }
   BL.busy = false; BL.act = null; P.group.userData.bAct = null; n.g.userData.bAct = null; P.group.userData.dance = null; P.group.userData.kissK = 0; n.g.userData.dance = null; n.g.userData.kissK = 0; P.group.userData.hideLabel = n.g.userData.hideLabel = !!NC.Dialog.cur;
@@ -793,6 +793,9 @@ NC.tickers.push(dt => {
   if (A && A.flip) ny += Math.PI * sm(.3, 1.1, ae) * (1 - sm(A.dur - .9, A.dur - .1, ae));           // 백허그: 상대가 돌아섰다가 다시 마주 봄
   if (A && A.spin) ny += Math.PI * 2 * sm(.5, A.hit + .2, ae) * (ae < A.hit + .2 ? 1 : 1);          // 턴: 한 바퀴
   n.g.rotation.y = ny;
+  /* v47 발도 함께: 턴·돌아서기 중이거나 서로 당겨 거리가 빠르게 변하면 제자리 걸음(발 디딤)으로 — 발이 붙은 채 몸만 도는 것 방지 */
+  { const turning = A && ((A.spin && ae > .45 && ae < A.hit + .35) || (A.flip && ((ae > .25 && ae < 1.2) || (ae > A.dur - 1 && ae < A.dur - .05)))), dd = BL._d != null ? Math.abs(d - BL._d) / Math.max(dt, 1e-3) : 0; BL._d = d;
+    if (!(BL.s0 && BL.t < 1.4)) { n.g.userData.moving = turning || dd > .06; n.g.userData.walkSlow = turning ? .55 : .4; P.group.userData.moving = dd > .09; } }
   P.group.position.set(P.x, NC.groundY(P.x, P.z), P.z); n.g.position.set(n.x, NC.groundY(n.x, n.z), n.z);
 });
 $('#kCall').onclick = () => callWaiter();
