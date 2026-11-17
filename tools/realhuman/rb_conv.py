@@ -1,7 +1,10 @@
 import bpy, sys, os, glob, re
 src, out = sys.argv[1], sys.argv[2]   # src = avatar dir, out = glb path
 name = os.path.basename(src.rstrip('/'))
-tex = os.path.join(src, 'Textures'); work = '/home/claude/rbconv/tex/' + name; os.makedirs(work, exist_ok=True)
+import tempfile
+tex = os.path.join(src, 'Textures'); work = os.path.join(os.environ.get('RB_WORK') or os.path.join(tempfile.gettempdir(), 'rbconv'), 'tex', name); os.makedirs(work, exist_ok=True)
+# 장비 등 추가 재질(경호원 모자·장비 등)은 각자 텍스처로, RB_DROP(기본 pistol)에 든 부위는 삭제
+EXTRA = ('equipment', 'hat', 'pistol'); DROP = {d for d in os.environ.get('RB_DROP', 'pistol').lower().split(',') if d}
 from PIL import Image
 conv = {}
 for f in glob.glob(tex + '/*.tga'):
@@ -20,7 +23,7 @@ def img(key):
         if b.endswith(key): return bpy.data.images.load(p)
     return None
 for mat in list(bpy.data.materials):
-    n = mat.name.lower(); part = 'opacity' if 'opacity' in n else 'head' if 'head' in n else 'body'
+    n = mat.name.lower(); part = next((k for k in EXTRA if k in n), None) or ('opacity' if 'opacity' in n else 'head' if 'head' in n else 'body')
     nt = mat.node_tree; nt.nodes.clear()
     out_n = nt.nodes.new('ShaderNodeOutputMaterial'); bs = nt.nodes.new('ShaderNodeBsdfPrincipled'); nt.links.new(bs.outputs[0], out_n.inputs[0])
     bs.inputs['Metallic'].default_value = 0.0
@@ -38,6 +41,15 @@ for mat in list(bpy.data.materials):
             nt.links.new(tn.outputs['Color'], mn.inputs['Color']); nt.links.new(mn.outputs['Normal'], bs.inputs['Normal'])
         bs.inputs['Roughness'].default_value = .52 if part == 'head' else .66
     mat.name = name.lower() + '_' + part
+# RB_DROP 부위(기본: 권총) 면 삭제 — 재질 하나뿐인 메시는 통째로 삭제
+import bmesh
+for o in [o for o in bpy.data.objects if o.type == 'MESH']:
+    idx = [i for i, sl in enumerate(o.material_slots) if sl.material and any(d in sl.material.name.lower() for d in DROP)]
+    if not idx: continue
+    if len(idx) == len(o.material_slots): bpy.data.objects.remove(o, do_unlink=True); continue
+    bm = bmesh.new(); bm.from_mesh(o.data)
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.material_index in idx], context='FACES')
+    bm.to_mesh(o.data); bm.free(); o.data.update()
 # shape keys: ARKit 52 + visemes only
 VIS = {'Sil': 'sil', 'PP': 'PP', 'FF': 'FF', 'TH': 'TH', 'DD': 'DD', 'KK': 'kk', 'CH': 'CH', 'SS': 'SS', 'nn': 'nn', 'RR': 'RR', 'aa': 'aa', 'E': 'E', 'I': 'I', 'O': 'O', 'U': 'U'}
 nkeep = 0

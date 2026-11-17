@@ -638,6 +638,58 @@
    "portrait": "profile/real/m_25.jpg",
    "look": "west",
    "wear": "casual"
+  },
+  {
+   "id": "m_26",
+   "url": "models/humans/m_26.glb",
+   "lod": "models/humans/m_26_lod.glb",
+   "lodm": "models/humans/m_26_lodm.glb",
+   "gender": "m",
+   "label": "그레이 경호원 유니폼",
+   "full": "models/humans/full/m_26.jpg",
+   "portrait": "profile/real/m_26.jpg",
+   "look": "west",
+   "wear": "suit",
+   "src": "Security_Male_01"
+  },
+  {
+   "id": "f_21",
+   "url": "models/humans/f_21.glb",
+   "lod": "models/humans/f_21_lod.glb",
+   "lodm": "models/humans/f_21_lodm.glb",
+   "gender": "f",
+   "label": "블랙 경호원 유니폼",
+   "full": "models/humans/full/f_21.jpg",
+   "portrait": "profile/real/f_21.jpg",
+   "look": "west",
+   "wear": "suit",
+   "src": "Security_Female_01"
+  },
+  {
+   "id": "f_22",
+   "url": "models/humans/f_22.glb",
+   "lod": "models/humans/f_22_lod.glb",
+   "lodm": "models/humans/f_22_lodm.glb",
+   "gender": "f",
+   "label": "그레이 탱크톱 & 팬츠",
+   "full": "models/humans/full/f_22.jpg",
+   "portrait": "profile/real/f_22.jpg",
+   "look": "west",
+   "wear": "casual",
+   "src": "Sports_Female_02"
+  },
+  {
+   "id": "m_27",
+   "url": "models/humans/m_27.glb",
+   "lod": "models/humans/m_27_lod.glb",
+   "lodm": "models/humans/m_27_lodm.glb",
+   "gender": "m",
+   "label": "블루 탱크톱 & 반바지",
+   "full": "models/humans/full/m_27.jpg",
+   "portrait": "profile/real/m_27.jpg",
+   "look": "west",
+   "wear": "casual",
+   "src": "Sports_Male_04"
   }
  ],
  "assign": {
@@ -666,8 +718,8 @@
   "taejun": "m_11",
   "doyun": "m_02",
   "leo": "m_06",
-  "lena": "f_01",
-  "hyejung": "f_07",
+  "lena": "f_21",
+  "hyejung": "f_22",
   "mikyung": "f_13",
   "yuka": "f_11",
   "eunsook": "f_08",
@@ -676,6 +728,11 @@
   "junho": "m_08",
   "marco": "m_24",
   "kenji": "m_18"
+ },
+ "assignName": {
+  "_설명": "테이블 손님 이름 → 모델 고정(episodes.js v55)",
+  "현우": "m_27",
+  "태호": "m_26"
  },
  "staff": {
   "f": [],
@@ -717,7 +774,9 @@
    "f_14",
    "f_17",
    "f_18",
-   "f_20"
+   "f_20",
+   "f_21",
+   "f_22"
   ],
   "m": [
    "m_09",
@@ -744,7 +803,9 @@
    "m_22",
    "m_23",
    "m_24",
-   "m_25"
+   "m_25",
+   "m_26",
+   "m_27"
   ]
  },
  "_v48": "label=스타일 이름 · full/portrait=미리보기·프로필 렌더(Blender Cycles) · look=east|west(외모) · wear=dressy|casual|suit · playerPool=플레이어 캐릭터 번호 순서(characterNo 1..N)"
