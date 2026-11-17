@@ -14,7 +14,12 @@ const T = NC.THREE, R = NC.renderer, U = NC.util;
 /* ───────── 화질 ───────── */
 const mobile = NC.isMobile;
 const LEVELS = { high: { post: true, shadows: true, pr: 1.75, tex: 512, film: true }, mid: { post: true, shadows: false, pr: 1.25, tex: 512, film: true }, low: { post: false, shadows: false, pr: NC.isMobile ? (innerWidth * innerHeight > 900000 ? 1 : 1.25) : 1,   /* v34 태블릿(큰 화면)은 1.0 */ tex: 256, film: false } };
-const level = LEVELS[U.store.get('nc_quality', '')] ? U.store.get('nc_quality', '') : (mobile ? 'low' : 'high');
+/* v53 기기 성능 등급: 사용자가 화질을 직접 고른 적이 없으면 GPU 이름으로 기본값을 정함(약한 내장 GPU = mid) */
+const GPU = (() => { try { const gl = R.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info'); return String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER) || ''); } catch (e) { return ''; } })();
+const weakGPU = /Intel\(R\) (HD|UHD) Graphics|Intel.*(HD|UHD)|Mali-[GT]?[0-7]\d|Adreno \(TM\) [3-5]\d\d|PowerVR|SwiftShader|llvmpipe|Microsoft Basic Render/i.test(GPU);
+const lowMem = (navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+NC.device = { gpu: GPU, weakGPU, lowMem, tier: mobile ? (weakGPU || lowMem ? 'mobile-low' : 'mobile') : (weakGPU ? 'desktop-low' : lowMem ? 'desktop-mid' : 'desktop-high') };
+const level = LEVELS[U.store.get('nc_quality', '')] ? U.store.get('nc_quality', '') : (mobile ? 'low' : (weakGPU || lowMem) ? 'mid' : 'high');
 const Q = NC.quality = Object.assign({ level }, LEVELS[level]);
 NC.setQuality = lv => { if (!LEVELS[lv]) return; U.store.set('nc_quality', lv); location.reload(); };
 R.setPixelRatio(Math.min(devicePixelRatio || 1, Q.pr));

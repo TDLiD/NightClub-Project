@@ -77,6 +77,35 @@ const A = NC.Audio = {
   /* 박자 시계 (조명·LED·NPC 춤·리듬 게임용) — 소리는 내지 않음 */
   beat() { if (!this.ctx) { const b = performance.now() / 1000 * this.bpm / 60; return { phase: b % 1, n: Math.floor(b), bpm: this.bpm, time: performance.now() / 1000 }; } const b = Math.max(0, this.ctx.currentTime - this.t0) * this.bpm / 60; return { phase: b % 1, n: Math.floor(b), bpm: this.bpm, time: this.ctx.currentTime }; },
   beatTime(n) { return this.t0 + n * 60 / this.bpm; },
+  /* v53 실제 음악 박자 따라가기: 재생 중인 MP3 의 저음(40~160Hz) 에너지로 킥을 찾아 BPM 을 추정하고, 박자 시계(t0·bpm)를 살짝씩 맞춤
+   *  → 박자 시계를 쓰는 조명·레이저·LED 벽·NPC 춤·무대 댄서가 모두 실제 노래에 맞춰 움직임. energy(0~1)는 조명 세기에 사용 */
+  energy: 0, tracking: false,
+  analyserSetup() { if (this.an || !this.mp3Gain) return; const C = this.ctx; this.an = C.createAnalyser(); this.an.fftSize = 1024; this.an.smoothingTimeConstant = 0; this.mp3Gain.connect(this.an);
+    this.fq = new Uint8Array(this.an.frequencyBinCount); this.prev = new Float32Array(this.an.frequencyBinCount); this.trk = { avg: 0, last: 0, iois: [], fAvg: 0, fVar: 0 };
+    setInterval(() => { try { this.trackBeat(); } catch (e) { } }, 20); },   // 20ms(50Hz) 마다 — 화면 프레임이 느려도 킥을 놓치지 않게
+  trackBeat() {
+    const T = this.trk, el = this.mp3El; if (!T || !this.ctx) return;
+    if (this.paused || !el || el.paused || !this.on || document.hidden) { this.energy *= .94; this.tracking = false; return; }
+    const C = this.ctx, now = C.currentTime; this.an.getByteFrequencyData(this.fq);
+    const hz = C.sampleRate / this.an.fftSize, lo = Math.max(1, Math.floor(40 / hz)), hi = Math.max(lo + 2, Math.ceil(180 / hz));
+    let e = 0, flux = 0; for (let i = lo; i <= hi; i++) { const v = this.fq[i] / 255; e += v; const d = v - this.prev[i]; if (d > 0) flux += d; this.prev[i] = v; }
+    e /= hi - lo + 1; flux /= hi - lo + 1;
+    T.avg = T.avg ? T.avg * .97 + e * .03 : e; this.energy = this.energy * .8 + Math.min(1, e / Math.max(.12, T.avg * 1.25)) * .2; this.tracking = true;
+    T.slow = T.slow == null ? e : T.slow * .99 + e * .01;   // 약 2초 평균
+    if (T.slow < .28 && e > .55 && now - (T.dropT || 0) > 8) { T.dropT = now; NC.emit('music:drop'); }   // 조용하다가 확 터지는 순간 → 손님 환호(기존 'music:drop' 반응 재사용)
+    // 스펙트럼 플럭스(저음이 갑자기 올라가는 정도) 적응 임계값 → 킥 검출
+    const dF = flux - T.fAvg; T.fAvg += dF * .05; T.fVar = T.fVar * .95 + dF * dF * .05; const thr = T.fAvg + 1.6 * Math.sqrt(T.fVar);
+    if (flux > thr && flux > .015 && now - T.last > .27) {
+      const ioi = now - T.last; T.last = now; if (ioi > .27 && ioi < 1.6) { T.iois.push(ioi); if (T.iois.length > 40) T.iois.shift(); }
+      if (T.iois.length >= 8) {   // 간격을 0.4~0.8초(75~150BPM) 범위로 접은 뒤 가장 많이 몰린 값(히스토그램) → BPM
+        const H = new Map(); T.iois.forEach(x => { while (x < .4) x *= 2; while (x > .8) x /= 2; const k = Math.round(x * 50); H.set(k, (H.get(k) || 0) + 1); H.set(k - 1, (H.get(k - 1) || 0) + .5); H.set(k + 1, (H.get(k + 1) || 0) + .5); });
+        let bk = 0, bv = -1; H.forEach((v, k) => { if (v > bv) { bv = v; bk = k; } }); const fold = x => { while (x < .4) x *= 2; while (x > .8) x /= 2; return x; }, F = T.iois.map(fold).filter(x => Math.abs(x * 50 - bk) <= 1.01), per = F.length ? F.reduce((a, b) => a + b, 0) / F.length : bk / 50, bpm = Math.max(75, Math.min(150, 60 / per));   // 가장 많이 몰린 칸 안의 간격 평균 → 정밀 BPM
+        if (Math.abs(bpm - this.bpm) > .5) { const pos = Math.max(0, now - this.t0) * this.bpm / 60; this.bpm += (bpm - this.bpm) * .25; this.t0 = now - pos * 60 / this.bpm; }   // 박자 번호가 튀지 않게 위치를 유지한 채 BPM 변경
+      }
+      const len = 60 / this.bpm, ph = (((now - this.t0) / len) % 1 + 1) % 1, err = ph > .5 ? ph - 1 : ph; this.t0 += err * len * .15;   // 위상 맞춤(킥이 박자 0 에 오도록 천천히)
+    }
+  },
+
   sched() { const C = this.ctx; while (this.next < C.currentTime + .15) { if (this.step % 64 === 0) { const d = (this.next - C.currentTime) * 1000; setTimeout(() => NC.emit('music:drop'), Math.max(0, d)); } this.next += 60 / this.bpm / 4; this.step = (this.step + 1) % 64; } },
 
   /* ── 배경 음악: 1~7.mp3 ── */
@@ -101,9 +130,9 @@ const A = NC.Audio = {
   },
   mp3Ensure() {
     if (this.mp3El) return this.mp3El; const C = this.ctx, el = this.mp3El = new Audio(); el.preload = 'auto';
-    try { this.mp3Src = C.createMediaElementSource(el); this.mp3Gain = C.createGain(); this.mp3Gain.gain.value = 1; this.mp3Src.connect(this.mp3Gain); this.mp3Gain.connect(this.musicBus); } catch (e) { console.warn('[audio] MP3 연결 실패', e); }
+    try { this.mp3Src = C.createMediaElementSource(el); this.mp3Gain = C.createGain(); this.mp3Gain.gain.value = 1; this.mp3Src.connect(this.mp3Gain); this.mp3Gain.connect(this.musicBus); this.analyserSetup(); } catch (e) { console.warn('[audio] MP3 연결 실패', e); }
     el.addEventListener('ended', () => { if (this.mp3Mode === 'random') this.mp3Play(-1); });   // 개별 곡은 loop=true
-    el.addEventListener('playing', () => { this.next = this.t0 = C.currentTime + .05; this.step = 0; this.mp3Err = 0; NC.emit('music:state'); });
+    el.addEventListener('playing', () => { this.next = this.t0 = C.currentTime + .05; this.step = 0; this.mp3Err = 0; if (this.trk && this.trk.src !== el.src) { this.trk.src = el.src; this.trk.iois = []; this.trk.last = 0; }   /* v53 곡이 바뀔 때만 박자 기록 초기화(버퍼링 후 재개 때는 유지) */ NC.emit('music:state'); });
     el.addEventListener('pause', () => NC.emit('music:state'));
     el.addEventListener('error', () => {
       if (!el.getAttribute('src')) return; const L = this.mp3List();

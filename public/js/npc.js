@@ -70,6 +70,31 @@ function stepToward(n, tx, tz, dt) {
   return false;
 }
 
+/* v54 댄스플로어 내비게이션: 춤추는 동안 ① 개인 간격(0.8m) 밀어내기 ② 3~7초마다 반경 0.6m 안의 새 자리로 아주 천천히 이동
+ *  ③ 가끔 무대·DJ·가까운 사람·임의 방향으로 몸을 돌림 ④ 무대 위 사람은 관객 쪽을 보고 가끔 환호·손 흔들기 */
+const DF = { list: [], t: -1 };
+function danceFloor(n, u, dt) {
+  const now = performance.now() / 1000;
+  const fr = Math.floor(now * 10); if (DF.t !== fr) { DF.t = fr; DF.list = npcs.filter(o => o.state === 'wander' && o.pause > 0 && o.g.userData.dance && o.g.visible); }
+  const d = n.dfl || (n.dfl = { tx: n.x, tz: n.z, next: now + 1 + Math.random() * 3, face: null, faceNext: now + 2 + Math.random() * 4, gestNext: now + 6 + Math.random() * 10 });
+  let sx = 0, sz = 0; const P = NC.player;
+  const push = (ox, oz, r) => { const dx = n.x - ox, dz = n.z - oz, dd = Math.hypot(dx, dz); if (dd > 1e-3 && dd < r) { const k = (r - dd) / r; sx += dx / dd * k; sz += dz / dd * k; } };
+  for (const o of DF.list) if (o !== n) push(o.x, o.z, .8);
+  if (P && P.group) push(P.x, P.z, .9);
+  if (now > d.next) { const a = Math.random() * Math.PI * 2, rr = Math.random() * .6, bx = n.wp ? n.wp.x : n.x, bz = n.wp ? n.wp.z : n.z; d.tx = bx + Math.cos(a) * rr; d.tz = bz + Math.sin(a) * rr; d.next = now + 3 + Math.random() * 4; }
+  const tx = d.tx - n.x, tz = d.tz - n.z, td = Math.hypot(tx, tz), vx = (td > .05 ? tx / td * .12 : 0) + sx * .5, vz = (td > .05 ? tz / td * .12 : 0) + sz * .5, vs = Math.hypot(vx, vz), mxs = .35;
+  const k = vs > mxs ? mxs / vs : 1; n.x += vx * k * dt; n.z += vz * k * dt; NC.collide && NC.collide(n, .38);
+  // 방향: 무대 위 = 관객 쪽, 플로어 = 가끔 다른 곳을 봄
+  if (now > d.faceNext) { d.faceNext = now + 4 + Math.random() * 6; const r = Math.random(), S = { x: 0, z: -16.6 };   // 무대 가운데(world.js zones.stage)
+    if (u.dance === 'stageDance') d.face = (Math.random() - .5) * .9;   // 무대 위: 관객(+Z) 쪽
+    else if (r < .35 && DF.list.length > 1) { let best = null, bd = 9; for (const o of DF.list) { if (o === n) continue; const dd = Math.hypot(o.x - n.x, o.z - n.z); if (dd < bd) { bd = dd; best = o; } } d.face = best && bd < 2.5 ? Math.atan2(best.x - n.x, best.z - n.z) : null; }
+    else if (r < .6 && S && S.x != null) d.face = Math.atan2(S.x - n.x, S.z - n.z);
+    else d.face = n.g.rotation.y + (Math.random() - .5) * 2.2; }
+  if (d.face != null) n.g.rotation.y = U.lerpAngle(n.g.rotation.y, d.face, Math.min(1, dt * 1.6));
+  if (u.dance === 'stageDance' && now > d.gestNext) { d.gestNext = now + 9 + Math.random() * 14; if (!u.motion || !u.motion.g) Mo.play(n.g, Math.random() < .6 ? 'cheer' : 'wave', { confetti: false }); }
+  n.g.position.set(n.x, NC.groundY(n.x, n.z), n.z);
+}
+
 function update(n, dt) {
   const u = n.g.userData, P = NC.player;
   if (n.state === 'off') return;
@@ -78,12 +103,13 @@ function update(n, dt) {
   if (n.state === 'wander') {
     if (n.pause > 0) {
       n.pause -= dt; u.moving = false;
+      if (u.dance === 'groove' || u.dance === 'stageDance') danceFloor(n, u, dt);   // v54 플로어 위에서 조금씩 자리 이동·방향 전환·서로 간격 유지
       if (n.wp && (n.wp.act === 'bar' || u.holdGlass) && Math.random() < dt * .12) Mo.play(n.g, 'drink');
       if (n.pause <= 0) { n.wp = pickWaypoint(n); n.stuck = 0; u.dance = null; u.holdGlass = false; }
     } else {
       if (!n.wp) n.wp = pickWaypoint(n);
       if (stepToward(n, n.wp.x, n.wp.z, dt) || n.stuck > 2.5) {
-        n.pause = 4 + Math.random() * 9; u.moving = false;
+        n.pause = (n.wp.act === 'dance' || n.wp.act === 'stage') ? 14 + Math.random() * 26 : 4 + Math.random() * 9; u.moving = false;   // v54 춤은 한 곡 정도 이어서
         u.dance = n.wp.act === 'stage' ? 'stageDance' : n.wp.act === 'dance' ? 'groove' : null; u.holdGlass = n.wp.act === 'bar' || (u.idlePose === 'drink' && !u.dance);
         if (n.wp.act === 'bar') n.g.rotation.y = Math.PI / 2;
       }

@@ -320,3 +320,39 @@ html.realOn #cHair,html.realOn #cTop,html.realOn #sws,html.realOn #charMake{disp
 /* v48 대화 옵션 맨 위 조명 바꾸기 */
 #tChips button.light{background:linear-gradient(135deg,#ffd23d33,#9b5cff44);border-color:#ffd23d}
 #tChips button.light.sub{font-size:11px;padding:3px 8px;border-color:#9b5cff}
+
+/* ───────── v53 터치 기기(휴대폰·태블릿) 공통 손가락 크기 ─────────
+ *  권장 최소 터치 영역 ≈ 40~44px. 데스크톱(마우스)은 그대로.
+ *  mobile.js·lifestyle.js 가 나중에 넣는 스타일(일부 !important)보다 우선하도록 'html:root body' + ID 접두 */
+@media (pointer:coarse){
+  html:root body #topbtns .ibtn,html:root body .ibtn{min-width:42px!important;height:42px!important}
+  html:root body #partyBar button{min-height:40px!important}
+  html:root body #musicPlayer .mpBtns button,html:root body .mpBox .mpBtns button{width:40px!important;height:40px!important;font-size:14px!important}
+  html:root body #musicPlayer .mpBtns .mpPlay,html:root body .mpBox .mpBtns .mpPlay{width:44px!important;height:44px!important}
+  html:root body #musicPlayer{width:auto!important}
+  html:root body #musicPlayer .mpInfo{max-width:56px;min-width:40px}
+  html:root body #zoomBar button{width:42px!important;height:42px!important}
+  html:root body #glFold,html:root body #glClose{min-width:40px;min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+  html:root body #glFilter button{min-height:40px}
+  html:root body #glSearch{min-height:40px}
+  html:root body .nk{min-height:38px;padding-left:12px;padding-right:12px;display:inline-flex;align-items:center}
+  html:root body .nk.re{min-width:40px;justify-content:center}
+  html:root body #cpToggle{min-width:44px}
+  html:root body #guestBanner button{min-height:38px;padding-left:14px;padding-right:14px}
+  html:root body #tChips button{min-height:40px}
+  html:root body #emotes button{min-width:42px;min-height:42px}
+  html:root body #vrmPick{min-height:44px}
+  html:root body .modal button{min-height:42px}
+}
+/* 휴대폰 가로(높이 500px 이하): 세로 공간이 좁으므로 40px */
+@media (pointer:coarse) and (max-height:500px) and (orientation:landscape){
+  html:root body #topbtns .ibtn,html:root body .ibtn{min-width:40px!important;height:40px!important}
+  html:root body #zoomBar button{width:40px!important;height:40px!important}
+  html:root body #partyBar button{min-height:36px!important}
+}
+/* 휴대폰 세로: 상단 아이콘 5개 + 제목이 한 줄에 들어가게 간격만 줄임 */
+@media (pointer:coarse) and (max-width:420px){ html:root body #topbtns{gap:4px!important} html:root body #topbtns .ibtn{padding:0 6px!important} html:root body #guestList{width:186px!important} html:root body #guestList .glHead,html:root body #guestList #glHead{white-space:nowrap} }
+/* 태블릿: 손님 모드 배너가 상호작용 버튼(#act)과 겹치지 않게 조금 더 위로 */
+@media (pointer:coarse) and (min-width:641px){ html:root body #guestBanner{bottom:calc(env(safe-area-inset-bottom,0px) + 186px);white-space:nowrap} }
+@media (pointer:coarse) and (max-width:640px){ html:root body #guestBanner{white-space:nowrap} }
+@media (pointer:coarse) and (max-width:640px) and (orientation:portrait){ html:root body #partyBar{top:104px!important} html:root body #guestList{top:154px!important} }

@@ -12,8 +12,10 @@ if (!E || !RH || !RH.ready) return;
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const photoOf = id => 'real/' + id + '.jpg';
 
-RH.ready.then(C => {
-  if (!RH.active() || !C.playerPool) return;
+/* v53 매니페스트가 늦게 오면(느린 회선: RH.ready 가 6초 뒤 null 로 끝남) 오류 없이 기다렸다가 도착하는 즉시 적용 */
+const whenCfg = () => new Promise(res => RH.ready.then(C => { if (C) return res(C); const t = setInterval(() => { if (RH.cfg) { clearInterval(t); res(RH.cfg); } }, 500); setTimeout(() => clearInterval(t), 120000); }));
+whenCfg().then(C => {
+  if (!C || !RH.active() || !C.playerPool) return;
   document.documentElement.classList.add('realOn');
   const cfg = E.cfg, M = id => RH.modelOf(id);
   const pool = g => (C.playerPool[g === 'm' ? 'm' : 'f'] || []).filter(M);

@@ -350,6 +350,7 @@ function update(a, dt, opt = {}) {
   m.t += dt; const b = beatInfo();
   if (u.moving) u.walkPh += dt * (opt.speed || 1) * 9;
   const baseName = u.seated ? (u.talk ? 'sitTalk' : 'sit') : u.moving ? (u.drunk ? 'drunkWalk' : 'walk') : (u.dance && !u.seated ? u.dance : u.drunk ? 'drunkIdle' : 'idle');
+  u.mBase = baseName;   // v54 모션캡처 레이어가 읽는 현재 기본 상태
   const p = {}; BASE[baseName](p, m.t, u, b);
   let glass = !!u.holdGlass;
   if (m.g) {

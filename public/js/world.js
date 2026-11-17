@@ -678,7 +678,7 @@ let ledT = 0;
 W.tickers = [];
 W.update = function (dt, t, agents) {
   const b = NC.Audio ? NC.Audio.beat() : { phase: (t * 118 / 60) % 1, n: Math.floor(t * 118 / 60), bpm: 118 };
-  const SPK = TH.sparkle !== false, kick = SPK ? 1 - b.phase : .35;   // v15: 반짝임 없는 테마 = 비트 펄스·반사점·깜빡임 정지
+  const AUd = NC.Audio, EN = AUd && AUd.tracking ? AUd.energy : null, SPK = TH.sparkle !== false, kick = SPK ? (1 - b.phase) * (EN == null ? 1 : .45 + .9 * EN) : .35;   // v53 실제 음악 세기(저음 에너지)로 조명 펄스 크기   // v15: 반짝임 없는 테마 = 비트 펄스·반사점·깜빡임 정지
   speckPts.visible = SPK; if (!(W.spotBorrowed && W.spotBorrowed())) ballSpot.intensity = SPK ? 1.2 : 0;   // v18: features.js 가 스팟을 빌린 동안은 건드리지 않음 if (SPK) { ball.rotation.y += dt * .5; updateSpecks(ball.rotation.y); }
   const sp = TH.speed, spK = TH.spotK ?? 1, OFF = !!TH.nostage;
   spots.forEach(s => { const a = t * .55 * sp + s.k * 1.6; if (TH.sweep === 'stage') s.tg.position.set(Math.cos(a) * 8.5 + Math.sin(t * 1.7 + s.k) * 1.5, 0, -12.5 + Math.sin(a * 1.3) * 4.2); else s.tg.position.set(Math.cos(a) * 7, 0, -8 + Math.sin(a * 1.3) * 5.5);
