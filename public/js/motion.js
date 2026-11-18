@@ -323,7 +323,7 @@ function faceBudget() { const t = performance.now(); if (t - fbT > 14) { fbT = t
 /* ═════ v40 실사감: 관절 이음살 · 손가락 굽힘 · 치마 관성 ═════ */
 const _qi = new THREE_Q(), _qh = new THREE_Q();
 function THREE_Q() { return new NC.THREE.Quaternion(); }
-const HAND_POSE = { relaxed: [.34, .02], touch: [.16, .07], cup: [.3, .03], grip: [.78, 0], open: [.06, .1], glass: [.62, .01] };   // [굽힘, 벌림]
+const HAND_POSE = { relaxed: [.34, .02], hold: [.5, .03], touch: [.16, .07], cup: [.3, .03], grip: [.78, 0], open: [.06, .1], glass: [.62, .01] };   // [굽힘, 벌림] · v56 hold = 블루스 홀드의 '부드럽게 쥔 손'(손가락이 상대 어깨·허리 곡면을 따라 말림, 펴진 손 X)
 function bridges(u) {
   const B = u.bridges; if (!B) return;
   for (const b of B) { if (b.x) b.g.rotation.x = -b.src.rotation.x * .5; else if (b.q) { _qi.copy(b.src.quaternion).invert(); b.g.quaternion.copy(_qh.identity()).slerp(_qi, .5); } }

@@ -221,4 +221,19 @@ NC.tickers.push(dt => {
   for (const a of A) { if (!a.m) continue; const o = a.o; let dx = a.x - o.x, dz = a.z - o.z; const l = Math.hypot(dx, dz); if (l < 1e-4) continue; if (l > mx) { dx *= mx / l; dz *= mx / l; }
     o.x += dx; o.z += dz; NC.collide(o, a.r); if (o.g) o.g.position.set(o.x, NC.groundY(o.x, o.z), o.z); }
 });
+/* v56 배경 인물이 마네킹처럼 굳어 있지 않게(손님 전원, 걷는 중·춤추는 중·대화 중 제외)
+ *  ① 음악 박자에 고개 까딱(Head Bob) — 사람마다 세기·위상 다르고 40%는 박자를 타지 않고 가끔만
+ *  ② 7~15초마다 2~3.5초 동안 댄스플로어(블루스 중이면 그 커플) 쪽을 힐끗 봄(Look-At) — 다른 시스템이 시선을 잡고 있으면 건드리지 않음
+ *  ③ 앉은 사람은 테이블 쪽으로 몸을 살짝 기울였다 폈다(느린 호흡 주기) */
+NC.tickers.push(dt => {
+  if (!dt) return; const t = performance.now() / 1000, b = NC.Audio && NC.Audio.beat ? NC.Audio.beat() : null, BL = NC.Karaoke && NC.Karaoke.BL, Z = W.zones && W.zones.dance;
+  const look = BL && BL.n ? { x: BL.c.x, z: BL.c.z } : Z ? { x: (Z.x0 + Z.x1) / 2, z: (Z.z0 + Z.z1) / 2 } : null;
+  for (const n of npcs) { const u = n.g.userData, R = u.rig; if (!R || !n.g.visible || u.moving || u.dance || n.state === 'talk' || (BL && n === BL.n) || n.party) continue;
+    const bg = n._bg || (n._bg = { amp: Math.random() < .6 ? .025 + Math.random() * .025 : 0, ph: Math.random(), next: t + 3 + Math.random() * 10, gl: null, lean: Math.random() * 6.28 });
+    if (b && bg.amp) { const k = Math.sin((b.phase + bg.ph * .25) * Math.PI * 2); R.head.rotation.x += Math.max(0, k) * bg.amp; R.neck.rotation.x += Math.max(0, k) * bg.amp * .4; }
+    if (u.seated) R.torso.rotation.x += (Math.sin(t * .35 + bg.lean) * .5 + .5) * .05;
+    if (look && t > bg.next) { if (!bg.gl && !u.lookAt) { bg.gl = { x: look.x + (Math.random() - .5) * 2, z: look.z + (Math.random() - .5) * 2 }; u.lookAt = bg.gl; bg.next = t + 2 + Math.random() * 1.5; }
+      else { if (bg.gl && u.lookAt === bg.gl) u.lookAt = null; bg.gl = null; bg.next = t + 7 + Math.random() * 8; } }
+  }
+});
 })();

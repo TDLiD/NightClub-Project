@@ -200,7 +200,7 @@ const attach0 = async (root, url, opt = {}) => {
   const holder = new T.Group(); holder.userData.realHolder = true; const facingNegZ = Bn.uaL.getWorldPosition(V1).x < Bn.uaR.getWorldPosition(V2).x;   // 앞(+Z)을 보는 모델은 오른팔이 −X
   holder.add(model); if (facingNegZ) model.rotation.y = Math.PI;
   // 키: 뼈 높이로 잼(Mixamo 처럼 cm 단위 아마추어·스케일 노드가 섞여 있어도 정확) — 맨 위 뼈(HeadTop_End/머리) ~ 맨 아래 뼈(발끝)
-  holder.updateMatrixWorld(true); let yT = -Infinity, yB = Infinity, top = null; model.traverse(o => { if (o.isBone || o.type === 'Bone') { const y = o.getWorldPosition(V1).y; if (y > yT) { yT = y; top = o; } yB = Math.min(yB, y); } });
+  holder.updateMatrixWorld(true); let yT = -Infinity, yB = Infinity, top = null; model.traverse(o => { if ((o.isBone || o.type === 'Bone') && !/_end/i.test(o.name)) { const y = o.getWorldPosition(V1).y; if (y > yT) { yT = y; top = o; } yB = Math.min(yB, y); } });   // v56 FBX→glTF 변환이 만든 가짜 끝 뼈(HeadEnd_end_end…·ToeEnd_end…, 머리 위 35cm·발 아래 17cm)는 제외 — 한국인(VALID) 모델이 키의 77%로 작게 그려지던 원인
   const hb = yT - yB, h0 = hb > 1e-6 ? hb * (top && /top|end/i.test(top.name) ? 1.02 : 1.08) : 1.7;   // 정수리 끝 뼈가 없으면 머리 뼈 → 정수리 보정
   const s = (u.look && u.look.height ? u.look.height : 1.7) / h0 * (opt.scale || 1);
   holder.scale.setScalar(s); holder.position.y = -yB * s + .012; root.add(holder);
@@ -281,6 +281,7 @@ function apply(r, dt) {
   r.holder.position.set(R.body.position.x * u.figScale + r.sep.x, r.baseY + R.body.position.y * u.figScale, R.body.position.z * u.figScale + r.sep.z);   // v47 sep: 커플 몸통 관통 보정(보이는 모델만 살짝 띄움)
   if (M) { r.holder.position.x -= R.body.position.x * u.figScale * M.w; r.holder.position.y -= R.body.position.y * u.figScale * M.w; r.holder.position.z -= R.body.position.z * u.figScale * M.w;   // v54 절차 몸 흔들림은 모션캡처가 대신
     try { RH.MC.post(r, M); } catch (e) { if (!RH._mcErr2) { RH._mcErr2 = 1; console.warn('[mocap ik]', e); } } }
+  coupleBody(r, u, dt);
   const F = r.face; if (F) {
     const W = AK[u.expr] || AK.neutral; for (const k in W) setMorph(F, k, W[k]);
     r.blinkW += ((u.blink ? 1 : 0) - r.blinkW) * Math.min(1, dt * 30); if (r.blinkW > .02) { setMorph(F, 'eyeBlinkLeft', Math.max(W.eyeBlinkLeft || 0, r.blinkW)); setMorph(F, 'eyeBlinkRight', Math.max(W.eyeBlinkRight || 0, r.blinkW)); setMorph(F, 'eyesClosed', r.blinkW); }
@@ -292,6 +293,36 @@ function apply(r, dt) {
     flushMorph(F, dt);
   }
   for (const s of ['L', 'R']) { const e = r.Bn['eye' + s]; if (e && u.gaze) { e.rotation.y = U.clamp(u.gaze[0], -1, 1) * .35; e.rotation.x = U.clamp(u.gaze[1], -1, 1) * .25; } }
+}
+
+/* ── v56 커플 몸: ① 엉덩이 좌우 이동(u.swayOff, 루트 기준 m) ② 키 차이 보정(큰 사람 무릎 굽혀 낮춤 drop · 작은 사람 까치발 toe)
+ *  ③ 발 고정(Foot Locking): 몸이 움직여도 발은 바닥에 붙어 있고, 발이 자연 위치에서 9cm 넘게 벌어지면 0.32초에 걸쳐 들었다 다시 디딤(한 번에 한 발)
+ *     → 다리 2관절 IK(mocap.js ik2)로 무릎이 저절로 굽음  ④ 호흡: 가슴 1% 부피 변화(2.5초 주기)  · 블루스 중(u.footPlant 가 0.2초 안에 갱신)에만 ①~③ */
+const _fp = new T.Vector3(), _fq = new T.Quaternion(), _fa = new T.Vector3(), _fb = new T.Vector3();
+function coupleBody(r, u, dt) {
+  const now = performance.now(), F = u.footPlant && now - u.footPlant.t < 200 ? u.footPlant : null, Bn = r.Bn;
+  r.fpW = (r.fpW || 0) + ((F ? (F.w ?? 1) : 0) - (r.fpW || 0)) * Math.min(1, dt * 5); const w = r.fpW;
+  /* 호흡: 가슴 뼈를 뼈 방향에 수직인 두 축으로만 ±1% (2.5초 주기, 사람마다 위상 다름) */
+  const ch = Bn.chest || Bn.spine; if (ch && !r.lod) { if (!r.br) { const c = ch.children.find(x => x.isBone), d = c ? c.position.clone().normalize() : new T.Vector3(0, 1, 0), ax = [Math.abs(d.x), Math.abs(d.y), Math.abs(d.z)]; r.br = { along: ax.indexOf(Math.max(...ax)), s0: ch.scale.clone(), ph: Math.random() * 6.28 }; }
+    const k = 1 + .01 * Math.sin(now / 1000 * Math.PI * 2 / 2.5 + r.br.ph), s0 = r.br.s0; ch.scale.set(s0.x * (r.br.along === 0 ? 1 : k), s0.y * (r.br.along === 1 ? 1 : k), s0.z * (r.br.along === 2 ? 1 : k)); }
+  if (w < .004) { r.fp = null; return; }
+  const so = u.swayOff || { x: 0, z: 0 }, drop = F ? (F.drop || 0) : 0, toe = F ? (F.toe || 0) : 0, sc = (r.root.scale.y || 1);
+  r.holder.position.x += (so.x || 0) * w / sc; r.holder.position.z += (so.z || 0) * w / sc; r.holder.position.y += (toe - drop) * w / sc;
+  const ik2 = RH.MC && RH.MC.ik2; if (!ik2 || !Bn.ulL || !Bn.llL || !Bn.footL || !Bn.ulR || !Bn.llR || !Bn.footR) return;
+  r.model.updateMatrixWorld(true); r.root.getWorldPosition(_fp); const floorY = _fp.y;
+  const fp = r.fp || (r.fp = { L: null, R: null, step: null });
+  for (const sd of ['L', 'R']) {
+    const A = Bn['ul' + sd], B = Bn['ll' + sd], C = Bn['foot' + sd]; const nat = C.getWorldPosition(new T.Vector3());
+    let st = fp[sd]; if (!st) { st = fp[sd] = { p: nat.clone(), y0: nat.y - floorY - (toe - drop) * w, from: null, t: 0 }; }
+    const restY = floorY + Math.max(.02, st.y0) + toe * w * .8;                              // 발목 높이(까치발이면 그만큼 위)
+    if (st.from) { st.t += dt / .32; const q = Math.min(1, st.t), e = q * q * (3 - 2 * q); st.p.copy(st.from).lerp(nat, e); st.p.y = restY + Math.sin(Math.PI * q) * .035; if (q >= 1) { st.from = null; fp.step = null; } }
+    else { const dx = nat.x - st.p.x, dz = nat.z - st.p.z; st.p.y = restY; if (Math.hypot(dx, dz) > .09 && !fp.step) { st.from = st.p.clone(); st.t = 0; fp.step = sd; } }
+    const tg = nat.clone().lerp(st.p, w); ik2(A, B, C, tg);
+    if (toe > .002) { /* 까치발: 발끝을 아래로(발바닥 굽힘) — 발목→발끝 방향을 바닥 쪽으로 기울임 */
+      const toeB = C.children.find(x => x.isBone); if (toeB) { C.updateMatrixWorld(true); C.getWorldPosition(_fa); toeB.getWorldPosition(_fb); const d = _fb.sub(_fa); const len = d.length(); if (len > 1e-4) { d.divideScalar(len);
+        const axis = new T.Vector3().crossVectors(d, new T.Vector3(0, -1, 0)); if (axis.lengthSq() > 1e-6) { axis.normalize(); const ang = Math.min(.45, Math.asin(Math.min(.9, toe * w * 1.6 / Math.max(.08, len * 1.4))));
+          const qw = C.getWorldQuaternion(new T.Quaternion()), dq = _fq.setFromAxisAngle(axis, ang), pq = C.parent.getWorldQuaternion(new T.Quaternion()).invert(); C.quaternion.copy(pq.multiply(dq.multiply(qw))); } } } }
+  }
 }
 
 /* ── v46 거리 기반 3단계: 근거리 N명 = 고해상도(표정·손가락) · 중거리 = 경량 LOD 모델 · 원거리 = 기존 절차적 몸 ──

@@ -194,6 +194,7 @@ function ik2(A, B, C, target) {   // A=허벅지, B=종아리, C=발목 뼈 · �
   _gi.copy(_ga).invert(); A.quaternion.multiply(_gi.clone().multiply(r2).multiply(_ga));
   A.updateMatrixWorld(true);
 }
+MC.ik2 = ik2;   // v56 커플 발 고정(humanglb.js coupleBody)에서도 사용
 MC.post = (r, mc) => {
   if (!mc || mc.w < .5) return; const u = r.u, Bn = r.Bn; if (!Bn.ulL || !Bn.llL || !Bn.footL || !Bn.ulR || !Bn.llR || !Bn.footR) return;
   r.root.getWorldPosition(_v); const floorY = _v.y;
