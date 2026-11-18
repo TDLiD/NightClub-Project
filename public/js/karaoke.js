@@ -698,7 +698,8 @@ function bluesAct(kind, forced) {
   if (BL.busy) bluesCancel();
   const n = BL.n; if (!n) return; const D = NC.Dialog, P = NC.player, r = forced || REACT[kind](n), a = ACT[kind], t0 = performance.now(); BL.tm = BL.tm || [];
   const dur = r.kiss ? Math.max(a.dur, r.kiss + a.hit + .6) : a.dur;
-  BL.busy = true; BL.act = { k: kind, t0, dur, close: r.out === 'refuse' && !r.kiss ? Math.min(a.close, .03) : a.close, flip: a.flip && r.out === 'accept', spin: a.spin, hit: a.hit };
+  BL.busy = true; BL.act = { k: kind, t0, dur, close: r.out === 'refuse' && !r.kiss ? Math.min(a.close, .03) : a.close, flip: a.flip && r.out === 'accept', spin: a.spin, hit: a.hit, dip: kind === 'dip' && r.out === 'accept',
+    vr: { amp: .88 + Math.random() * .24, lag: .13 + Math.random() * .11, sway: (Math.random() - .5) * .5 } };   // v55 매번 조금씩 다른 세기·반응 지연(같은 동작이 똑같이 반복되지 않게)
   P.group.userData.bAct = { k: kind, t0, dur, out: r.out, hit: a.hit }; n.g.userData.bAct = { k: kind, t0, dur, out: r.out, hit: a.hit };
   D.sys(a.desc); D.chips();
   BL.tm.push(setTimeout(() => {                                    // 상대 반응
@@ -781,20 +782,28 @@ NC.dialogChipsOverride = (n, CHIP) => {
 });
 NC.on('dialog:close', n => { if (BL.n && BL.n === n) endBlues('stop'); });
 const sm = (a, b, x) => U.clamp((x - a) / (b - a), 0, 1);
+const ez = (a, b, x) => { const t = sm(a, b, x); return t * t * t * (t * (t * 6 - 15) + 10); };   // v55 smootherstep: 가속→감속(일정 속도로 돌던 기계적인 움직임 제거)
 NC.tickers.push(dt => {
   if (!BL.n) return; const n = BL.n, P = NC.player; BL.t += dt; if (BL.kiss > 0) BL.kiss -= dt;
   const kd = BL.kissDur, k = BL.kiss > 0 ? Math.min(1, (kd - BL.kiss) / .55, BL.kiss / .55) : 0, A = BL.act, ae = A ? (performance.now() - A.t0) / 1000 : 0,
-    cl = A ? A.close * Math.min(1, ae / .7, Math.max(0, (A.dur - ae) / .7)) : 0, a = .28 * Math.sin(BL.t * .35) * (A ? .3 : 1), d = .215 - .05 * k - cl, c = BL.c;
+    vr = A && A.vr || { amp: 1, sway: 0 }, cl = A ? A.close * vr.amp * Math.min(ez(.05, Math.max(.6, Math.min(A.hit + .25, 1.3)), ae), 1 - ez(A.dur - .95, A.dur - .05, ae)) : 0,   // v55 다가가기(가속·감속) → 닿은 뒤 유지 → 천천히 떨어짐
+    a = .28 * Math.sin(BL.t * .35) * (A ? .3 : 1) + vr.sway * .2, d = .215 - .05 * k - cl, c = BL.c;
   P.group.userData.kissK = n.g.userData.kissK = k; P.group.userData.kissDeep = n.g.userData.kissDeep = BL.deep && k > 0;
   P.x = c.x - Math.cos(a) * d; P.z = c.z - Math.sin(a) * d; n.x = c.x + Math.cos(a) * d; n.z = c.z + Math.sin(a) * d;
+  /* v55 몸 전체의 이동(루트 모션): ① 딥 — 리드가 앞발로 한 걸음 런지하며 무게중심을 상대 쪽으로, 상대 골반은 살짝 뒤로(제자리에서 상체만 꺾이던 고무인형 느낌 제거)
+   *  ② 턴 — 상대가 들어 올린 손 아래로 작은 호를 그리며 돌고(제자리 회전 X), 리드는 반대로 살짝 물러나 균형을 잡음 */
+  if (A && (A.dip || A.spin)) { const ax = Math.cos(a), az = Math.sin(a);
+    if (A.dip) { const dk = Math.min(ez(.15, A.hit + .1, ae), 1 - ez(A.dur - 1.0, A.dur - .1, ae)) * vr.amp; P.x += ax * .1 * dk; P.z += az * .1 * dk; n.x += ax * .05 * dk; n.z += az * .05 * dk; }
+    if (A.spin) { const q = ez(.55, A.hit + .25, ae), arc = Math.sin(Math.PI * q) * .1 * vr.amp; n.x += -az * arc; n.z += ax * arc; P.x -= -az * arc * .25; P.z -= ax * arc * .25; } }
   if (BL.s0 && BL.t < 1.4) { const q = BL.t / 1.4, k2 = q * q * (3 - 2 * q), S0 = BL.s0; P.x = U.lerp(S0.px, P.x, k2); P.z = U.lerp(S0.pz, P.z, k2); n.x = U.lerp(S0.nx, n.x, k2); n.z = U.lerp(S0.nz, n.z, k2); P.group.userData.moving = n.g.userData.moving = q < .85; } else if (BL.s0) { BL.s0 = null; P.group.userData.moving = n.g.userData.moving = false; }
   P.ry = Math.atan2(n.x - P.x, n.z - P.z); P.group.rotation.y = P.ry;
   let ny = P.ry + Math.PI;
-  if (A && A.flip) ny += Math.PI * sm(.3, 1.1, ae) * (1 - sm(A.dur - .9, A.dur - .1, ae));           // 백허그: 상대가 돌아섰다가 다시 마주 봄
-  if (A && A.spin) ny += Math.PI * 2 * sm(.5, A.hit + .2, ae) * (ae < A.hit + .2 ? 1 : 1);          // 턴: 한 바퀴
+  if (A && A.flip) ny += Math.PI * ez(.3, 1.15, ae) * (1 - ez(A.dur - .95, A.dur - .1, ae));           // 백허그: 상대가 돌아섰다가 다시 마주 봄(v55 가속·감속)
+  if (A && A.spin) { const q = ez(.55, A.hit + .25, ae), anti = ae < .62 ? -.14 * Math.sin(Math.PI * sm(.2, .62, ae)) : 0, settle = .07 * vr.amp * Math.sin(Math.PI * sm(A.hit + .25, A.hit + .9, ae));
+    ny += Math.PI * 2 * q + anti + settle; }   // 턴: v55 예비 동작(반대로 살짝 감았다가) → 가속 회전 → 감속 → 살짝 지나쳤다 돌아오며 멈춤
   n.g.rotation.y = ny;
   /* v47 발도 함께: 턴·돌아서기 중이거나 서로 당겨 거리가 빠르게 변하면 제자리 걸음(발 디딤)으로 — 발이 붙은 채 몸만 도는 것 방지 */
-  { const turning = A && ((A.spin && ae > .45 && ae < A.hit + .35) || (A.flip && ((ae > .25 && ae < 1.2) || (ae > A.dur - 1 && ae < A.dur - .05)))), dd = BL._d != null ? Math.abs(d - BL._d) / Math.max(dt, 1e-3) : 0; BL._d = d;
+  { const turning = A && ((A.spin && ae > .4 && ae < A.hit + .6) || (A.flip && ((ae > .25 && ae < 1.2) || (ae > A.dur - 1 && ae < A.dur - .05)))), dd = BL._d != null ? Math.abs(d - BL._d) / Math.max(dt, 1e-3) : 0; BL._d = d;
     if (!(BL.s0 && BL.t < 1.4)) { n.g.userData.moving = turning || dd > .06; n.g.userData.walkSlow = turning ? .55 : .4; P.group.userData.moving = dd > .09; } }
   P.group.position.set(P.x, NC.groundY(P.x, P.z), P.z); n.g.position.set(n.x, NC.groundY(n.x, n.z), n.z);
 });

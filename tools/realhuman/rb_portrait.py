@@ -26,7 +26,8 @@ mesh = [o for o in bpy.data.objects if o.type == 'MESH'][0]
 if FULL:
     bpy.context.view_layer.update()
     for sd in ('L', 'R'):
-        b = arm.pose.bones.get('Bip01 %s UpperArm' % sd); h = arm.pose.bones.get('Bip01 %s Hand' % sd)
+        S = 'Left' if sd == 'L' else 'Right'   # Rocketbox(Bip01) 또는 Mixamo/VALID(LeftArm) 뼈 이름
+        b = arm.pose.bones.get('Bip01 %s UpperArm' % sd) or arm.pose.bones.get(S + 'Arm'); h = arm.pose.bones.get('Bip01 %s Hand' % sd) or arm.pose.bones.get(S + 'Hand')
         if not b or not h: continue
         M = arm.matrix_world @ b.matrix; hd = M.translation.copy(); hp = arm.matrix_world @ h.head
         v = (hp - hd).normalized(); out_ = mathutils.Vector((v.x, v.y, 0)).normalized()
@@ -36,7 +37,7 @@ if FULL:
         b.matrix = arm.matrix_world.inverted() @ newM
         bpy.context.view_layer.update()
 # estimate face direction using eye bones
-eyes = [b for b in arm.pose.bones if 'eye' in b.name.lower() and 'blink' not in b.name.lower()]
+eyes = [b for b in arm.pose.bones if 'eye' in b.name.lower() and 'blink' not in b.name.lower() and 'end' not in b.name.lower()]   # Mixamo/VALID: LeftEye_end 제외
 if len(eyes) >= 2:
     ec = (arm.matrix_world @ eyes[0].head + arm.matrix_world @ eyes[1].head) / 2
     fwd = (ec - hw); fwd.z = 0; fwd.normalize()

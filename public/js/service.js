@@ -232,7 +232,7 @@ NC.tickers.push(dt => {
   // 임시 아바타 걷기(방 안 웨이터·불려 온 손님)
   for (let i = walkers.length - 1; i >= 0; i--) { const w = walkers[i], g = w.g, tg = w.pts[0], dx = tg.x - g.position.x, dz = tg.z - g.position.z, d = Math.hypot(dx, dz);
     if (d < .1) { w.pts.shift(); if (!w.pts.length) { g.userData.moving = false; walkers.splice(i, 1); w.done && w.done(); } continue; }
-    const k = Math.min(1, w.speed * dt / d); g.position.x += dx * k; g.position.z += dz * k; if (w.n) { w.n.x = g.position.x; w.n.z = g.position.z; } g.userData.moving = true; g.rotation.y = Math.atan2(dx, dz); }
+    const k = Math.min(1, w.speed * dt / d); g.position.x += dx * k; g.position.z += dz * k; if (NC.collide && d > .45) { const q = { x: g.position.x, z: g.position.z }; NC.collide(q, .3); g.position.x = q.x; g.position.z = q.z; }   /* v55 소파·탁자 관통 방지(도착 직전 0.45m 는 자리 잡기를 위해 허용) */ if (w.n) { w.n.x = g.position.x; w.n.z = g.position.z; } g.userData.moving = true; g.rotation.y = Math.atan2(dx, dz); }
   if (tw) { Mo.update(tw, dt, { near: true }); if (NC.camera) NC.Avatar.fitLabel(tw, NC.camera); }
   (NC.npcs || []).forEach(n => { const b = n._bring; if (!b) return; const p = P(), d = Math.hypot(n.x - p.x, n.z - p.z), age = performance.now() - b.t0;
     if (d < 1.7 && age > 600) { if (n.state === 'path') { n.path = null; n.state = 'wander'; } b.fin(); }

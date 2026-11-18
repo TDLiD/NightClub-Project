@@ -195,7 +195,7 @@ function tickBlues() {
   const start = sm(0, 1.4, BL.t);                                            // 시작: 손이 천천히 자리 잡음
   const leadA = !!ua.bluesLead;
   const oa = plan(A, B, leadA, act ? { k: act.k, out: ua.bAct ? ua.bAct.out : 'accept', dur: act.dur, hit: act.hit } : null, e);
-  const eB = Math.max(0, e - LAG);   // v40 상대는 0.18초 늦게 반응(완벽히 동기화된 움직임 = 인형)
+  const eB = Math.max(0, e - (act && act.vr ? act.vr.lag : LAG));   // v40 상대는 늦게 반응(완벽히 동기화된 움직임 = 인형) · v55 지연을 매번 0.13~0.24초로 다르게
   const ob = plan(B, A, !leadA, act ? { k: act.k, out: n.g.userData.bAct ? n.g.userData.bAct.out : (ua.bAct ? ua.bAct.out : 'accept'), dur: act.dur, hit: act.hit } : null, eB);
   // 동작 중엔 동작 목표, 아니면 기본 블루스 홀드(허리·어깨) — 둘 사이는 o.w 로 섞임
   const mix = (o, isLead) => { if (!act) return o; const bse = plan(isLead ? A : B, isLead ? B : A, isLead, null, 0), w = o.w ?? 1; return { ...o, w: 1, L: blendPt(bse.L, o.L, w), R: blendPt(bse.R, o.R, w), head: blendPt(bse.head, o.head, w), wHead: U.lerp(bse.wHead, o.wHead ?? .55, w), tilt: (o.tilt || 0) * w, lean: (o.lean || 0) * w, toe: (o.toe || 0) * w }; };
@@ -220,6 +220,12 @@ function life(A, B, act, e, start, who, lead) {
   R.hips.rotation.z += sway; R.torso.rotation.z -= sway * .55; R.knL.rotation.x += Math.max(0, Math.sin(ph)) * .07 * holdW * start; R.knR.rotation.x += Math.max(0, -Math.sin(ph)) * .07 * holdW * start;
   const br = Math.sin(t * Math.PI * 2 * (.24 + who * .03) + who * 1.7) * (.008 + .012 * intimate);   // 호흡: 상체·어깨가 아주 조금 오르내림
   R.torso.rotation.x += br; R.neck.rotation.x -= br * .5;
+  /* v55 미세 움직임: 고개가 완전히 고정된 마네킹처럼 보이지 않게 아주 느리고 작은 머리 흔들림(서로 다른 주기의 사인 합 = 불규칙하지만 부드러움)
+   *  · 얼굴이 맞닿는 동작(키스·이마·볼·귓속말)의 접촉 구간에서는 거의 0 으로 → 얼굴이 서로를 뚫지 않음 · 체중이 실린 쪽 무릎이 아주 살짝 더 굽음(균형 보정) */
+  { const cw = act && HEAD_ACTS.has(act.k) ? 1 - env(e, act.hit * .6, act.hit, act.dur - .9, act.dur - .3) : 1, s1 = who ? 1.9 : 0;
+    R.head.rotation.y += (Math.sin(t * .41 + s1) * .6 + Math.sin(t * 1.07 + s1 * 2) * .4) * .022 * cw * start;
+    R.head.rotation.x += (Math.sin(t * .53 + s1 * 3) * .6 + Math.sin(t * 1.31 + s1) * .4) * .014 * cw * start;
+    R.torso.rotation.y += Math.sin(t * .29 + s1 * 1.3) * .012 * start; }
   if (act) {
     let m = imp.get(A.u); const key = act.t0 + ':' + act.k;
     if (!lead && e >= act.hit && (!m || m.key !== key)) { m = { key, t0: t }; imp.set(A.u, m); }

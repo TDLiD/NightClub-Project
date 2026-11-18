@@ -32,14 +32,15 @@ function BLUES_ACT(p, u) {
   const BACK_LEAD = () => [[-.19, -.28, .4], -1.31, [-.19, .28, -.4], -1.31];
   const k = A.k;
   if (k === 'hug') {                                     // 꼭 안기: 리드는 등 뒤로 팔을 감고 살짝 끌어안는 압박(호흡처럼), 상대는 목에 팔을 두르고 어깨에 기댐
-    const w = env3(e, 0, .7, D - .7, D), sq = .04 * Math.sin(e * 3.2) * w;
+    const w = env3(e, 0, .7, D - .7, D), sq = (.025 + .025 * env3(e, .9, 1.3, 1.8, 2.6)) * Math.sin(e * 2.6) * w;   // v55 꼭 끌어안는 순간 한 번 더 조였다가 풀림(일정한 펌프질 대신)
     if (lead) { const [a, b, c, d] = HUG_LEAD(); arms(a, b, c, d, w); J('head', [.12, .55, .1], w); J('torso', [.1 + sq, 0, 0], w); }
     else if (acc) { const [a, b, c, d] = HUG_PART(); arms(a, b, c, d, w); J('head', [.18, .55, -.15], w); J('torso', [.1 + sq, 0, 0], w); p.bodyY = (p.bodyY || 0) + .02 * w; }
     else { const r = env3(e, .5, .8, D - .5, D); arms([-1.3, 0, .25], -.5, [-1.3, 0, -.25], -.5, r); J('torso', [-.12, 0, 0], r); }
   } else if (k === 'waist') {                            // 허리 끌어당기기: 두 손으로 허리를 감아 당김 → 상대가 목에 팔을 걸며 기댐
     const w = env3(e, 0, .6, D - .6, D);
-    if (lead) { const [a, b, c, d] = WAIST_LEAD(); arms(a, b, c, d, w); J('torso', [.06, 0, 0], w); }
-    else if (acc) { const r = env3(e, H, H + .5, D - .6, D), [a, b, c, d] = HUG_PART(); arms(a, b, c, d, r * .75); J('torso', [.12, 0, 0], r); J('head', [.1, 0, 0], r); }
+    const pull = env3(e, H - .25, H + .05, H + .35, H + 1.0);   // v55 당기는 순간: 리드는 체중을 뒤로(상체 젖힘·뒷무릎), 상대는 앞으로 끌려오며 한 발 디딤
+    if (lead) { const [a, b, c, d] = WAIST_LEAD(); arms(a, b, c, d, w); J('torso', [.06 - .13 * pull, 0, 0], w); J('knR', [.12 * pull, 0, 0], w); }
+    else if (acc) { const r = env3(e, H, H + .5, D - .6, D), [a, b, c, d] = HUG_PART(); arms(a, b, c, d, r * .75); J('torso', [.12 + .08 * pull, 0, 0], Math.max(r, pull * .8)); J('head', [.1 - .12 * pull, 0, 0], Math.max(r, pull * .6)); J('knL', [.18 * pull, 0, 0], pull); }
   } else if (k === 'whisper') {                          // 귓속말: 리드가 고개를 숙여 상대 귀 쪽으로 → 상대가 간지러워 어깨를 움츠리며 웃음
     const w = env3(e, 0, .8, D - .6, D);
     if (lead) { J('head', [.3, .72, .12], w); J('neck', [.1, .3, 0], w); J('torso', [.14, .18, 0], w); }

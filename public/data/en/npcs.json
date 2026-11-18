@@ -1018,7 +1018,7 @@
   },
   {
    "id": "subin",
-   "name": "Emma",
+   "name": "Subin",
    "gender": "f",
    "age": 25,
    "tag": "🙈 Shy",
@@ -1070,8 +1070,8 @@
      "earring": false
     }
    },
-   "origin": "western",
-   "photo": "real/f_06.jpg"
+   "origin": "korean",
+   "photo": "real/f_07.jpg"
   },
   {
    "id": "minjae",
@@ -1132,7 +1132,7 @@
   },
   {
    "id": "haneul",
-   "name": "Katie",
+   "name": "Haneul",
    "gender": "f",
    "age": 26,
    "tag": "😜 Prankster",
@@ -1187,12 +1187,12 @@
      "earring": true
     }
    },
-   "origin": "western",
-   "photo": "real/f_14.jpg"
+   "origin": "korean",
+   "photo": "real/f_27.jpg"
   },
   {
    "id": "yerin",
-   "name": "Rachel",
+   "name": "Yerin",
    "gender": "f",
    "age": 24,
    "tag": "🙈 Shy",
@@ -1242,8 +1242,8 @@
      "earring": false
     }
    },
-   "origin": "western",
-   "photo": "real/f_20.jpg"
+   "origin": "korean",
+   "photo": "real/f_24.jpg"
   },
   {
    "id": "dohyun",
@@ -1358,7 +1358,7 @@
   },
   {
    "id": "jiwoo",
-   "name": "Daniel",
+   "name": "Jiwoo",
    "gender": "m",
    "age": 26,
    "tag": "😜 Prankster",
@@ -1415,8 +1415,8 @@
      ]
     }
    },
-   "origin": "western",
-   "photo": "real/m_07.jpg"
+   "origin": "korean",
+   "photo": "real/m_29.jpg"
   },
   {
    "id": "jaesuk",
@@ -1600,7 +1600,7 @@
   },
   {
    "id": "yuna",
-   "name": "Julia",
+   "name": "Yuna",
    "gender": "f",
    "age": 24,
    "tag": "🍸 Heavy drinker",
@@ -1622,8 +1622,8 @@
    "dance": "hipSway",
    "walk": "bouncy",
    "habit": "drinker",
-   "origin": "western",
-   "photo": "real/f_12.jpg"
+   "origin": "korean",
+   "photo": "real/f_30.jpg"
   },
   {
    "id": "chloe",
@@ -1734,7 +1734,7 @@
   },
   {
    "id": "taejun",
-   "name": "Ryan",
+   "name": "Taejun",
    "gender": "m",
    "age": 33,
    "tag": "🤓 Dad-joke guy",
@@ -1755,12 +1755,12 @@
    "dance": "robot",
    "walk": "shy",
    "habit": "drinker",
-   "origin": "western",
-   "photo": "real/m_11.jpg"
+   "origin": "korean",
+   "photo": "real/m_28.jpg"
   },
   {
    "id": "doyun",
-   "name": "Andrew",
+   "name": "Doyun",
    "gender": "m",
    "age": 26,
    "tag": "✨ Pretty boy",
@@ -1780,8 +1780,8 @@
    },
    "dance": "disco",
    "walk": "model",
-   "origin": "western",
-   "photo": "real/m_02.jpg"
+   "origin": "korean",
+   "photo": "real/m_32.jpg"
   },
   {
    "id": "leo",
@@ -1868,7 +1868,7 @@
      "earring": false
     }
    },
-   "photo": "real/f_01.jpg",
+   "photo": "real/f_21.jpg",
    "always": true,
    "pose": "dance",
    "origin": "western"
@@ -1925,14 +1925,14 @@
      "earring": false
     }
    },
-   "photo": "real/f_07.jpg",
+   "photo": "real/f_22.jpg",
    "always": true,
    "pose": "dance",
    "origin": "korean"
   },
   {
    "id": "mikyung",
-   "name": "Jessica",
+   "name": "Mikyung",
    "gender": "f",
    "age": 24,
    "tag": "💃 Dance queen",
@@ -2002,12 +2002,12 @@
    },
    "v32": true,
    "hair": "#1a1210",
-   "origin": "western",
-   "photo": "real/f_13.jpg"
+   "origin": "korean",
+   "photo": "real/f_26.jpg"
   },
   {
    "id": "yuka",
-   "name": "Ellie",
+   "name": "Yuka",
    "gender": "f",
    "age": 22,
    "tag": "🌸 Shibuya girl",
@@ -2076,12 +2076,12 @@
    },
    "v32": true,
    "hair": "#8a5a34",
-   "origin": "western",
-   "photo": "real/f_11.jpg"
+   "origin": "japanese",
+   "photo": "real/f_31.jpg"
   },
   {
    "id": "eunsook",
-   "name": "Hannah",
+   "name": "Eunsook",
    "gender": "f",
    "age": 31,
    "tag": "🍸 Regular",
@@ -2149,8 +2149,8 @@
    },
    "v32": true,
    "hair": "#2a1810",
-   "origin": "western",
-   "photo": "real/f_08.jpg"
+   "origin": "korean",
+   "photo": "real/f_23.jpg"
   },
   {
    "id": "nicole",
@@ -2224,11 +2224,11 @@
    "v32": true,
    "hair": "#b08a52",
    "origin": "western",
-   "photo": "real/f_15.jpg"
+   "photo": "real/f_01.jpg"
   },
   {
    "id": "dongsu",
-   "name": "Chris",
+   "name": "Dongsu",
    "gender": "m",
    "age": 29,
    "tag": "🍺 Salesman",
@@ -2297,12 +2297,12 @@
    },
    "v32": true,
    "hair": "#141010",
-   "origin": "western",
-   "photo": "real/m_01.jpg"
+   "origin": "korean",
+   "photo": "real/m_31.jpg"
   },
   {
    "id": "junho",
-   "name": "Matthew",
+   "name": "Junho",
    "gender": "m",
    "age": 23,
    "tag": "🎧 Hip-hop kid",
@@ -2372,8 +2372,8 @@
    },
    "v32": true,
    "hair": "#18110e",
-   "origin": "western",
-   "photo": "real/m_08.jpg"
+   "origin": "korean",
+   "photo": "real/m_36.jpg"
   },
   {
    "id": "marco",
@@ -2450,7 +2450,7 @@
   },
   {
    "id": "kenji",
-   "name": "Lucas",
+   "name": "Kenji",
    "gender": "m",
    "age": 26,
    "tag": "🕺 Disco",
@@ -2517,8 +2517,8 @@
    },
    "v32": true,
    "hair": "#0e0b0a",
-   "origin": "western",
-   "photo": "real/m_18.jpg"
+   "origin": "japanese",
+   "photo": "real/m_35.jpg"
   }
  ],
  "crowdModels": [],

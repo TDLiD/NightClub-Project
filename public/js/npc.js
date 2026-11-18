@@ -64,12 +64,21 @@ function stepToward(n, tx, tz, dt) {
     const tt = performance.now() / 1000, wv = Math.sin(tt * 1.7 + n.x) * .75 + Math.sin(tt * 3.3) * .25, cs = Math.cos(wv), sn = Math.sin(wv);
     [mx, mz] = [mx * cs - mz * sn, mx * sn + mz * cs]; spd *= .45 + .25 * (1 + Math.sin(tt * 2.3));
   }
-  const sp = Math.min(d, spd * dt), px = n.x, pz = n.z; n.x += mx * sp; n.z += mz * sp; NC.collide(n, .38);
+  if (!u.moving) n._v = Math.min(n._v || 0, .35); n._v = (n._v || 0) + (spd - (n._v || 0)) * Math.min(1, dt * 3.2);   // v55 걷기 시작은 천천히 가속(0→정속 약 0.8초) — 멈춤에서 바로 정속으로 튀어 나가던 기계적인 출발 제거
+  const sp = Math.min(d, Math.min(n._v, spd) * dt), px = n.x, pz = n.z; n.x += mx * sp; n.z += mz * sp; NC.collide(n, .38);
   if (Math.hypot(n.x - px, n.z - pz) < sp * .3) n.stuck += dt; else n.stuck = Math.max(0, n.stuck - dt);
   u.moving = true; n.g.rotation.y = U.lerpAngle(n.g.rotation.y, Math.atan2(mx, mz), Math.min(1, dt * (n.drunk ? 4 : 8)));
   return false;
 }
 
+/* v55 돌아다닐 때도 격자 A* 경로를 따라 걸음(전에는 목표점까지 직선 → 탁자·의자에 몸을 비비며 미끄러지거나 끼었음) */
+function wpStep(n, dt) {
+  const wp = n.wp; if (!wp) return true;
+  if (n.wpath === undefined || n.wpath === null) { const r = NC.Path ? NC.Path.find({ x: n.x, z: n.z }, { x: wp.x, z: wp.z }, { exact: true }) : null; n.wpath = r && r.length ? r.slice() : [{ x: wp.x, z: wp.z }]; }
+  const tg = n.wpath[0]; if (!tg) return true;
+  if (stepToward(n, tg.x, tg.z, dt) || (n.stuck > 1.2 && n.wpath.length > 1)) { n.wpath.shift(); if (n.wpath.length) n.stuck = 0; }
+  return !n.wpath.length;
+}
 /* v54 댄스플로어 내비게이션: 춤추는 동안 ① 개인 간격(0.8m) 밀어내기 ② 3~7초마다 반경 0.6m 안의 새 자리로 아주 천천히 이동
  *  ③ 가끔 무대·DJ·가까운 사람·임의 방향으로 몸을 돌림 ④ 무대 위 사람은 관객 쪽을 보고 가끔 환호·손 흔들기 */
 const DF = { list: [], t: -1 };
@@ -105,10 +114,10 @@ function update(n, dt) {
       n.pause -= dt; u.moving = false;
       if (u.dance === 'groove' || u.dance === 'stageDance') danceFloor(n, u, dt);   // v54 플로어 위에서 조금씩 자리 이동·방향 전환·서로 간격 유지
       if (n.wp && (n.wp.act === 'bar' || u.holdGlass) && Math.random() < dt * .12) Mo.play(n.g, 'drink');
-      if (n.pause <= 0) { n.wp = pickWaypoint(n); n.stuck = 0; u.dance = null; u.holdGlass = false; }
+      if (n.pause <= 0) { n.wp = pickWaypoint(n); n.wpath = null; n.stuck = 0; u.dance = null; u.holdGlass = false; }
     } else {
       if (!n.wp) n.wp = pickWaypoint(n);
-      if (stepToward(n, n.wp.x, n.wp.z, dt) || n.stuck > 2.5) {
+      if (wpStep(n, dt) || n.stuck > 2.5) { n.wpath = null;
         n.pause = (n.wp.act === 'dance' || n.wp.act === 'stage') ? 14 + Math.random() * 26 : 4 + Math.random() * 9; u.moving = false;   // v54 춤은 한 곡 정도 이어서
         u.dance = n.wp.act === 'stage' ? 'stageDance' : n.wp.act === 'dance' ? 'groove' : null; u.holdGlass = n.wp.act === 'bar' || (u.idlePose === 'drink' && !u.dance);
         if (n.wp.act === 'bar') n.g.rotation.y = Math.PI / 2;
@@ -192,4 +201,24 @@ NC.NPC = {
 NC.isOnline = () => NC.mode === 'online';
 NC.on('music:drop', () => npcs.forEach(n => { const d = n.g.userData.dance; if (d && n.enabled) Mo.trigger(n.g, 'music:drop'); }));
 NC.setNpcsEnabled = on => NC.NPC.setCrowdEnabled(on);   // 기존 API 호환
+/* v55 개인 간격(Personal Space): 서서 걷거나 머무는 사람(손님·웨이터·플레이어)끼리 몸이 겹치지 않게 매 프레임 서로 밀어냄
+ *  · 기준 거리 0.62m(어깨 폭+여유) · 춤추는 사람은 댄스플로어 로직이 따로 0.8m 유지
+ *  · 앉은 사람·대화/블루스/에피소드/에스코트 중인 사람은 제외(의도된 접촉) · 플레이어는 밀리지 않고 상대가 비켜 줌
+ *  · 밀린 뒤에는 벽·탁자 충돌(NC.collide)을 다시 적용 → 사람을 피하다가 탁자 안으로 들어가는 일 없음
+ *  · 한 프레임에 움직이는 양은 최대 1.4m/s 로 제한(튀지 않음) */
+const FREE = new Set(['wander', 'path', 'idle']), MIN_D = .62;
+NC.tickers.push(dt => {
+  if (!dt) return; const P = NC.player, BLn = NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n, A = [];
+  for (const n of npcs) { if (!n.g.visible || !FREE.has(n.state) || n.g.userData.seated || n === BLn || n.party || n._noSep) continue; if (W.extraZones.some(e => e.test(n.x, n.z))) continue; A.push({ o: n, x: n.x, z: n.z, m: 1, r: .38 }); }
+  const WL = NC.Waiters ? NC.Waiters.list : []; for (const o of WL) { if (!o.g || !o.g.visible || o.busy) continue; A.push({ o, x: o.x, z: o.z, m: 1, r: .35, wt: true }); }
+  if (P && P.group && !P.seat && !BLn) A.push({ o: P, x: P.x, z: P.z, m: 0, r: .4 });
+  const N = A.length; if (N < 2) return; const mx = 1.4 * dt;
+  for (let i = 0; i < N; i++) { const a = A[i];
+    for (let j = i + 1; j < N; j++) { const b = A[j]; if (!a.m && !b.m) continue; let dx = b.x - a.x, dz = b.z - a.z; const d2 = dx * dx + dz * dz; if (d2 >= MIN_D * MIN_D) continue;
+      let d = Math.sqrt(d2); if (d < 1e-3) { const ang = (i * 7 + j * 13) % 6.283; dx = Math.cos(ang); dz = Math.sin(ang); d = 1; } else { dx /= d; dz /= d; }
+      const ov = MIN_D - Math.min(d, MIN_D), tot = a.m + b.m, ka = a.m / tot, kb = b.m / tot;
+      a.x -= dx * ov * ka; a.z -= dz * ov * ka; b.x += dx * ov * kb; b.z += dz * ov * kb; } }
+  for (const a of A) { if (!a.m) continue; const o = a.o; let dx = a.x - o.x, dz = a.z - o.z; const l = Math.hypot(dx, dz); if (l < 1e-4) continue; if (l > mx) { dx *= mx / l; dz *= mx / l; }
+    o.x += dx; o.z += dz; NC.collide(o, a.r); if (o.g) o.g.position.set(o.x, NC.groundY(o.x, o.z), o.z); }
+});
 })();

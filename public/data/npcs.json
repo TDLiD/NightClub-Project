@@ -1018,7 +1018,7 @@
   },
   {
    "id": "subin",
-   "name": "엠마",
+   "name": "수빈",
    "gender": "f",
    "age": 25,
    "tag": "🙈 수줍",
@@ -1070,9 +1070,8 @@
      "earring": false
     }
    },
-   "origin": "western",
-   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/f_06.jpg"
+   "origin": "korean",
+   "photo": "real/f_07.jpg"
   },
   {
    "id": "minjae",
@@ -1133,7 +1132,7 @@
   },
   {
    "id": "haneul",
-   "name": "케이티",
+   "name": "하늘",
    "gender": "f",
    "age": 26,
    "tag": "😜 장난꾸러기",
@@ -1188,13 +1187,12 @@
      "earring": true
     }
    },
-   "origin": "western",
-   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/f_14.jpg"
+   "origin": "korean",
+   "photo": "real/f_27.jpg"
   },
   {
    "id": "yerin",
-   "name": "레이첼",
+   "name": "예린",
    "gender": "f",
    "age": 24,
    "tag": "🙈 수줍",
@@ -1244,9 +1242,8 @@
      "earring": false
     }
    },
-   "origin": "western",
-   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/f_20.jpg"
+   "origin": "korean",
+   "photo": "real/f_24.jpg"
   },
   {
    "id": "dohyun",
@@ -1361,7 +1358,7 @@
   },
   {
    "id": "jiwoo",
-   "name": "대니얼",
+   "name": "지우",
    "gender": "m",
    "age": 26,
    "tag": "😜 장난꾸러기",
@@ -1418,9 +1415,8 @@
      ]
     }
    },
-   "origin": "western",
-   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/m_07.jpg"
+   "origin": "korean",
+   "photo": "real/m_29.jpg"
   },
   {
    "id": "jaesuk",
@@ -1608,7 +1604,7 @@
   },
   {
    "id": "yuna",
-   "name": "줄리아",
+   "name": "유나",
    "gender": "f",
    "age": 24,
    "tag": "🍸 술고래",
@@ -1630,9 +1626,8 @@
    "dance": "hipSway",
    "walk": "bouncy",
    "habit": "drinker",
-   "origin": "western",
-   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/f_12.jpg"
+   "origin": "korean",
+   "photo": "real/f_30.jpg"
   },
   {
    "id": "chloe",
@@ -1747,7 +1742,7 @@
   },
   {
    "id": "taejun",
-   "name": "라이언",
+   "name": "태준",
    "gender": "m",
    "age": 33,
    "tag": "🤓 아재",
@@ -1768,13 +1763,12 @@
    "dance": "robot",
    "walk": "shy",
    "habit": "drinker",
-   "origin": "western",
-   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/m_11.jpg"
+   "origin": "korean",
+   "photo": "real/m_28.jpg"
   },
   {
    "id": "doyun",
-   "name": "앤드류",
+   "name": "도윤",
    "gender": "m",
    "age": 26,
    "tag": "✨ 꽃미남",
@@ -1794,9 +1788,8 @@
    },
    "dance": "disco",
    "walk": "model",
-   "origin": "western",
-   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/m_02.jpg"
+   "origin": "korean",
+   "photo": "real/m_32.jpg"
   },
   {
    "id": "leo",
@@ -1884,7 +1877,7 @@
      "earring": false
     }
    },
-   "photo": "real/f_01.jpg",
+   "photo": "real/f_21.jpg",
    "always": true,
    "pose": "dance",
    "origin": "western",
@@ -1942,14 +1935,14 @@
      "earring": false
     }
    },
-   "photo": "real/f_07.jpg",
+   "photo": "real/f_22.jpg",
    "always": true,
    "pose": "dance",
    "origin": "korean"
   },
   {
    "id": "mikyung",
-   "name": "제시카",
+   "name": "미경",
    "gender": "f",
    "age": 24,
    "tag": "💃 댄스퀸",
@@ -2019,13 +2012,12 @@
    },
    "v32": true,
    "hair": "#1a1210",
-   "origin": "western",
-   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/f_13.jpg"
+   "origin": "korean",
+   "photo": "real/f_26.jpg"
   },
   {
    "id": "yuka",
-   "name": "엘리",
+   "name": "유카",
    "gender": "f",
    "age": 22,
    "tag": "🌸 시부야걸",
@@ -2094,13 +2086,12 @@
    },
    "v32": true,
    "hair": "#8a5a34",
-   "origin": "western",
-   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/f_11.jpg"
+   "origin": "japanese",
+   "photo": "real/f_31.jpg"
   },
   {
    "id": "eunsook",
-   "name": "한나",
+   "name": "은숙",
    "gender": "f",
    "age": 31,
    "tag": "🍸 단골",
@@ -2168,9 +2159,8 @@
    },
    "v32": true,
    "hair": "#2a1810",
-   "origin": "western",
-   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/f_08.jpg"
+   "origin": "korean",
+   "photo": "real/f_23.jpg"
   },
   {
    "id": "nicole",
@@ -2245,11 +2235,11 @@
    "hair": "#b08a52",
    "origin": "western",
    "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/f_15.jpg"
+   "photo": "real/f_01.jpg"
   },
   {
    "id": "dongsu",
-   "name": "크리스",
+   "name": "동수",
    "gender": "m",
    "age": 29,
    "tag": "🍺 영업맨",
@@ -2318,13 +2308,12 @@
    },
    "v32": true,
    "hair": "#141010",
-   "origin": "western",
-   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/m_01.jpg"
+   "origin": "korean",
+   "photo": "real/m_31.jpg"
   },
   {
    "id": "junho",
-   "name": "매튜",
+   "name": "준호",
    "gender": "m",
    "age": 23,
    "tag": "🎧 힙합키드",
@@ -2394,9 +2383,8 @@
    },
    "v32": true,
    "hair": "#18110e",
-   "origin": "western",
-   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/m_08.jpg"
+   "origin": "korean",
+   "photo": "real/m_36.jpg"
   },
   {
    "id": "marco",
@@ -2474,7 +2462,7 @@
   },
   {
    "id": "kenji",
-   "name": "루카스",
+   "name": "켄지",
    "gender": "m",
    "age": 26,
    "tag": "🕺 디스코",
@@ -2541,9 +2529,8 @@
    },
    "v32": true,
    "hair": "#0e0b0a",
-   "origin": "western",
-   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
-   "photo": "real/m_18.jpg"
+   "origin": "japanese",
+   "photo": "real/m_35.jpg"
   }
  ],
  "crowdModels": [],

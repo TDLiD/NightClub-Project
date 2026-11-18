@@ -221,7 +221,7 @@ function escStep(dt, speed) {
   const w = ESC.g, p = ESC.path && ESC.path[0]; if (!p) return true;
   const dx = p.x - w.position.x, dz = p.z - w.position.z, d = Math.hypot(dx, dz);
   if (d < .3) { ESC.path.shift(); return !ESC.path.length; }
-  const k = Math.min(1, speed * dt / d); w.position.x += dx * k; w.position.z += dz * k; w.position.y = NC.groundY(w.position.x, w.position.z);
+  const k = Math.min(1, speed * dt / d); w.position.x += dx * k; w.position.z += dz * k; { const q = { x: w.position.x, z: w.position.z }; NC.collide && NC.collide(q, .35); w.position.x = q.x; w.position.z = q.z; }   /* v55 탁자·벽 관통 방지 */ w.position.y = NC.groundY(w.position.x, w.position.z);
   w.rotation.y = U.lerpAngle(w.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 8)); w.userData.moving = true; return false;
 }
 function tickEscort(dt) {
@@ -232,7 +232,7 @@ function tickEscort(dt) {
   else if (ESC.phase === 'greet') { ESC.stay -= dt; if (ESC.stay <= 0) { const sp = NC.standPos(ESC.seat.t, ESC.seat.s); ESC.path = NC.Path ? NC.Path.find({ x: w.position.x, z: w.position.z }, sp) || [sp] : [sp]; ESC.phase = 'lead'; B(w, '손 꼭 잡으세요~ 🤝', 1.6); } }
   else if (ESC.phase === 'lead') {   // 손 잡고 걷기: 부킹녀가 웨이터 오른쪽 뒤에서 나란히
     const done = escStep(dt, 1.5), girl = ESC.girl, ry = w.rotation.y, ox = Math.cos(ry) * .48 - Math.sin(ry) * .28, oz = -Math.sin(ry) * .48 - Math.cos(ry) * .28;
-    girl.x = w.position.x + ox; girl.z = w.position.z + oz; girl.g.position.set(girl.x, NC.groundY(girl.x, girl.z), girl.z); girl.g.rotation.y = ry; girl.g.userData.moving = true; girl.g.userData.lookAt = null;
+    girl.x = w.position.x + ox; girl.z = w.position.z + oz; NC.collide && NC.collide(girl, .3); girl.g.position.set(girl.x, NC.groundY(girl.x, girl.z), girl.z); girl.g.rotation.y = ry; girl.g.userData.moving = true; girl.g.userData.lookAt = null;
     if (done) { ESC.phase = 'seat'; w.userData.moving = false; girl.g.userData.moving = false; const pos = NC.seatPos(ESC.seat.t, ESC.seat.s); NC.NPC.sit(girl, pos.x, pos.z, pos.ry, pos.h); girl.state = 'seated';
       const man = ESC.grp.ns.find(n => n.gender === 'm'); Mo.play(w, 'point'); B(w, '자 이분이에요~ 즐거운 시간 되세요! 🍾', 2.2); if (man) setTimeout(() => { Mo.play(man.g, 'wave'); B(man.g, pk(['오~ 반가워요! 😍', '여기 앉으세요~ 한 잔 하실래요?']), 2); }, 1400);
       setTimeout(() => { Mo.play(girl.g, 'shy'); B(girl.g, pk(['안녕하세요 ㅎㅎ', '…반가워요 💕']), 1.8); }, 2600); ESC.stay = 30 + Math.random() * 20; ESC.path = NC.Path ? NC.Path.find({ x: w.position.x, z: w.position.z }, W.spots.waiterStation || { x: -10, z: 10.2 }) : null; } }

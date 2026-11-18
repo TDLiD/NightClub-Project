@@ -416,16 +416,22 @@ RH.prestart = async () => {
 };
 RH.preload = urls => urls.reduce((p, u) => p.then(() => load(u).catch(() => null)), Promise.resolve());
 /* v48 입장 직후 워밍업: 현재 카메라 기준으로 모든 대상에 모델을 즉시 입히고(예산 무제한) 셰이더·텍스처를 미리 GPU 에 올림 */
-RH.warm = async (onProg, maxMs = 3500) => {   // v50 입장 대기 단축(9초→3.5초): 남은 사람은 옛 몸을 숨긴 채 뒤에서 이어서 장착
-  if (!RH.active()) return; { const tg = performance.now(); while (NC.guestsReady && !NC.guestsReady() && performance.now() - tg < 1500) await new Promise(r => setTimeout(r, 80)); }   // 테이블 손님이 다 만들어질 때까지(최대 1.5초)
-  const t0 = performance.now(), P = NC.player && NC.player.group, from = P ? P.getWorldPosition(new T.Vector3()).add(new T.Vector3(0, 2.5, 4)) : null; try { lod(true, from); } catch (e) { console.warn(e); }
-  const pend = () => rootsAll().filter(r => r.g.userData.real && r.g.userData.real.pending).length;
-  while (pend() && performance.now() - t0 < maxMs) { onProg && onProg(1 - pend() / Math.max(1, RH.list.length + pend())); await new Promise(r => setTimeout(r, 60)); try { lod(true, from); } catch (e) { } }
-  { const pu = P && P.userData; while (pu && pu.real && pu.real.pending && performance.now() - t0 < maxMs + 2500) await new Promise(r => setTimeout(r, 60)); }   // 내 캐릭터는 꼭 실사로 시작
+RH.warm = async (onProg, maxMs = 1200) => {   // v55 입장 대기 단축(최대 ~9초 → 보통 1~2초): 카메라 근처(14m) 사람 + 내 캐릭터만 기다리고, 나머지는 옛 몸을 숨긴 채 뒤에서 이어서 장착
+  if (!RH.active()) return; { const tg = performance.now(); while (NC.guestsReady && !NC.guestsReady() && performance.now() - tg < 500) await new Promise(r => setTimeout(r, 50)); }   // 테이블 손님 생성 대기(최대 0.5초)
+  const t0 = performance.now(), P = NC.player && NC.player.group, me = P ? P.getWorldPosition(new T.Vector3()) : null, from = me ? me.clone().add(new T.Vector3(0, 2.5, 4)) : null; try { lod(false, from); }   /* v55 가까운 사람부터 3명씩 차례로(전원 동시 요청 → 파싱이 몰려 가까운 사람도 늦던 문제) */ catch (e) { console.warn(e); }
+  /* 기다릴 대상: 내 주변 8m 안에서 가장 가까운 10명만(입장 직후 화면 앞쪽) — 나머지는 공개 뒤 옛 몸을 숨긴 채 이어서 장착 */
+  const d2 = r => { if (!me) return 0; const p = r.g.position; return (p.x - me.x) ** 2 + (p.z - me.z) ** 2; };
+  const watch = new Set(rootsAll().filter(r => r.g.userData.real && d2(r) < 64).sort((a, b) => d2(a) - d2(b)).slice(0, 10));
+  const pend = () => { let k = 0; watch.forEach(r => { if (r.g.userData.real && r.g.userData.real.pending) k++; }); return k; };
+  const tot = Math.max(1, pend());
+  while (pend() && performance.now() - t0 < maxMs) { onProg && onProg(.85 * (1 - pend() / tot)); await new Promise(r => setTimeout(r, 50)); try { lod(false, from); } catch (e) { } }
+  { const pu = P && P.userData; while (pu && pu.real && pu.real.pending && performance.now() - t0 < maxMs + 1500) await new Promise(r => setTimeout(r, 50)); }   // 내 캐릭터는 꼭 실사로 시작
   const rd = NC.renderer; if (!rd) return;
   try { rd.compile(NC.scene, NC.camera); } catch (e) { }
-  const texs = new Set(); NC.scene.traverse(o => { if (!o.isMesh || !o.visible) return; (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (!m) return; for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap', 'alphaMap']) m[k] && m[k].isTexture && texs.add(m[k]); }); });
-  let i = 0; for (const t of texs) { try { rd.initTexture && rd.initTexture(t); } catch (e) { } if (++i % 6 === 0) { onProg && onProg(.9 + .1 * i / texs.size); await new Promise(r => requestAnimationFrame(r)); if (performance.now() - t0 > maxMs + 1500) break; } }
+  /* 텍스처 미리 올리기는 가까운 사람만, 0.4초 예산 — 나머지는 처음 보일 때 올라감 */
+  const texs = new Set(), roots = [P, ...[...watch].map(r => r.g)].filter(g => g && !(g.userData.real && g.userData.real.pending));   // 내 캐릭터 + 이미 입혀진 가까운 사람만(큰 텍스처 수십 장을 한꺼번에 올리느라 수 초 멈추던 원인)
+  roots.forEach(g => g.traverse(o => { if (!o.isMesh || !o.visible) return; (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (!m) return; for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap', 'alphaMap']) m[k] && m[k].isTexture && texs.add(m[k]); }); }));
+  const t1 = performance.now(); let i = 0; for (const t of texs) { if (performance.now() - t1 > 300) break; try { rd.initTexture && rd.initTexture(t); } catch (e) { } if (++i % 8 === 0) { onProg && onProg(.85 + .15 * i / texs.size); await new Promise(r => setTimeout(r, 0)); } }   // 화면 그리기를 기다리지 않고 0.3초 예산 안에서만
 };
 if (RH.off) readyRes(null); else fetch('models/humans/manifest.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null).then(j => { if (!j) { readyRes(null); return; } RH.cfg = j; readyRes(j); console.info('[real] 실사 모델 ' + (j.models || []).length + '개 · 근거리 ' + (j.near || 6) + 'm · 최대 ' + (j.max ?? 4) + '명'); }).catch(() => {});
 })();
