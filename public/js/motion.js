@@ -210,11 +210,12 @@ const BASE = {
     else if (ph === 'climb') { p.shL = [-2.6, 0, .25]; p.elL = [-.35, 0, 0]; p.legL = [-.75, 0, -.05]; p.knL = [1.5, 0, 0]; p.legR = [-.9, 0, .05]; p.knR = [1.3, 0, 0]; p.torso = [-.06, 0, .05]; p.head = [-.3, 0, 0]; p.hipsY = u.hipH; }   // 두 손으로 잡고 다리를 접어 매달림
     else { const d = (1 + Math.cos(b.phase * 2 * PI)) / 2; p.hipsY = u.hipH - .12 * d; p.knL = [.5 * d, 0, 0]; p.knR = [.5 * d, 0, 0]; p.legL = [-.3 * d, 0, -.15]; p.legR = [-.3 * d, 0, .15]; p.torso = [.15 * d - .1, .1 * s, .1]; p.bodyX = .05 * s; }   // 폴을 잡고 바디 웨이브(앉았다 일어서기)
   },
+  // v56 키스 중 상체·고개 숙임은 couple.js(키 차이 맞춤·얼굴 조준)로 옮김(여기선 0.03만) — 두 사람이 똑같이 허리를 0.19rad 꺾던 문제
   // v9 부르스(블루스): 마주 보고 천천히 좌우로 흔들기. 리드는 손을 상대 허리에, 상대는 어깨에. u.kissK(0~1) 로 서로 기울임
   blues(p, t, u) {
     const s = Math.sin(t * 1.55), w = Math.sin(t * .77), k = u.kissK || 0;
     p.bodyX = .035 * s; p.hipsY = u.hipH - .012 * Math.abs(s); p.legL = [.06 * s, 0, -.04]; p.legR = [-.06 * s, 0, .04]; p.knL = [Math.max(0, s) * .14, 0, 0]; p.knR = [Math.max(0, -s) * .14, 0, 0];
-    const tl = u.kissDeep ? .34 + .06 * Math.sin(t * 1.3) : .22; p.torso = [.07 + .12 * k, .05 * w, -.04 * s]; p.head = [.1 + .12 * k, .12 * w * (1 - k) + (u.kissDeep ? .1 * Math.sin(t * .9) * k : 0), (u.bluesLead ? tl : -tl) * k + .05 * s * (1 - k)];
+    const tl = u.kissDeep ? .16 + .05 * Math.sin(t * 1.3) : .1; p.torso = [.07 + .03 * k, .05 * w, -.04 * s]; p.head = [.1 * (1 - k), .12 * w * (1 - k) + (u.kissDeep ? .1 * Math.sin(t * .9) * k : 0), (u.bluesLead ? tl : -tl) * k + .05 * s * (1 - k)];
     if (u.bluesLead) { p.shL = [-.59, .02, -.19]; p.elL = [-1.08, 0, 0]; p.shR = [-.59, -.02, .19]; p.elR = [-1.08, 0, 0]; }     // 손: 상대 허리 옆 (IK)
     else { p.shL = [-1.24, -.04, -.05]; p.elL = [-1.08, 0, 0]; p.shR = [-1.29, -.01, .1]; p.elR = [-.94, 0, 0]; }                  // 손: 상대 어깨 위 (IK)
     BLUES_ACT(p, u);

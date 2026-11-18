@@ -25,6 +25,9 @@ function body(g) {
   R.torso.getWorldScale(tmp.s); const sc = tmp.s.x, fem = u.look && u.look.gender === 'f';
   const ry = g.rotation.y, fwd = new T.Vector3(Math.sin(ry), 0, Math.cos(ry)), right = new T.Vector3(Math.cos(ry), 0, -Math.sin(ry));
   chest.lerp(neck, .55);   // 가슴 높이
+  /* v56 실사 모델이 입혀져 있으면 엉덩이·가슴·목·머리를 보이는 몸의 뼈에서 잼 — 절차 rig 는 비율이 달라(목 7~15cm 높음) 키스 때 rig 머리끼리 부딪쳐 두 사람을 0.4m 나 밀어내던 원인 */
+  const RH = NC.RealHuman, rb = RH && RH.body && RH.body(g), Bn = rb && u.real && u.real.Bn;
+  if (Bn && Bn.hips && Bn.neck && rb.hd) { Bn.hips.getWorldPosition(hips); Bn.neck.getWorldPosition(neck); head.copy(rb.hd); (Bn.chest || Bn.spine || Bn.hips).getWorldPosition(chest); chest.lerp(neck, .45); }
   return { g, u, R, hips, neck, head, chest, fwd, right, sc, fem,
     rx: .165 * sc, rzF: (.112 + (fem ? .028 : 0)) * sc, rzB: .1 * sc, rh: .118 * sc * 1.1 };
 }
@@ -79,7 +82,8 @@ function spacing(A, B) {
   const dx = B.g.position.x - A.g.position.x, dz = B.g.position.z - A.g.position.z, dist = Math.hypot(dx, dz) || 1e-3, ux = dx / dist, uz = dz / dist;
   const half = (b, dirx, dirz) => { const lz = dirx * b.fwd.x + dirz * b.fwd.z, lx = dirx * b.right.x + dirz * b.right.z, rz = lz > 0 ? b.rzF : b.rzB; return 1 / Math.hypot(lx / b.rx, lz / rz); };
   let need = 0, room = 9;   // need: 벌려야 할 거리 · room: 더 다가가도 되는 여유(가슴·골반이 닿기 전까지)
-  const pairs = [[A.chest, B.chest, half(A, ux, uz) + half(B, -ux, -uz) - .025], [A.hips, B.hips, (half(A, ux, uz) + half(B, -ux, -uz)) * .88 - .02], [A.head, B.head, A.rh + B.rh - .012]];
+  const fa = (A.u.bAct && HEAD_K.has(A.u.bAct.k)) || (B.u.bAct && HEAD_K.has(B.u.bAct.k));   // v56 얼굴 접촉 동작: 머리끼리는 얼굴 IK(humanglb faceIK)가 맞춤 — 여기서 밀어내지 않음
+  const pairs = [[A.chest, B.chest, half(A, ux, uz) + half(B, -ux, -uz) - .025], [A.hips, B.hips, (half(A, ux, uz) + half(B, -ux, -uz)) * .88 - .02]]; if (!fa) pairs.push([A.head, B.head, A.rh + B.rh - .012]);
   pairs.forEach(([pa, pb, req3], i) => {
     const dy = Math.abs(pa.y - pb.y); if (dy >= req3) return; const req = Math.sqrt(req3 * req3 - dy * dy);   // 높이 차를 뺀 수평 필요 거리
     const along = (pb.x - pa.x) * ux + (pb.z - pa.z) * uz, perp = Math.hypot(pb.x - pa.x - along * ux, pb.z - pa.z - along * uz);
@@ -95,7 +99,7 @@ const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
 function pullTarget(ua, ub, s) {
   const act = ua.bAct || ub.bAct; if (!act || act.out === 'refuse') return 0;
   const e = (performance.now() - act.t0) / 1000, w = Math.min(sm(0, .9, e), 1 - sm(act.dur - .8, act.dur, e)); if (w <= 0) return 0;
-  if (HEAD_K.has(act.k)) return Math.max(0, Math.min(s.headGap, s.room + .03)) * w;
+  if (HEAD_K.has(act.k)) return 0;   // v56 얼굴 접촉은 karaoke 의 자리(0.32m) + 얼굴 IK 가 맞춤 — 머리끼리 붙을 때까지 몸을 당기던 것이 머리를 옆으로 엇갈리게 했음
   if (BODY_K.has(act.k)) return Math.max(0, s.room + .015) * w;
   return 0;
 }

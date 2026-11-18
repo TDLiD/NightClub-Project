@@ -13,10 +13,10 @@ const FXo = () => NC.Features || {};
 
 /* ═════ ① 포디움 무대 댄서 ═════ */
 const DANCER_LOOKS = [
-  ['폴댄서 아라', { gender: 'f', idol: true, hairStyle: 'highPony', hairColor: '#120c10', hair2: '#ff3d9a', top: 'crop', topColor: '#ff2d8a', bottom: 'shorts', mini: true, bottomColor: '#141016', shoes: 'boots', shoeColor: '#141016', pattern: 'solid', hat: null, curve: .42, choker: true, face: { lipColor: '#c4475a', shadow: '#d070a0', liner: .9, earring: true } }],   // v28 폴 피트니스 의상(스포츠 크롭 + 숏츠)
-  ['폴댄서 미오', { gender: 'f', idol: true, hairStyle: 'long', hairColor: '#d8c8e8', top: 'crop', topColor: '#22d3ff', bottom: 'shorts', mini: true, bottomColor: '#141016', shoes: 'boots', shoeColor: '#141016', pattern: 'solid', hat: null, curve: .42, face: { lipColor: '#d0566a', shadow: '#6a8ad8', liner: .9, earring: true } }],
-  ['댄서 레이', { gender: 'f', idol: true, hairStyle: 'highPony', hairColor: '#c8c4d8', hair2: '#3de6ff', top: 'stageJacket', topColor: '#1a7ad4', inner: 'tee', innerColor: '#f4f2ee', bottom: 'cargo', bottomColor: '#141016', shoes: 'boots', chain: true, pattern: 'solid', hat: null, curve: .4, face: { lipColor: '#d0566a', shadow: '#6a8ad8', attractive: true } }],
-  ['댄서 케이', { gender: 'm', idol: true, hairStyle: 'comma', hairColor: '#0e0b0e', top: 'stageJacket', topColor: '#1a7ad4', inner: 'tee', innerColor: '#f4f2ee', bottom: 'pants', fit: 'skinny', bottomColor: '#141016', shoes: 'boots', chain: true, pattern: 'solid', hat: 'newsboy', hatColor: '#121016', face: { attractive: true } }],
+  ['폴댄서 아라', { gender: 'f', realModel: 'f_15', height: 1.7, idol: true, hairStyle: 'highPony', hairColor: '#120c10', hair2: '#ff3d9a', top: 'crop', topColor: '#ff2d8a', bottom: 'shorts', mini: true, bottomColor: '#141016', shoes: 'boots', shoeColor: '#141016', pattern: 'solid', hat: null, curve: .42, choker: true, face: { lipColor: '#c4475a', shadow: '#d070a0', liner: .9, earring: true } }],   // v28 폴 피트니스 의상(스포츠 크롭 + 숏츠)
+  ['폴댄서 미오', { gender: 'f', realModel: 'f_16', height: 1.7, idol: true, hairStyle: 'long', hairColor: '#d8c8e8', top: 'crop', topColor: '#22d3ff', bottom: 'shorts', mini: true, bottomColor: '#141016', shoes: 'boots', shoeColor: '#141016', pattern: 'solid', hat: null, curve: .42, face: { lipColor: '#d0566a', shadow: '#6a8ad8', liner: .9, earring: true } }],
+  ['댄서 레이', { gender: 'f', realModel: 'f_09', height: 1.7, idol: true, hairStyle: 'highPony', hairColor: '#c8c4d8', hair2: '#3de6ff', top: 'stageJacket', topColor: '#1a7ad4', inner: 'tee', innerColor: '#f4f2ee', bottom: 'cargo', bottomColor: '#141016', shoes: 'boots', chain: true, pattern: 'solid', hat: null, curve: .4, face: { lipColor: '#d0566a', shadow: '#6a8ad8', attractive: true } }],
+  ['댄서 제이', { gender: 'f', realModel: 'f_03', height: 1.7, idol: true, hairStyle: 'long', hairColor: '#160e12', top: 'crop', topColor: '#d8dce6', metallic: true, bottom: 'shorts', mini: true, bottomColor: '#141016', shoes: 'boots', shoeColor: '#141016', pattern: 'solid', hat: null, curve: .42, choker: true, face: { lipColor: '#c0384e', attractive: true } }],
 ];
 const dancers = [];
 function spawnDancers() {
@@ -47,13 +47,29 @@ function poleTick(d, dt, b) {
   d.th += w * dt; d.lift += ((ph === 'climb' ? .5 : 0) - d.lift) * Math.min(1, dt * 3);
   const ox = Math.sin(d.th) * POLE_R, oz = Math.cos(d.th) * POLE_R; d.g.position.set(d.pole.x + ox, d.y + d.lift, d.pole.z + oz); d.g.rotation.y = d.th + Math.PI / 2;
 }
+/* v56 오른쪽 원형 무대 안무: 두 댄서가 무대(반지름 1.3m) 안쪽 0.5m 원 위에서 16박마다 자리를 바꾸며(2박 동안 걸어서) 관객 쪽을 보고 춤,
+ *  12박째엔 한 바퀴 턴(1.5박), 그 사이엔 박자에 맞춰 몸을 좌우로 살짝 틀어 줌 · 항상 서로 반대편(겹치지 않음) · 가장자리 0.45m 안쪽만(떨어지지 않음) */
+function routineTick(d, dt, b) {
+  const pd = W.podiums[d.pd]; if (!pd) return; const k = dancers.filter(o => o.pd === d.pd).indexOf(d), t = b.n + b.phase, cyc = Math.floor(t / 16), lb = t - cyc * 16;
+  const slot = (c) => (c + k) % 2 ? 1 : -1, s0 = slot(cyc), s1 = slot(cyc + 1), mv = lb > 14 ? (lb - 14) / 2 : 0, e = mv * mv * (3 - 2 * mv);
+  const side = s0 + (s1 - s0) * e, R = Math.min(.5, pd.r - .45), ang = d.ry + Math.PI / 2, arc = Math.sin(Math.PI * e) * .28 * (k ? 1 : -1);
+  const x = pd.x + Math.cos(ang) * 0 + Math.sin(ang) * side * R + Math.sin(d.ry) * arc, z = pd.z + Math.cos(ang) * side * R + Math.cos(d.ry) * arc;
+  const g = d.g; g.position.x += (x - g.position.x) * Math.min(1, dt * 8); g.position.z += (z - g.position.z) * Math.min(1, dt * 8); g.position.y = pd.y;
+  const spin = lb >= 12 && lb < 13.5 ? (lb - 12) / 1.5 : lb >= 13.5 ? 1 : 0, se = spin * spin * (3 - 2 * spin);
+  const sway = Math.sin((t + k * .5) * Math.PI) * .35 * (1 - (mv > 0 ? 1 : 0)), face = d.ry + sway + (k ? -.25 : .25) + se * Math.PI * 2 * (k ? -1 : 1);
+  g.rotation.y = face; g.userData.moving = mv > 0 && mv < 1;
+}
 function tickDancers(dt) {
   if (!dancers.length) return; const b = beat(), cam = NC.camera;
   if (b.n !== lastBeat) { lastBeat = b.n;
-    if (b.n % 4 === 0) [1].forEach(pd => { const mv = pk(MOVES); dancers.filter(d => d.pd === pd).forEach(d => { d.g.userData.danceStyle = mv; }); });   // 포디움별 군무
-    if (b.n % 16 === 8) dancers.forEach(d => { if (!d.pole) Mo.play(d.g, pk(['cheer', 'point', 'wave'])); });                                                                   // 8박마다 포인트 안무
+    if (b.n % 4 === 0) dancers.filter(d => d.pd === 1).forEach((d, k) => { d.g.userData.danceStyle = MOVES[(Math.floor(b.n / 4) + k * 3) % MOVES.length]; });   // v56 같은 무대 두 사람도 서로 다른 안무(동시에 똑같이 움직이지 않음)
+    dancers.forEach((d, k) => { const u = d.g.userData, lb = (b.n + k * 5) % 16;
+      if (!d.pole && lb === 8) Mo.play(d.g, pk(['cheer', 'point', 'wave', 'cheer']));                                                     // 관객에게 포인트 동작
+      if (lb === 4 && Math.random() < .55) { u.setExpr && u.setExpr(pk(['wink', 'joy', 'laugh', 'smile']), 1.6); }                     // 표정: 윙크·환한 웃음
+      if (lb === 10 && Math.random() < .5) { const p = P(); if (p && p.group) { u.lookAt = p.group.position; setTimeout(() => { if (u.lookAt === p.group.position) u.lookAt = null; }, 1800); } }   // 관객(나)과 눈맞춤
+    });
   }
-  dancers.forEach(d => { if (d.pole) poleTick(d, dt, b); Mo.update(d.g, dt, { near: !cam || cam.position.distanceTo(d.g.position) < 22, speed: 1 }); if (cam && NC.Avatar.fitLabel) NC.Avatar.fitLabel(d.g, cam); });
+  dancers.forEach(d => { if (d.pole) poleTick(d, dt, b); else routineTick(d, dt, b); Mo.update(d.g, dt, { near: !cam || cam.position.distanceTo(d.g.position) < 22, speed: 1 }); if (cam && NC.Avatar.fitLabel) NC.Avatar.fitLabel(d.g, cam); });
 }
 
 /* ═════ ② DJ 팁 → 무대 앞 댄스 선물 ═════ */

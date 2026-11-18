@@ -603,6 +603,8 @@ function startBlues(n) {
   if (BL.where === 'karaoke') BL.c = { x: KX + .9, z: KZ - .1 };
   else if (BL.where === 'club') { const Z = W.zones, st = P.zone === 'stage' ? Z.stage : Z.dance; BL.c = { x: U.clamp((P.x + n.x) / 2, st.x0 + 1.5, st.x1 - 1.5), z: U.clamp((P.z + n.z) / 2, st.z0 + 1.6, st.z1 - 1.2) }; }
   else { const sa = P.seat && P.seat.kind === 'table' && NC.standPos ? NC.standPos(P.seat.t, P.seat.s) : null; const bx = sa || { x: (P.x + n.x) / 2, z: (P.z + n.z) / 2 }; BL.c = { x: bx.x, z: bx.z }; }
+  /* v56 춤출 자리 비우기: 테이블(의자 포함 반경 2.3m)·기둥에서 두 사람 몸(±0.45m)+여유만큼 떨어진 곳으로 — 테이블 옆 '서는 자리'에 그대로 서면 몸이 테이블 상판에 걸려 엉덩이를 뺀 구부정한 자세가 됨 */
+  if (BL.where !== 'karaoke') { const c = BL.c; for (let it = 0; it < 8; it++) { let moved = false; for (const [cx, cz, r] of (W.circles || [])) { const dx = c.x - cx, dz = c.z - cz, d = Math.hypot(dx, dz), need = r + .8; if (d < need) { const k = d > 1e-3 ? need / d : 1; c.x = cx + (d > 1e-3 ? dx * k : need); c.z = cz + (d > 1e-3 ? dz * k : 0); moved = true; } } if (NC.collide) { const q = { x: c.x, z: c.z }; NC.collide(q, .75); if (Math.hypot(q.x - c.x, q.z - c.z) > 1e-3) { c.x = q.x; c.z = q.z; moved = true; } } if (!moved) break; } }
   n.bl.reseat = (BL.where !== 'karaoke' && n.state === 'seated' && n._seatArgs) ? n._seatArgs.slice() : null;
   BL.music = null; if (BL.where !== 'karaoke' && NC.Audio && NC.Audio.pl !== 'blues' && NC.Audio.playPlaylist) { BL.music = NC.Audio.pl || 'euro'; NC.Audio.playPlaylist('blues'); }   // 블루스 곡으로 전환, 끝나면 원래 곡으로
   if (K.playing) stop(true);
@@ -699,7 +701,7 @@ function bluesAct(kind, forced) {
   const n = BL.n; if (!n) return; const D = NC.Dialog, P = NC.player, r = forced || REACT[kind](n), a = ACT[kind], t0 = performance.now(); BL.tm = BL.tm || [];
   const dur = r.kiss ? Math.max(a.dur, r.kiss + a.hit + .6) : a.dur;
   BL.busy = true; BL.act = { k: kind, t0, dur, close: r.out === 'refuse' && !r.kiss ? Math.min(a.close, .03) : a.close, flip: a.flip && r.out === 'accept', spin: a.spin, hit: a.hit, dip: kind === 'dip' && r.out === 'accept',
-    vr: { amp: .88 + Math.random() * .24, lag: .13 + Math.random() * .11, sway: (Math.random() - .5) * .5 } };   // v55 매번 조금씩 다른 세기·반응 지연(같은 동작이 똑같이 반복되지 않게)
+    vr: { amp: .88 + Math.random() * .24, lag: .13 + Math.random() * .11, sway: (Math.random() - .5) * .5, side: Math.random() < .5 ? 1 : -1, hug: (BL.n && BL.n.aff >= 80) ? 'romantic' : (BL.n && BL.n.aff >= 55) ? 'warm' : 'friend' } };   // v56 side = 키스 때 고개 기울이는 방향(매번 다름) · hug = 호감도별 포옹(친구·따뜻한·연인)   // v55 매번 조금씩 다른 세기·반응 지연(같은 동작이 똑같이 반복되지 않게)
   P.group.userData.bAct = { k: kind, t0, dur, out: r.out, hit: a.hit }; n.g.userData.bAct = { k: kind, t0, dur, out: r.out, hit: a.hit };
   D.sys(a.desc); D.chips();
   BL.tm.push(setTimeout(() => {                                    // 상대 반응
@@ -787,7 +789,9 @@ NC.tickers.push(dt => {
   if (!BL.n) return; const n = BL.n, P = NC.player; BL.t += dt; if (BL.kiss > 0) BL.kiss -= dt;
   const kd = BL.kissDur, k = BL.kiss > 0 ? Math.min(1, (kd - BL.kiss) / .55, BL.kiss / .55) : 0, A = BL.act, ae = A ? (performance.now() - A.t0) / 1000 : 0,
     vr = A && A.vr || { amp: 1, sway: 0 }, cl = A ? A.close * vr.amp * Math.min(ez(.05, Math.max(.6, Math.min(A.hit + .25, 1.3)), ae), 1 - ez(A.dur - .95, A.dur - .05, ae)) : 0,   // v55 다가가기(가속·감속) → 닿은 뒤 유지 → 천천히 떨어짐
-    a = .28 * Math.sin(BL.t * .35) * (A ? .3 : 1) + vr.sway * .2, d = .215 - .05 * k - cl, c = BL.c;
+    a = .28 * Math.sin(BL.t * .35) * (A ? .3 : 1) + vr.sway * .2, c = BL.c;
+  /* v56 얼굴 접촉(키스·이마·볼·귓속말)은 두 사람 사이를 0.32m 아래로 줄이지 않음 — 너무 붙으면 얼굴이 마주치지 못하고 머리가 서로 옆으로 엇갈렸음(입술 24cm 어긋남) */
+  let d = .215 - .05 * k - cl; if (A && /^(kiss|deepkiss|forehead|cheek|whisper)$/.test(A.k)) d = Math.max(d, A.k === 'whisper' || A.k === 'cheek' ? .15 : .162);
   P.group.userData.kissK = n.g.userData.kissK = k; P.group.userData.kissDeep = n.g.userData.kissDeep = BL.deep && k > 0;
   P.x = c.x - Math.cos(a) * d; P.z = c.z - Math.sin(a) * d; n.x = c.x + Math.cos(a) * d; n.z = c.z + Math.sin(a) * d;
   /* v55 몸 전체의 이동(루트 모션): ① 딥 — 리드가 앞발로 한 걸음 런지하며 무게중심을 상대 쪽으로, 상대 골반은 살짝 뒤로(제자리에서 상체만 꺾이던 고무인형 느낌 제거)

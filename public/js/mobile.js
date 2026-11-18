@@ -178,7 +178,40 @@ html.mobile #seatBar button{padding:7px 10px!important;font-size:12px!important}
 #resumeBox .rbRow{display:flex;gap:8px;margin-top:9px}#resumeBox button{flex:1;padding:12px;border-radius:12px;border:0;font-size:15px;font-weight:800;color:#fff;cursor:pointer}
 #rbGo{background:linear-gradient(135deg,#ff3d9a,#7b3dff)}#rbNo{flex:0 0 34%!important;background:rgba(255,255,255,.12)!important;border:1px solid rgba(255,255,255,.25)!important;font-weight:600!important}
 #ctxLost{position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;background:rgba(10,4,24,.92);color:#fff;font-size:16px;text-align:center;line-height:1.7}
+/* v56 말걸기 패널 — 화면(캐릭터)을 가리지 않게: 세로 = 아래쪽 낮은 시트(최대 40%), 가로 = 오른쪽 좁은 패널(최대 36%) · 머리글을 누르면 접기/펴기 */
+@media (orientation:portrait){
+ html.mobile #talk{left:max(6px,env(safe-area-inset-left))!important;right:max(6px,env(safe-area-inset-right))!important;width:auto!important;top:auto!important;bottom:calc(env(safe-area-inset-bottom) + 4px)!important;height:auto!important;max-height:40vh!important;border-radius:16px!important}
+ html.mobile #talk .th{padding:5px 8px!important;gap:8px!important}html.mobile #tFace{width:44px!important;height:50px!important}
+ html.mobile #talk .ti{font-size:11.5px!important}html.mobile #talk .ti b{font-size:15px!important}html.mobile #tJob{display:none}
+ html.mobile #tCancel{margin:0!important;padding:5px 8px!important;font-size:12px!important;border-radius:12px 12px 0 0!important}
+ html.mobile #tLog{flex:0 1 auto!important;min-height:0!important;max-height:13vh!important;padding:6px 10px!important;font-size:13px!important}
+ html.mobile #tChips{flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;padding:5px 8px!important;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x!important}
+ html.mobile #tChips::-webkit-scrollbar{display:none}html.mobile #tChips button{flex:none!important;white-space:nowrap!important;min-height:34px!important}
+ html.mobile .trow{padding:5px 8px!important}html.mobile .trow input{padding:8px!important}html.mobile #tSrc{display:none}
+}
+@media (orientation:portrait) and (min-width:700px){ html.mobile #talk{left:auto!important;width:min(560px,80vw)!important;right:50%!important;transform:translateX(50%)!important;max-height:34vh!important} }   /* 세로 태블릿 */
+@media (orientation:landscape){
+ html.mobile #talk{top:calc(env(safe-area-inset-top) + 6px)!important;bottom:calc(env(safe-area-inset-bottom) + 6px)!important;height:auto!important;left:auto!important;right:max(6px,env(safe-area-inset-right))!important;width:min(330px,36vw)!important;transform:none!important}
+ html.mobile #talk .th{padding:5px 8px!important}html.mobile #tFace{width:46px!important;height:52px!important}html.mobile #tLog{flex:0 1 auto!important;min-height:0!important;max-height:26vh!important}
+}
+html.mobile #talk.mini #tLog,html.mobile #talk.mini #tChips,html.mobile #talk.mini #tSrc,html.mobile #talk.mini #tStage{display:none!important}
+html.mobile #talk.mini{max-height:none!important;bottom:calc(env(safe-area-inset-bottom) + 4px)!important;top:auto!important}
+#tMin{display:none}html.mobile #tMin{display:block;position:absolute;right:76px;top:6px;width:32px;height:32px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font-size:15px}
 `;
 { const st = document.createElement('style'); st.id = 'mobStyle'; st.textContent = css; document.head.appendChild(st); }
 console.info('[mobile] 📱 v28 모바일 최적화', MOB ? '(모바일 기기)' : '(PC)', '· 이어서 입장 · 핀치 줌 · 적응형 해상도');
+
+/* v56 말걸기 패널이 열려 있으면 3D 화면의 중심을 패널이 없는 쪽으로 옮김(세로 = 위로, 가로 = 왼쪽으로) — 대화 상대와 내 캐릭터가 패널에 가리지 않음
+ *  camera.setViewOffset 로 렌더 영역만 옮기므로 클릭·터치 선택(레이캐스트)도 그대로 맞음 · 0.3초에 걸쳐 부드럽게 */
+if (MOB) { const talk = $('#talk');
+  if (talk && !$('#tMin')) { const th = talk.querySelector('.th'), b = document.createElement('button'); b.id = 'tMin'; b.title = '대화창 접기/펴기'; b.textContent = '▾';
+    b.onclick = e => { e.stopPropagation(); talk.classList.toggle('mini'); b.textContent = talk.classList.contains('mini') ? '▴' : '▾'; }; th && th.appendChild(b); }
+  let ox = 0, oy = 0;
+  NC.tickers.push(dt => { const cam = NC.camera, rd = NC.renderer; if (!cam || !rd || !talk) return;
+    const W = innerWidth, H = innerHeight, open = talk.style.display === 'flex' && talk.style.visibility !== 'hidden', r = open ? talk.getBoundingClientRect() : null;
+    let tx = 0, ty = 0; if (r && r.width > 0) { if (W > H) tx = Math.min(W * .25, (W - r.left) * .5); else ty = Math.min(H * .28, (H - r.top) * .5); }
+    const k = Math.min(1, (dt || .016) * 7); ox += (tx - ox) * k; oy += (ty - oy) * k;
+    if (Math.abs(ox) < .5 && Math.abs(oy) < .5 && !open) { if (cam.view && cam.view.enabled) { cam.clearViewOffset(); } return; }
+    cam.setViewOffset(W, H, Math.round(ox), Math.round(oy), W, H); });
+}
 })();

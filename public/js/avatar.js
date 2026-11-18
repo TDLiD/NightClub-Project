@@ -559,7 +559,7 @@ function makeLabel(text, color) {
   g.fillStyle = 'rgba(25,12,52,.78)'; g.strokeStyle = color || '#ff3d9a'; g.lineWidth = 3;
   g.beginPath(); g.roundRect ? g.roundRect(4, 8, 312, 60, 24) : g.rect(4, 8, 312, 60); g.fill(); g.stroke();
   g.font = '700 32px "Malgun Gothic","Apple SD Gothic Neo",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.fillText(text, 160, 40);
-  const s = new T.Sprite(new T.SpriteMaterial({ map: NC.tex(c), transparent: true, depthWrite: false })); s.scale.set(1.9, .48, 1); s.renderOrder = 10; return s;
+  const s = new T.Sprite(new T.SpriteMaterial({ map: NC.tex(c), transparent: true, depthWrite: false })); s.scale.set(1.05, .26, 1); s.renderOrder = 10; return s;
 }
 
 function buildHair(skull, look, mHair, r, mHair2) {
@@ -1075,7 +1075,9 @@ function create(o = {}) {
 
 const SOLE = .045;
 /* 이름표 크기: 가까우면 작게(얼굴 가림 방지), 대화 상대는 숨김 */
-function fitLabel(g, cam) { const l = g.userData.label; if (!l) return; const d = cam.position.distanceTo(g.position), k = U.clamp(d / 10, .32, 1); l.scale.set(1.9 * k, .48 * k, 1); l.visible = !g.userData.hideLabel; }
+/* v56 이름표: 예전 1.9m → 1.05m 폭(약 55%), 가까우면 더 작게 · 18m 넘게 먼 사람은 숨김(대화 상대·선택한 사람 제외) — 사람이 몰려도 이름표가 겹쳐 어수선하지 않게 */
+function fitLabel(g, cam) { const l = g.userData.label; if (!l) return; const d = cam.position.distanceTo(g.position), k = U.clamp(d / 10, .3, .9); l.scale.set(1.05 * k, .26 * k, 1);
+  const keep = g.userData.talk || (NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.g === g); l.visible = !g.userData.hideLabel && (d < 18 || keep); }
 NC.Avatar = { create, undress, randomLook, mergeLook, drawFace, fitLabel, EXPR, FACE_SIZE: [FW, FH], skinCompile, SKIN_BODY, realSkin,
   /* 시작 화면 미리보기용: 얼굴 정면만 잘라서 작은 캔버스에 그림 */
   preview(cv, look, expr = 'smile') { const big = document.createElement('canvas'); big.width = FW; big.height = FH; drawFace(big, look, expr); const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); g.save(); g.beginPath(); g.ellipse(cv.width / 2, cv.height / 2, cv.width * .42, cv.height * .48, 0, 0, 7); g.clip(); g.drawImage(big, FW * .25 - 200, FH * .5 - 230, 400, 460, 0, 0, cv.width, cv.height); g.restore(); },

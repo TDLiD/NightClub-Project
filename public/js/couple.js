@@ -82,9 +82,11 @@ function ikArm(R, sd, target, w, poleW, obs, opt) {
   return d - dc;   // 닿지 못한 거리(0 이면 정확히 도달)
 }
 /* 고개: 목·머리를 나눠 목표점을 향함 · tilt = 좌우 기울임 */
-function aimHead(R, target, w, tilt = 0) {
+function aimHead(R, target, w, tilt = 0, origin = null, fwdHint = null) {   // v56 origin: 보이는(실사) 머리 중심 — rig 머리는 7~15cm 높아 키 작은 사람이 상대 입술을 '내려다보던' 원인
   if (!target || w <= .001) return; const par = R.neck.parent; par.updateMatrixWorld(true);
-  const hp = R.head.getWorldPosition(V()).add(V(0, .06, 0)), a = par.worldToLocal(target.clone()), b = par.worldToLocal(hp), d = a.sub(b);
+  /* v56 얼굴이 아주 가까우면(수평 30cm 안) '상대 입술' 방향이 머리 중심 바로 옆·아래가 되어 고개가 좌우로 튀고(±57°) 푹 숙여졌음 → 몸 정면 방향으로 30cm 앞의 같은 높이 차를 봄 */
+  if (origin && fwdHint) { const v = target.clone().sub(origin), h = Math.hypot(v.x, v.z); if (h < .45) { const k = U.clamp((.45 - h) / .2, 0, 1), dy = U.clamp(v.y, -.16, .12); const fx = fwdHint.x * .3, fz = fwdHint.z * .3; v.x = v.x * (1 - k) + fx * k; v.z = v.z * (1 - k) + fz * k; v.y = v.y * (1 - k) + dy * k; target = origin.clone().add(v); } }
+  const hp = origin ? origin.clone() : R.head.getWorldPosition(V()).add(V(0, .06, 0)), a = par.worldToLocal(target.clone()), b = par.worldToLocal(hp), d = a.sub(b);
   const yaw = U.clamp(Math.atan2(d.x, d.z), -1.0, 1.0), pitch = U.clamp(Math.atan2(-d.y, Math.hypot(d.x, d.z)), -.45, .75);
   const N = R.neck.rotation, H = R.head.rotation;
   N.x += (pitch * .35 - N.x) * w; N.y += (yaw * .4 - N.y) * w;
@@ -138,21 +140,30 @@ function plan(A, B, lead, act, e) {
   const k = act.k, acc = act.out === 'accept', D = act.dur, H = act.hit || 1;
   o.w = env(e, 0, Math.min(.9, H), D - .8, D);   // 동작 가중치(접근·정렬 → 접촉 → 해제·복귀)
   const near = (sideA, sideB) => sideA * sideB;   void near;
-  if (k === 'hug') { if (lead) { o.L = P.upperBack(B, sL); o.R = P.upperBack(B, sR); } else if (acc) { o.L = P.neckBack(B, sL); o.R = P.upperBack(B, sR); } o.head = null; }
+  if (k === 'hug') { const ht = (act.vr && act.vr.hug) || 'warm';
+    /* v56 포옹 3가지(호감도): 친구 = 가슴 사이 간격을 두고 등 위쪽을 가볍게(손바닥) · 따뜻한 = 등 위·아래를 감싸 안음 · 연인 = 상대 목에 팔을 두르고 머리를 어깨에 기댐 */
+    if (lead) { if (ht === 'friend') { o.L = P.upperBack(B, sL); o.R = P.upperBack(B, sR); } else if (ht === 'warm') { o.L = P.upperBack(B, sL); o.R = P.lowBack(B, sR); } else { o.L = P.lowBack(B, sL); o.R = P.upperBack(B, sR); } }
+    else if (acc) { if (ht === 'romantic') { o.L = P.neckBack(B, sL); o.R = P.neckBack(B, sR); } else if (ht === 'warm') { o.L = P.neckBack(B, sL); o.R = P.upperBack(B, sR); } else { o.L = P.upperBack(B, sL); o.R = P.upperBack(B, sR); } }
+    o.head = ht === 'romantic' && !lead ? P.shoulderTop(B, sR).addScaledVector(UP, .02) : null; o.wHead = .5; o.hp = { L: 'touch', R: 'touch' }; }
   else if (k === 'waist') { if (lead) { o.L = P.lowBack(B, sL); o.R = P.lowBack(B, sR); } else if (acc) { o.L = P.neckBack(B, sL); o.R = P.neckBack(B, sR); } }
   else if (k === 'whisper') { if (lead) { o.R = P.upperArm(B, sR); o.head = P.ear(B, sR); o.wHead = 1; } else { o.head = acc ? P.lips(B) : null; o.tilt = acc ? -.28 * sR : 0; } }
   else if (k === 'spin') { const top = A.head.clone().lerp(B.head, .5).addScaledVector(UP, .3); if (lead) { o.L = top; o.R = P.waistSide(B, sR); o.hp = { L: 'grip' }; } else { o.R = top; o.L = null; o.hp = { R: 'grip' }; } o.head = null; }
   else if (k === 'dip') { if (lead) { o.R = P.upperBack(B, sR); o.L = P.waistSide(B, sL); o.head = P.lips(B); o.wHead = .8; } else if (acc) { o.L = P.neckBack(B, sL); o.R = null; o.head = P.lips(B); o.wHead = .5; } }
   else if (k === 'forehead') { o.head = P.brow(B); o.wHead = 1; }
   else if (k === 'cheek') { if (lead) { o.L = P.shoulderTop(B, sL); o.head = P.cheek(B, sR); o.wHead = 1; } else if (acc) { o.head = P.lips(B).addScaledVector(B.right, -sR * .1); o.wHead = .5; } }
-  else if (k === 'backhug') { if (lead) { o.L = P.frontWaist(B, sL); o.R = P.frontWaist(B, sR); o.head = P.ear(B, sR).addScaledVector(UP, -.05); o.wHead = .7; } else if (acc) { const hL = B.R.elL.children.find(c => c.userData.isHand || (c.isGroup && !c.userData.bridge)), hR = B.R.elR.children.find(c => c.userData.isHand || (c.isGroup && !c.userData.bridge)); o.L = hL && hL.getWorldPosition(V()).addScaledVector(UP, .03); o.R = hR && hR.getWorldPosition(V()).addScaledVector(UP, .03); o.head = null; } }
+  else if (k === 'backhug') { if (lead) { o.L = P.frontWaist(B, sL); o.R = P.frontWaist(B, sR); o.head = P.ear(B, sR).addScaledVector(UP, -.05); o.wHead = .7; } else if (acc) { const hL = B.R.elL.children.find(c => c.userData.isHand || (c.isGroup && !c.userData.bridge)), hR = B.R.elR.children.find(c => c.userData.isHand || (c.isGroup && !c.userData.bridge)); o.L = hL && hL.getWorldPosition(V()).addScaledVector(UP, .03); o.R = hR && hR.getWorldPosition(V()).addScaledVector(UP, .03);
+      /* v56 실사 모델이면 '보이는' 상대 손 위에 손을 얹음(rig 손은 실제 손과 10cm 가까이 어긋나 손이 허공에 떠 있었음) — 내 왼·오른 어깨에 가까운 손끼리 짝 */
+      const RB = B.g.userData.real && B.g.userData.real.Bn; if (RB && RB.handL && RB.handR && A.R.shL) { const h1 = RB.handL.getWorldPosition(V()), h2 = RB.handR.getWorldPosition(V()), sl = A.R.shL.getWorldPosition(V());
+        const near1 = h1.distanceTo(sl) < h2.distanceTo(sl); o.L = (near1 ? h1 : h2).addScaledVector(UP, .035); o.R = (near1 ? h2 : h1).addScaledVector(UP, .035); }
+      o.head = B.head.clone().lerp(A.head, .2); o.wHead = .35; } }   // 고개를 살짝 돌려 뒤의 상대 쪽을 봄
   else if (k === 'kiss' || k === 'deepkiss') { const deep = k === 'deepkiss';
     if (lead) { o.R = P.cheek(B, sR); o.L = deep ? P.cheek(B, sL) : P.lowBack(B, sL); o.hp = { R: 'cup', L: deep ? 'cup' : 'touch' }; } else if (acc) { o.L = P.neckBack(B, sL); o.R = deep ? P.neckBack(B, sR) : P.upperBack(B, sR); }
     o.head = P.lips(B); o.wHead = 1; o.tilt = (lead ? .24 : -.24); }
   if (!acc && !lead) { o.L = o.R = null; }                                  // 거절: 상대는 손을 뻗지 않음
   if (!acc && lead) o.w *= Math.max(0, 1 - sm(H, H + .35, e)) * .8 + .05;    // 거절당하면 리드의 손이 중간에서 거둬짐
   o.hp = o.hp && o.hp.L === 'hold' ? null : o.hp;
-  if (HEAD_ACTS.has(k) && acc) { o.lean = U.clamp(dh * 1.1, 0, .32) + (k === 'whisper' ? 0 : .06); o.toe = U.clamp(-dh * .45, 0, .05); }   // 큰 사람은 숙이고, 작은 사람은 까치발
+  /* v56 얼굴 접촉 동작의 키 맞춤: 상체를 크게 숙이지 않음(실제 사람은 고개·목으로 맞춤) — 큰 사람은 살짝(최대 0.13rad) 숙이고 무릎을 굽히고, 작은 사람은 앞꿈치로 섬. 나머지 높이는 얼굴 IK(목·머리)가 맞춤 */
+  if (HEAD_ACTS.has(k) && acc) { o.lean = U.clamp(dh * .55, 0, .11) + (k === 'whisper' ? .02 : .025); o.toe = U.clamp(-dh * .35, 0, .035); o.drop = U.clamp(dh * .25, 0, .04); }   // 큰 사람은 숙이고, 작은 사람은 까치발
   return o;
 }
 
@@ -163,10 +174,10 @@ const ST = { sofa: null, love: null, hand: null, stats: { frames: 0, maxMiss: 0 
 function applyBody(A, o, w) {
   const R = A.R, ww = (o.w ?? 1) * w;
   const hp = o.hp || {}; A.u.handPose = { L: o.L && ww > .5 ? (hp.L || 'touch') : 'relaxed', R: o.R && ww > .5 ? (hp.R || 'touch') : 'relaxed' };   // v40 손 모양: 닿을 땐 손가락을 펴서 표면을 따라, 볼은 감싸듯, 턴은 맞잡기
-  if (o.head) aimHead(R, o.head, ww * (o.wHead ?? .5), (o.tilt || 0)); else if (o.tilt) R.head.rotation.z += (o.tilt - R.head.rotation.z) * ww;
+  if (o.head) aimHead(R, o.head, ww * (o.wHead ?? .5), (o.tilt || 0), A.real ? A.head.clone().addScaledVector(UP, -.07) : null, A.fwd);   // 기준점 = 눈~입 높이 else if (o.tilt) R.head.rotation.z += (o.tilt - R.head.rotation.z) * ww;
   if (o.lean) { R.torso.rotation.x += o.lean * ww; if (!A.real) { R.knL.rotation.x += o.lean * .4 * ww; R.knR.rotation.x += o.lean * .4 * ww; } }   // 실사 모델은 무릎을 발 고정 IK 가 굽힘
   /* v56 키 맞춤 높이: 실사 모델은 coupleBody(humanglb)가 몸을 낮추거나(drop)·올리고(toe) 발을 바닥에 고정한 채 다리 IK 로 무릎·발목을 맞춤 */
-  const fp = A.u.footPlant || (A.u.footPlant = {}); fp.t = performance.now(); fp.w = w; fp.drop = (o.drop || 0) * w; fp.toe = (o.toe || 0) * w;
+  const fp = A.u.footPlant || (A.u.footPlant = {}); fp.t = performance.now(); fp.w = w * w * w; fp.drop = (o.drop || 0) * w; fp.toe = (o.toe || 0) * w;
   if (o.toe && !A.real) R.body.position.y += o.toe * ww * .35;
 }
 /* 팔: 해석적 2관절 IK(+스프링·소프트 IK·스위블 연속)로 직접 놓고, contact.js 는 남은 관통만 아주 조금 보정 */
@@ -216,6 +227,17 @@ function tickBlues() {
   // 동작 중엔 동작 목표, 아니면 기본 블루스 홀드(허리·어깨) — 둘 사이는 o.w 로 섞임
   const mix = (o, isLead) => { if (!act) return o; const bse = plan(isLead ? A : B, isLead ? B : A, isLead, null, 0), w = o.w ?? 1; return { ...o, w: 1, L: blendPt(bse.L, o.L, w), R: blendPt(bse.R, o.R, w), head: blendPt(bse.head, o.head, w), wHead: U.lerp(bse.wHead, o.wHead ?? .55, w), tilt: (o.tilt || 0) * w, lean: U.lerp(bse.lean || 0, o.lean || 0, w), toe: U.lerp(bse.toe || 0, o.toe || 0, w), drop: U.lerp(bse.drop || 0, o.drop || 0, w), hp: w > .5 ? o.hp : bse.hp }; };
   const ma = mix(oa, leadA), mb = mix(ob, !leadA);
+  /* v56 얼굴 접촉(실사 모델 머리·목·가슴 CCD, humanglb faceIK): 키스는 입술끼리 가운데서 만나고 서로 반대로 고개 기울임 · 이마는 이마끼리 · 볼 키스는 리드 입술 → 상대 볼 · 귓속말은 리드 입 → 상대 귀 */
+  { const acc = !act ? false : (ua.bAct ? ua.bAct.out : 'accept') === 'accept', now = performance.now();
+    const set = (g, partner, ee, isLead) => { const u = g.userData; if (!act || !acc || !HEAD_ACTS.has(act.k)) { u.faceTgt = null; return; }
+      const hh = (g.userData.look && g.userData.look.height || 1.7) - (partner.userData.look && partner.userData.look.height || 1.7), sh = U.clamp(.5 + hh * 1.6, .3, .7);   // 키 큰 사람이 더 많이 숙이고 작은 사람은 덜 듦(목이 과하게 젖혀지지 않게)
+      const k = act.k, w = env(ee, act.hit * .5, act.hit + .1, act.dur - .9, act.dur - .25); let o = null;
+      if (k === 'kiss' || k === 'deepkiss') o = { mode: 'lips', share: sh, tilt: (isLead ? 1 : -1) * (k === 'deepkiss' ? .12 : .08) * ((act.vr && act.vr.amp) || 1), gap: k === 'deepkiss' ? .004 : .01 };
+      else if (k === 'forehead') o = { mode: 'brow', share: sh, tilt: 0, gap: .006 };
+      else if (k === 'cheek') o = isLead ? { mode: 'cheek', side: 1, share: .85, tilt: .12, gap: .008 } : { mode: 'lips', share: 0, tilt: -.1, gap: .05 };
+      else if (k === 'whisper') o = isLead ? { mode: 'ear', side: 1, share: .85, tilt: .08, gap: .03 } : null;
+      u.faceTgt = o ? Object.assign(o, { t: now, w, partner }) : null; };
+    set(pg, n.g, e, leadA); set(n.g, pg, eB, !leadA); }
   applyBody(A, ma, start); applyBody(B, mb, start);
   life(A, B, act, e, start, 0, leadA); life(B, A, act, eB, start, 1, !leadA);
   /* 몸이 다 움직인 뒤 상대 몸의 접촉점을 다시 구해 팔을 놓음(상대가 숙이거나 젖혀진 최종 위치 기준) */

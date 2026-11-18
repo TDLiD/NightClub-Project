@@ -228,6 +228,11 @@ NC.tickers.push(dt => {
 NC.tickers.push(dt => {
   if (!dt) return; const t = performance.now() / 1000, b = NC.Audio && NC.Audio.beat ? NC.Audio.beat() : null, BL = NC.Karaoke && NC.Karaoke.BL, Z = W.zones && W.zones.dance;
   const look = BL && BL.n ? { x: BL.c.x, z: BL.c.z } : Z ? { x: (Z.x0 + Z.x1) / 2, z: (Z.z0 + Z.z1) / 2 } : null;
+  for (const n of npcs) { const u0 = n.g.userData; if (!u0.trait && n.trait) u0.trait = n.trait;   // 성격 → 춤 스타일(mocap.js)
+    /* v56 표정: 춤추는 손님은 기본 미소, 성격에 따라 가끔 환하게 웃거나(활발·장난) 수줍게 웃음(수줍음) — 대화·블루스 중 표정은 건드리지 않음 */
+    if (u0.dance && u0.setExpr && !u0.exprUntil && n.state !== 'talk' && !(BL && n === BL.n)) { const ef = n._ef || (n._ef = { next: t + 2 + Math.random() * 8 }); if (u0.baseExpr === 'neutral') u0.setExpr('smile');
+      if (t > ef.next) { ef.next = t + 6 + Math.random() * 12; const tr = u0.trait; u0.setExpr(tr === 'shy' ? 'shy' : tr === 'cool' ? (Math.random() < .5 ? 'smile' : 'wink') : Math.random() < .5 ? 'laugh' : 'joy', 1.2 + Math.random()); } }
+  }
   for (const n of npcs) { const u = n.g.userData, R = u.rig; if (!R || !n.g.visible || u.moving || u.dance || n.state === 'talk' || (BL && n === BL.n) || n.party) continue;
     const bg = n._bg || (n._bg = { amp: Math.random() < .6 ? .025 + Math.random() * .025 : 0, ph: Math.random(), next: t + 3 + Math.random() * 10, gl: null, lean: Math.random() * 6.28 });
     if (b && bg.amp) { const k = Math.sin((b.phase + bg.ph * .25) * Math.PI * 2); R.head.rotation.x += Math.max(0, k) * bg.amp; R.neck.rotation.x += Math.max(0, k) * bg.amp * .4; }

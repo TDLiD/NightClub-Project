@@ -70,7 +70,7 @@ const OFF_BASE = new Set(['blues', 'pole', 'sing', 'djMix', 'djHype', 'crouch'])
 /* ── 상태 선택 ── */
 function decide(r, u, mc, g) {
   const L = LIB[g], base = u.mBase || 'idle', now = mc.now;
-  if (u.bAct || u.kissK || u.ikLock || u.handTgt || (u.cfix && Object.keys(u.cfix).length) || OFF_BASE.has(base) || u.polePhase != null && base === 'pole') return null;
+  if (u.bAct || u.kissK || u.ikLock || u.handTgt || (u.cfix && Object.keys(u.cfix).length) || OFF_BASE.has(base) || u.polePhase != null && base === 'pole') { if (OFF_BASE.has(base) || u.bAct) mc.wasSeated = false; return null; }   // v56 앉아 있다가 블루스로 일어난 사람: 춤이 끝난 뒤 엉뚱하게 '일어서기' 동작이 나오지 않게
   if (base === 'sit' || base === 'sitTalk') {
     if (!mc.wasSeated) { mc.wasSeated = true; if (now - (mc.lastWalk || -9) < 1.5) mc.oneShot = { name: L.sitDown, until: now + 4.2, ts: 1.15 }; }   // 걸어와 앉을 때만 앉는 동작(처음부터 앉아 있던 사람은 바로 앉은 자세)
     if (mc.oneShot && mc.oneShot.name === L.sitDown && now < mc.oneShot.until) return { name: L.sitDown, once: true, ts: 1.15, seat: true };
@@ -90,8 +90,16 @@ function decide(r, u, mc, g) {
     mc.walkName = nm; return { name: nm, walk: true };
   }
   if (base === 'groove' || base === 'stageDance') {
-    const pool = base === 'stageDance' ? L.stage : L.dance;
-    if (!mc.dancePick || mc.dancePick.base !== base || now > mc.dancePick.until) mc.dancePick = { base, name: pick(pool, H(u, 21 + Math.floor(now / 60))), until: now + 45 + 40 * H(u, 5) };
+    /* v56 성격별 춤(손님): 수줍음 = 담백·감성 · 쿨 = 쿨 · 활발 = 강렬·쿨·감성 · 장난 = 익살·감성 — 느린 곡(BPM<100)이면 누구나 담백·감성 쪽으로
+     *  + 자연스러운 쉬는 구간: 성격에 따라 20~70초마다 3~7초 동안 박자만 타며 숨 고르기(둘러보기·숨쉬기 대기 동작) */
+    let pool = base === 'stageDance' ? L.stage : L.dance;
+    if (base === 'groove') { const pre = g + '_dancing_', A = NC.Audio, slow = A && A.bpm && A.bpm < 100, tr = u.trait || ['outgoing', 'cool', 'playful', 'shy'][Math.floor(H(u, 61) * 4)];
+      const want = slow ? ['neutral', 'affective'] : { shy: ['neutral', 'affective'], cool: ['cool', 'neutral'], outgoing: ['aggressive', 'cool', 'affective'], playful: ['silly', 'affective', 'cool'] }[tr] || null;
+      if (want) { const p2 = pool.filter(n => want.some(w => n === pre + w)); if (p2.length) pool = p2; }
+      const pz = mc.pz || (mc.pz = { next: now + 20 + 50 * H(u, 62), until: 0 }), gap = { shy: 22, cool: 40, outgoing: 60, playful: 45 }[tr] || 45;
+      if (now > pz.next) { pz.until = now + 3 + 4 * H(u, 63 + Math.floor(now)); pz.next = pz.until + gap * (.7 + .6 * H(u, 64 + Math.floor(now))); }
+      if (now < pz.until) { const ip = L.idle.filter(n => /breathe|look_around|neutral_0[12]/.test(n)); return { name: pick(ip.length ? ip : L.idle, H(u, 65)) }; } }
+    if (!mc.dancePick || mc.dancePick.base !== base || now > mc.dancePick.until || !pool.includes(mc.dancePick.name)) mc.dancePick = { base, name: pick(pool, H(u, 21 + Math.floor(now / 60))), until: now + 45 + 40 * H(u, 5) };
     return { name: mc.dancePick.name, dance: true };
   }
   if (base === 'drunkIdle') return { name: L.drunkIdle };

@@ -237,7 +237,9 @@ const attach0 = async (root, url, opt = {}) => {
   if (u.procHidden) { u.procHidden.forEach(o => { if (keep.has(o)) o.visible = true; else if (!hidden.includes(o)) hidden.push(o); }); u.procHidden = null; }   // v53 잔·마이크는 다시 보이게   // v50 미리 숨겨 둔 절차적 메시도 함께 관리
   /* v47 척추 분산: rig 는 몸통 관절이 하나 → 모델의 척추 뼈 2~3개(Spine·Spine1·Spine2)에 45·30·25% 로 나눠 휘게(한 덩어리로 꺾이지 않음) */
   const SP = []; { let b = Bn.spine; for (let i = 0; i < 3 && b; i++) { SP.push({ b, rest: b.quaternion.clone() }); b = b.children.find(c => /spine/i.test(c.name) && (c.isBone || c.type === 'Bone')); } }
-  const hipsY0 = Bn.hips.position.y, rec = { lod: !!opt.lod, k: 0, SP, root, u, model, holder, J, HC, Bn, sc: (u.look && u.look.height || 1.7) / 1.7, sep: new T.Vector3(), baseY: holder.position.y, s, hipsY0, hidden, url, face: faceRig(model), pinned: !!opt.pinned, blinkW: 0, redraw0: u.redraw };
+  let hfL = null, huL = null; if (Bn.head) { root.updateMatrixWorld(true); const qh = Bn.head.getWorldQuaternion(new T.Quaternion()).invert(), qr = root.getWorldQuaternion(new T.Quaternion()); hfL = new T.Vector3(0, 0, 1).applyQuaternion(qr).applyQuaternion(qh).normalize(); huL = new T.Vector3(0, 1, 0).applyQuaternion(qr).applyQuaternion(qh).normalize(); }
+  let ank0 = null; if (Bn.footL && Bn.footR) { root.updateMatrixWorld(true); const ry = root.getWorldPosition(new T.Vector3()).y; ank0 = (Math.min(Bn.footL.getWorldPosition(new T.Vector3()).y, Bn.footR.getWorldPosition(new T.Vector3()).y) - ry) / (root.scale.y || 1); }   // v56 선 자세 발목 높이(발 고정 기준)   // v56 머리 뼈 기준 얼굴 앞·위 방향(입술·이마 위치 계산용)
+  const hipsY0 = Bn.hips.position.y, rec = { lod: !!opt.lod, k: 0, SP, root, u, model, holder, J, HC, Bn, sc: (u.look && u.look.height || 1.7) / 1.7, sep: new T.Vector3(), baseY: holder.position.y, s, hipsY0, hidden, url, face: faceRig(model), hfL, huL, ank0, pinned: !!opt.pinned, blinkW: 0, redraw0: u.redraw };
   u.real = rec; u.redraw = () => { u.faceDirty = false; };
   RH.list.push(rec); RH.stats.attached = RH.list.length; return rec;
 };
@@ -299,9 +301,12 @@ function apply(r, dt) {
  *  ③ 발 고정(Foot Locking): 몸이 움직여도 발은 바닥에 붙어 있고, 발이 자연 위치에서 9cm 넘게 벌어지면 0.32초에 걸쳐 들었다 다시 디딤(한 번에 한 발)
  *     → 다리 2관절 IK(mocap.js ik2)로 무릎이 저절로 굽음  ④ 호흡: 가슴 1% 부피 변화(2.5초 주기)  · 블루스 중(u.footPlant 가 0.2초 안에 갱신)에만 ①~③ */
 const _fp = new T.Vector3(), _fq = new T.Quaternion(), _fa = new T.Vector3(), _fb = new T.Vector3();
-function coupleBody(r, u, dt) {
+function coupleBody(r, u, dt) { coupleBody0(r, u, dt); try { faceIK(r, u); } catch (e) { if (!RH._fErr) { RH._fErr = 1; console.warn('[faceIK]', e); } } }
+function coupleBody0(r, u, dt) {
   const now = performance.now(), F = u.footPlant && now - u.footPlant.t < 200 ? u.footPlant : null, Bn = r.Bn;
-  r.fpW = (r.fpW || 0) + ((F ? (F.w ?? 1) : 0) - (r.fpW || 0)) * Math.min(1, dt * 5); const w = r.fpW;
+  const lockOK = F && !u.moving && !u.seated;   // v56 걸어오는 중·앉아 있는 중에는 발을 고정하지 않음(고정된 발을 끌고 걸어 무릎이 굽고 구부정해지던 원인)
+  if (u.moving || u.seated) r.fp = null;
+  r.fpW = (r.fpW || 0) + ((lockOK ? (F.w ?? 1) : 0) - (r.fpW || 0)) * Math.min(1, dt * 4); const w = r.fpW;
   /* 호흡: 가슴 뼈를 뼈 방향에 수직인 두 축으로만 ±1% (2.5초 주기, 사람마다 위상 다름) */
   const ch = Bn.chest || Bn.spine; if (ch && !r.lod) { if (!r.br) { const c = ch.children.find(x => x.isBone), d = c ? c.position.clone().normalize() : new T.Vector3(0, 1, 0), ax = [Math.abs(d.x), Math.abs(d.y), Math.abs(d.z)]; r.br = { along: ax.indexOf(Math.max(...ax)), s0: ch.scale.clone(), ph: Math.random() * 6.28 }; }
     const k = 1 + .01 * Math.sin(now / 1000 * Math.PI * 2 / 2.5 + r.br.ph), s0 = r.br.s0; ch.scale.set(s0.x * (r.br.along === 0 ? 1 : k), s0.y * (r.br.along === 1 ? 1 : k), s0.z * (r.br.along === 2 ? 1 : k)); }
@@ -313,7 +318,8 @@ function coupleBody(r, u, dt) {
   const fp = r.fp || (r.fp = { L: null, R: null, step: null });
   for (const sd of ['L', 'R']) {
     const A = Bn['ul' + sd], B = Bn['ll' + sd], C = Bn['foot' + sd]; const nat = C.getWorldPosition(new T.Vector3());
-    let st = fp[sd]; if (!st) { st = fp[sd] = { p: nat.clone(), y0: nat.y - floorY - (toe - drop) * w, from: null, t: 0 }; }
+    let st = fp[sd]; const a0 = r.ank0 != null ? Math.max(.03, r.ank0 * sc) : null; if (!st) { st = fp[sd] = { p: nat.clone(), y0: a0 ?? Math.max(.03, Math.min(.16, nat.y - floorY - (toe - drop) * w)), from: null, t: 0 }; }
+    if (!st.from && Math.hypot(nat.x - st.p.x, nat.z - st.p.z) > .3) { st.p.copy(nat); }   // 너무 벌어지면(밀림·순간 이동) 다리를 늘이지 말고 그 자리에 다시 디딤
     const restY = floorY + Math.max(.02, st.y0) + toe * w * .8;                              // 발목 높이(까치발이면 그만큼 위)
     if (st.from) { st.t += dt / .32; const q = Math.min(1, st.t), e = q * q * (3 - 2 * q); st.p.copy(st.from).lerp(nat, e); st.p.y = restY + Math.sin(Math.PI * q) * .035; if (q >= 1) { st.from = null; fp.step = null; } }
     else { const dx = nat.x - st.p.x, dz = nat.z - st.p.z; st.p.y = restY; if (Math.hypot(dx, dz) > .09 && !fp.step) { st.from = st.p.clone(); st.t = 0; fp.step = sd; } }
@@ -323,6 +329,40 @@ function coupleBody(r, u, dt) {
         const axis = new T.Vector3().crossVectors(d, new T.Vector3(0, -1, 0)); if (axis.lengthSq() > 1e-6) { axis.normalize(); const ang = Math.min(.45, Math.asin(Math.min(.9, toe * w * 1.6 / Math.max(.08, len * 1.4))));
           const qw = C.getWorldQuaternion(new T.Quaternion()), dq = _fq.setFromAxisAngle(axis, ang), pq = C.parent.getWorldQuaternion(new T.Quaternion()).invert(); C.quaternion.copy(pq.multiply(dq.multiply(qw))); } } } }
   }
+}
+
+/* v56 얼굴 접촉 IK(키스·이마·볼): 보이는 모델의 가슴·목·머리 3관절 CCD 로 내 입술(이마)을 두 사람 사이의 만나는 점까지 옮기고, 코가 부딪치지 않게 서로 반대로 고개를 기울임
+ *  · 만나는 점 = 두 사람의 'IK 전' 입술 위치의 중간(키 큰 사람이 더 많이 숙이고 작은 사람은 고개를 듦) — 입술 사이 1.2cm 를 남김
+ *  · 관절 한계: 가슴 0.32 · 목 0.5 · 머리 0.55 rad (원래 자세 기준) · 가중치 w 로 부드럽게 들어가고 빠짐 */
+const FACE_LIM = [.42, .36, .12];   // 머리 · 목 · 가슴(원래 자세 기준 최대 회전) — 가슴은 조금만(허리를 꺾어 들이받는 자세 방지)
+function facePt(r, mode, side) {
+  const H = r.Bn.head; if (!H || !r.hfL) return null; const q = H.getWorldQuaternion(new T.Quaternion()), k = r.sc * (r.root.scale.y || 1), f = r.hfL.clone().applyQuaternion(q), up = r.huL.clone().applyQuaternion(q), p = H.getWorldPosition(new T.Vector3()), rt = new T.Vector3().crossVectors(up, f).normalize();
+  if (mode === 'brow') return p.addScaledVector(f, .095 * k).addScaledVector(up, .085 * k);
+  if (mode === 'cheek') return p.addScaledVector(f, .065 * k).addScaledVector(up, .02 * k).addScaledVector(rt, (side || 1) * .055 * k);
+  if (mode === 'ear') return p.addScaledVector(up, .03 * k).addScaledVector(rt, (side || 1) * .075 * k);
+  return p.addScaledVector(f, .1 * k).addScaledVector(up, -.008 * k);   // 입술
+}
+RH.facePt = facePt;
+function faceIK(r, u) {
+  const F = RH.noFace ? null : u.faceTgt, now = performance.now(), on = F && now - F.t < 200 && F.partner && F.partner.userData.real && !F.partner.userData.real.pending;
+  r.fW = (r.fW || 0) + ((on ? F.w : 0) - (r.fW || 0)) * .25; if (!on) { r.fRaw = null; return; }
+  const me = F.mode === 'cheek' || F.mode === 'ear' ? 'lips' : F.mode;   // 볼·귀: 내 입술 → 상대 볼/귀
+  const p0 = facePt(r, me); if (!p0) return; r.fRaw = { lips: facePt(r, 'lips'), brow: facePt(r, 'brow') };
+  const R2 = F.partner.userData.real, other = F.mode === 'cheek' || F.mode === 'ear' ? facePt(R2, F.mode, F.side) : (R2.fRaw && R2.fRaw[me]) || facePt(R2, me); if (!other) return;
+  const w = Math.min(1, r.fW); if (w < .01) return;
+  const share = F.share ?? .5, dir = other.clone().sub(p0), dist = dir.length(); if (dist < 1e-4) return; dir.divideScalar(dist);
+  const gap = F.gap ?? .012, tgt = p0.clone().addScaledVector(dir, Math.max(0, (dist - gap) * share));
+  const chain = [r.Bn.head, r.Bn.neck, r.Bn.chest || r.Bn.spine].filter(Boolean); const q0 = chain.map(b => b.quaternion.clone());
+  const cur = () => facePt(r, me), qa = new T.Quaternion(), qb = new T.Quaternion(), va = new T.Vector3(), vb = new T.Vector3(), jp = new T.Vector3();
+  for (let it = 0; it < 4; it++) for (let i = 0; i < chain.length; i++) { if (i === 2 && it < 2) continue;   /* 머리·목으로 먼저 맞추고, 모자라면 가슴을 조금 */ const J = chain[i]; J.updateMatrixWorld(true); J.getWorldPosition(jp); const c = cur(); va.copy(c).sub(jp); vb.copy(tgt).sub(jp); if (va.lengthSq() < 1e-8 || vb.lengthSq() < 1e-8) continue;
+    qa.setFromUnitVectors(va.normalize(), vb.normalize()); qa.slerp(qb.identity(), .35);   // 감쇠
+    const wq = J.getWorldQuaternion(new T.Quaternion()), pq = J.parent.getWorldQuaternion(new T.Quaternion()).invert(); J.quaternion.copy(pq.multiply(qa.multiply(wq)));
+    const ang = q0[i].angleTo(J.quaternion), lim = FACE_LIM[i]; if (ang > lim) J.quaternion.copy(q0[i]).slerp(J.quaternion.clone(), lim / ang); J.updateMatrixWorld(true); }
+  /* 고개 기울임: 상대를 향한 축으로 회전(코가 엇갈림) */
+  if (F.tilt && r.Bn.head) { const H = r.Bn.head; H.updateMatrixWorld(true); const ax = other.clone().sub(H.getWorldPosition(new T.Vector3())).normalize(), wq = H.getWorldQuaternion(new T.Quaternion()), pq = H.parent.getWorldQuaternion(new T.Quaternion()).invert();
+    H.quaternion.copy(pq.multiply(new T.Quaternion().setFromAxisAngle(ax, F.tilt).multiply(wq))); }
+  if (w < .999) chain.forEach((b, i) => b.quaternion.copy(q0[i].clone().slerp(b.quaternion.clone(), w)));
+  chain[chain.length - 1].updateMatrixWorld(true);
 }
 
 /* ── v46 거리 기반 3단계: 근거리 N명 = 고해상도(표정·손가락) · 중거리 = 경량 LOD 모델 · 원거리 = 기존 절차적 몸 ──
@@ -394,7 +434,8 @@ function sepCouple(dt) {
   const pairs = n && P ? [[P, n.g]] : []; const live = new Set();
   for (const [ga, gb] of pairs) { const ra = ga.userData.real, rb = gb.userData.real; if (!ra || !rb || ra.pending || rb.pending) continue; live.add(ra); live.add(rb);
     const A = RH.body(ga), B = RH.body(gb); if (!A || !B) continue; let best = 0, dir = null;
-    for (const ca of A.C) { if (ca.tag !== 'torso' && ca.tag !== 'head') continue; for (const cb of B.C) { if (cb.tag !== 'torso' && cb.tag !== 'head') continue;
+    const fa = [ga, gb].some(g => g.userData.faceTgt && performance.now() - g.userData.faceTgt.t < 200);   // v56 얼굴 접촉 중엔 머리끼리 밀어내지 않음(얼굴 IK 가 1cm 앞에서 멈춤) — 코끝 겹침으로 입술이 10cm 떨어져 멈추던 원인
+    for (const ca of A.C) { if (ca.tag !== 'torso' && ca.tag !== 'head') continue; for (const cb of B.C) { if (cb.tag !== 'torso' && cb.tag !== 'head') continue; if (fa && (ca.tag === 'head' || cb.tag === 'head')) continue;
       for (let i = 0; i <= 4; i++) { const pa = ca.a.clone().lerp(ca.b, i / 4), ta = ca.ra + (ca.rb - ca.ra) * i / 4, t = segPt(cb, pa, _cp), rb2 = cb.ra + (cb.rb - cb.ra) * t, d = _cp.distanceTo(pa), pen = ta + rb2 - .012 - d;
         if (pen > best) { best = pen; dir = pa.clone().sub(_cp); } } } }
     const want = new T.Vector3(); if (dir) { dir.y = 0; if (dir.lengthSq() > 1e-8) want.copy(dir.normalize()).multiplyScalar(Math.min(.12, best) * .5); }
