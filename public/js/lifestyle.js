@@ -311,7 +311,7 @@ const bar = document.createElement('div'); bar.id = 'seatBar'; document.body.app
 let barSig = '';
 function seatBar() {
   const p = P(), s = p.seat, inRoom = NC.Karaoke && NC.Karaoke.inRoom;
-  if (!s || p.busy || inRoom || s.kind === 'karaoke') { if (barSig) { bar.innerHTML = ''; bar.style.display = 'none'; barSig = ''; } return; }
+  if (!s || p.busy || inRoom || s.kind === 'karaoke' || s.kind === 'motel') {   /* v58 모텔 객실은 자체 하단 바(motel.js) */ if (barSig) { bar.innerHTML = ''; bar.style.display = 'none'; barSig = ''; } return; }
   const btns = [];
   if (s.kind === 'bar') btns.push(['🍸 주문', barMenu]); else btns.push(['🔔 웨이터 호출', () => { if (s.kind === 'table' && NC.TableLife) NC.TableLife.waveLamp(s.t); const st = s.kind === 'table' ? NC.standPos(s.t, s.s) : { x: W.vip[s.room].seats[s.s].x + 1, z: Math.min(W.vip[s.room].seats[s.s].z, 17.4) }; dispatchWaiter(st, { kind: s.kind, room: s.room, seat: s }, '부르셨어요? 😊'); }]);
   if (life.drink) btns.push(['🍹 마시기', sip]); btns.push(['🥂 건배', cheers]);

@@ -22,7 +22,12 @@ NC.device = { gpu: GPU, weakGPU, lowMem, tier: mobile ? (weakGPU || lowMem ? 'mo
 const level = LEVELS[U.store.get('nc_quality', '')] ? U.store.get('nc_quality', '') : (mobile ? 'low' : (weakGPU || lowMem) ? 'mid' : 'high');
 const Q = NC.quality = Object.assign({ level }, LEVELS[level]);
 NC.setQuality = lv => { if (!LEVELS[lv]) return; U.store.set('nc_quality', lv); location.reload(); };
+/* v57 아이폰·아이패드: 화질을 '높음'으로 골라도 해상도 배율 1.25·그림자 끔으로 제한 — Safari 탭 GPU 메모리 한도(넘으면 페이지가 강제로 다시 열림 = '튕김') */
+const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); NC.isIOS = IOS;
+if (IOS) { Q.pr = Math.min(Q.pr, 1.25); Q.shadows = false; }
 R.setPixelRatio(Math.min(devicePixelRatio || 1, Q.pr));
+/* v57 그래픽 메모리 부족으로 WebGL 이 끊기면(아이폰에서 흔함) 검은 화면에 멈추지 않고 안내 후 다시 불러옴 — 로그인·설정은 그대로 */
+R.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); try { const o = document.createElement('div'); o.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(10,4,24,.92);color:#fff;font:600 16px sans-serif;text-align:center;padding:24px'; o.innerHTML = '그래픽 메모리가 부족해 화면을 다시 불러오는 중이에요…'; document.body.appendChild(o); } catch (er) { } try { sessionStorage.setItem('nc_ctxLost', String(Date.now())); } catch (er) { } setTimeout(() => location.reload(), 1200); }, false);
 R.shadowMap.enabled = Q.shadows; R.shadowMap.type = T.PCFSoftShadowMap; R.shadowMap.autoUpdate = true;
 if (Q.post) R.toneMapping = T.NoToneMapping;          // 톤매핑은 최종 합성 셰이더에서(블룸이 HDR 값에 작용하도록)
 const EXPOSURE = 1.15;

@@ -252,6 +252,15 @@ const BASE = {
 
 /* ── 제스처 (dur 초, 기본 표정) ── */
 const GEST = {
+  /* v60 모텔 19+ — 가위바위보 · 따르기 · 로션 · 기지개 · 머리 말리기 · 막춤 */
+  rpsPump: { dur: 1.5, f(p, t) { const b = Math.abs(Math.sin(Math.min(t, 1.2) * Math.PI * 2.5)); p.shR = [-1.05, 0, -.18]; p.elR = [-1.15 + .55 * b, 0, 0]; p.torso = [.05, 0, 0]; } },
+  rpsShow: { dur: 2.4, f(p, t) { const k = Math.min(1, t / .2); p.shR = [-1.3 * k, 0, -.15]; p.elR = [-.25, 0, 0]; p.torso = [.06, 0, 0]; } },
+  pour: { dur: 2.2, f(p, t) { const k = Math.min(1, t / .4, (2.2 - t) / .4); p.shR = [-.95 * k, 0, -.35]; p.elR = [-.7, 0, -.5 * k]; p.shL = [-.7 * k, 0, .2]; p.elL = [-1.3, 0, 0]; p.torso = [.12 * k, 0, 0]; p.head = [.25 * k, 0, 0]; }, glass: true },
+  lotion: { dur: 3.2, expr: 'smile', f(p, t) { const k = Math.min(1, t / .4, (3.2 - t) / .4), q = Math.sin(t * 7); p.shL = [-.85 * k, 0, .35]; p.elL = [-1.25 * k, 0, 0]; p.shR = [-.75 * k, 0, -.55 + .12 * q]; p.elR = [-1.85 * k + .25 * q, 0, 0]; p.head = [.3 * k, -.15, 0]; p.torso = [.1 * k, 0, 0]; } },
+  stretch: { dur: 2.6, expr: 'smile', f(p, t) { const k = Math.sin(Math.min(1, t / 2.4) * Math.PI); p.shL = [0, 0, -2.7 * k]; p.shR = [0, 0, 2.7 * k]; p.elL = [-.4 * k, 0, 0]; p.elR = [-.4 * k, 0, 0]; p.torso = [-.12 * k, 0, 0]; p.head = [-.25 * k, 0, 0]; } },
+  towelDry: { dur: 2.8, expr: 'smile', f(p, t) { const k = Math.min(1, t / .4, (2.8 - t) / .4), q = Math.sin(t * 9); p.shL = [-.5 * k, 0, -2.1 * k]; p.shR = [-.5 * k, 0, 2.1 * k]; p.elL = [-2.0 * k, 0, .15 * q]; p.elR = [-2.0 * k, 0, -.15 * q]; p.head = [.25 * k, .1 * q, 0]; } },
+  funnyDance: { dur: 3.0, expr: 'laugh', f(p, t) { const s = Math.sin(t * 9), c = Math.cos(t * 4.5); p.shL = [-.4, 0, -1.4 + .8 * s]; p.shR = [-.4, 0, 1.4 + .8 * s]; p.elL = [-1.4, 0, 0]; p.elR = [-1.4, 0, 0]; p.torso = [.05, .45 * c, .12 * s]; p.bodyX = .06 * c; p.bodyY = .05 * Math.abs(s); p.head = [0, -.3 * c, .15 * s]; } },
+  shiver: { dur: 1.2, expr: 'surprised', f(p, t) { const k = Math.exp(-t * 2.2), q = Math.sin(t * 40) * k; p.shL = [-.35, 0, .6 * k]; p.shR = [-.35, 0, -.6 * k]; p.torso = [.08 * k, q * .08, 0]; p.head = [.15 * k, q * .1, 0]; } },
   drink: { dur: 2.2, f(p, t) { const k = U.clamp((t - .6) / .4, 0, 1) * U.clamp((1.6 - t) / .3, 0, 1); p.shR = [-.55, 0, -.38]; p.elR = [-2.35, 0, 0]; p.head = [-.22 * k, 0, 0]; }, glass: true },
   smoke: { dur: 3.0, f(p, t) { const k = U.clamp((t - .5) / .4, 0, 1) * U.clamp((2.3 - t) / .4, 0, 1); p.shR = [-.55, 0, -.38]; p.elR = [-2.35, 0, 0]; p.head = [-.22 * k, 0, 0]; } },
   cheers: { dur: 1.8, expr: 'smile', f(p, t) { const bump = Math.exp(-Math.pow((t - .8) * 8, 2)); p.shR = [-1.35 - .14 * bump, 0, -.15]; p.elR = [-.45, 0, 0]; p.torso = [.08, 0, 0]; }, glass: true },
@@ -324,7 +333,7 @@ function faceBudget() { const t = performance.now(); if (t - fbT > 14) { fbT = t
 /* ═════ v40 실사감: 관절 이음살 · 손가락 굽힘 · 치마 관성 ═════ */
 const _qi = new THREE_Q(), _qh = new THREE_Q();
 function THREE_Q() { return new NC.THREE.Quaternion(); }
-const HAND_POSE = { relaxed: [.34, .02], hold: [.5, .03], touch: [.16, .07], cup: [.3, .03], grip: [.78, 0], open: [.06, .1], glass: [.62, .01] };   // [굽힘, 벌림] · v56 hold = 블루스 홀드의 '부드럽게 쥔 손'(손가락이 상대 어깨·허리 곡면을 따라 말림, 펴진 손 X)
+const HAND_POSE = { relaxed: [.34, .02], hold: [.5, .03], touch: [.16, .07], cup: [.3, .03], grip: [.78, 0], open: [.06, .1], glass: [.62, .01], rock: [.9, 0], paper: [.03, .14], scissors: [.85, .14, [.02, .03, .95, 1]] };   // v60 가위바위보: 손가락별 굽힘(검지·중지 펴고 약지·소지 접음)   // [굽힘, 벌림] · v56 hold = 블루스 홀드의 '부드럽게 쥔 손'(손가락이 상대 어깨·허리 곡면을 따라 말림, 펴진 손 X)
 function bridges(u) {
   const B = u.bridges; if (!B) return;
   for (const b of B) { if (b.x) b.g.rotation.x = -b.src.rotation.x * .5; else if (b.q) { _qi.copy(b.src.quaternion).invert(); b.g.quaternion.copy(_qh.identity()).slerp(_qi, .5); } }
@@ -334,7 +343,8 @@ function fingers(u, dt) {
   for (const sd of ['L', 'R']) { const h = u.hands[sd], F = h && h.userData.fingers; if (!F) continue;
     let pose = (u.handPose && u.handPose[sd]) || 'relaxed'; if (sd === 'R' && u.holdGlass && pose === 'relaxed') pose = 'glass';
     const [c, sp] = HAND_POSE[pose] || HAND_POSE.relaxed, br = Math.sin(t * 1.3 + (sd === 'L' ? 0 : 2)) * .025;   // 아주 미세한 손가락 움직임(완전히 멈춘 손 = 마네킹)
-    F.forEach((f, i) => { const c1 = (c + br * (i % 2 ? 1 : -1)) * f.w; f.k1.rotation.x += (.18 + c1 * 1.15 - f.k1.rotation.x) * k; f.k2.rotation.x += (c1 * 1.25 - f.k2.rotation.x) * k; f.k1.rotation.z += (f.sp * sp - f.k1.rotation.z) * k; });
+    const pf = (HAND_POSE[pose] || [])[2];
+    F.forEach((f, i) => { const c1 = ((pf ? pf[i] : c) + br * (i % 2 ? 1 : -1)) * f.w; f.k1.rotation.x += (.18 + c1 * 1.15 - f.k1.rotation.x) * k; f.k2.rotation.x += (c1 * 1.25 - f.k2.rotation.x) * k; f.k1.rotation.z += (f.sp * sp - f.k1.rotation.z) * k; });
     const th = h.userData.thumb; if (th) th.rotation.x += ((.5 + c * .6) - th.rotation.x) * k; }
 }
 function skirtSway(a, u, dt) {   // 엉덩이 이동·회전을 반 박자 늦게 따라가는 스프링(무게 있는 원단)
@@ -395,7 +405,7 @@ function update(a, dt, opt = {}) {
   if (u.faceDirty && (opt.near !== false || talking) && (talking || faceBudget())) u.redraw();   // v34 얼굴 다시 그리기는 프레임당 몇 명만(모바일 1명) — GPU 업로드 폭주로 화면이 끊기던 문제
 }
 
-NC.Motion = { update, play, bridges, secondary, trigger, TRIGGERS, EMOTION_TRIGGER, GEST: Object.keys(GEST), BASE: Object.keys(BASE) };
+NC.Motion = { update, play, bridges, secondary, trigger, TRIGGERS, EMOTION_TRIGGER, GEST: Object.keys(GEST), BASE: Object.keys(BASE), HAND_POSE };
 // 기존 API 호환
 NC.seatAvatar = (a, x, z, ry, h = .5) => { a.position.set(x, NC.groundY ? NC.groundY(x, z) : 0, z); a.rotation.y = ry; const u = a.userData; u.seated = true; u.moving = false; u.dance = null; u.seatH = h; };
 NC.unseatAvatar = (a, x, z) => { const u = a.userData; u.seated = false; u.talk = false; if (x != null) a.position.set(x, NC.groundY ? NC.groundY(x, z) : 0, z); };

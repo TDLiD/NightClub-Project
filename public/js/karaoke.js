@@ -645,7 +645,7 @@ function clubLeave(n, line) {                           // 클럽: 기분 상한
   if (NC.Dialog.cur && NC.Dialog.cur.n === n) { NC.Dialog.npcSay(line, 'annoyed'); setTimeout(() => NC.Dialog.cur && NC.Dialog.cur.n === n && NC.Dialog.close('left'), 1600); }
   setTimeout(() => { n.cool = 180; n.rejectedAt = Date.now(); NC.NPC.goTo(n, { x: (Math.random() - .5) * 14, z: -6 + Math.random() * 3 }, () => { n.state = 'wander'; }); }, 1900);
 }
-const can = (n, need, kissed) => n.aff >= need && (!kissed || n.bl.kissed);
+const can = (n, need, kissed) => (NC.adminMax && NC.adminMax()) ? (n.aff = 100, true) : n.aff >= need && (!kissed || n.bl.kissed);   // v59 👑 관리자 테스트 모드: 모든 블루스 동작 수락
 const P_ = s => U.pick(s);
 const REACT = {      // out: accept(받아 줌) · stop(손을 잡아 제지) · refuse(뿌리침/외면) — 기준은 상대 호감도(=동의)
   whisper: n => can(n, 40) ? { out: 'accept', d: 2, e: 'laugh', line: P_(['ㅋㅋㅋ 간지러워요~ 뭐라고요? 한 번 더 말해 줘요', '(귀가 빨개지며) …진짜요? 나도요 ㅎㅎ']) } : { out: 'refuse', d: -1, e: 'shy', line: '음악 때문에 잘 안 들려요 ㅎㅎ' },
@@ -659,7 +659,7 @@ const REACT = {      // out: accept(받아 줌) · stop(손을 잡아 제지) ·
   hug: n => can(n, 55) ? { out: 'accept', d: 2, e: 'shy', line: P_(['…따뜻하다. 좀 더 이러고 있어요', '헤헤, 갑자기 왜요 ㅎㅎ 좋아요']) } : { out: 'refuse', d: -1, e: 'shy', g: 'headshake', line: '앗, 너무 가까워요 ㅎㅎ 천천히요~' },
   backhug: n => can(n, 75) ? { out: 'accept', d: 3, e: 'shy', line: P_(['(손을 포개며) …이대로 노래 끝날 때까지 있어요', '뒤에서 안으니까 더 설레요… 💗']) } : { out: 'refuse', d: -2, e: 'shy', line: '(살짝 빠져나오며) 아직 거기까진 아니에요 ㅎㅎ' },
   kiss: n => {
-    if (n.aff >= 80 && performance.now() - BL.t0 > 4000) return { out: 'accept', d: n.bl.kissed ? 2 : 5, e: 'kiss', kiss: 2.6, line: n.bl.kissed ? P_(['…또요? ㅎㅎ 좋아요', '오늘 밤 진짜 이상하다… 좋은 쪽으로요 💗']) : P_(['……. (살짝 웃으며 눈을 감는다) 💋', '이러면 반칙인데… 그래도 좋아요 💗']) };
+    if (n.aff >= 80 && (performance.now() - BL.t0 > 4000 || (NC.adminMax && NC.adminMax()))) return { out: 'accept', d: n.bl.kissed ? 2 : 5, e: 'kiss', kiss: 2.6, line: n.bl.kissed ? P_(['…또요? ㅎㅎ 좋아요', '오늘 밤 진짜 이상하다… 좋은 쪽으로요 💗']) : P_(['……. (살짝 웃으며 눈을 감는다) 💋', '이러면 반칙인데… 그래도 좋아요 💗']) };
     if (n.aff >= 60) return { out: 'refuse', d: -1, e: 'shy', line: P_(['앗… 아직은 좀 이른 것 같아요 ㅎㅎ (고개를 살짝 돌린다)', '음~ 그건 조금 더 친해지고요!']) };
     return { out: 'refuse', d: -6, e: 'annoyed', g: 'push', stop: true, line: P_(['어머, 왜 이래요! 천천히 해요.', '잠깐만요, 이건 아니죠.']) };
   },

@@ -137,7 +137,7 @@ const clock = new T.Clock(); let tAcc = 0; const camTarget = new T.Vector3(), ca
  *  · PC: 초당 20프레임으로 제한   · 탭이 안 보이면 브라우저가 알아서 멈춤 */
 const startEl = $('#start'), LITE_START = (NC.quality && NC.quality.level === 'low') || matchMedia('(pointer:coarse)').matches;
 let idleAcc = 1;
-NC._enterDone = () => { if (!NC._ovFrames || NC._warmBusy) return; setTimeout(() => requestAnimationFrame(() => { const o = document.getElementById('enterOv'); if (o) { o.classList.add('fade'); setTimeout(() => o.remove(), 260); } }), 0); };
+NC._enterDone = () => { if (!NC._ovFrames || NC._warmBusy) return; setTimeout(() => requestAnimationFrame(() => { const o = document.getElementById('enterOv'); if (o) { o.classList.add('fade'); setTimeout(() => o.remove(), 160); } }), 0); };
 function frame() {
   requestAnimationFrame(frame);
   if (!P.group && startEl && startEl.style.display !== 'none') {
@@ -255,7 +255,7 @@ NC.begin = function () {
   const RH = NC.RealHuman, realOn = !!(RH && RH.active && RH.active());
   P.group = NC.Avatar.create({ name: NC.settings.name + ' (나)', look, seed: cfg.seed, expr: 'smile', hiRes: !realOn });   // v48 실사 모델이 있으면 절차적 고해상도 얼굴 생략
   if (NC.VRMKit && NC.VRMKit.playerUrl) { if (/\.glb$/i.test(NC.VRMKit.playerName || '') && NC.RealHuman) NC.RealHuman.pin(P.group, NC.VRMKit.playerUrl); else NC.VRMKit.attach(P.group, NC.VRMKit.playerUrl); }   /* v41 .glb = 실사 휴먼 */ P.group.position.set(P.x, 0, P.z); P.group.rotation.y = P.ry; NC.scene.add(P.group);
-  if (NC.isMobile || realOn) { const o = document.createElement('div'); o.id = 'enterOv'; o.innerHTML = '<div>🪩<br><b>입장 중…</b><br><small>캐릭터와 조명을 준비하고 있어요</small><span class="eoBar"><i></i></span></div>'; document.body.appendChild(o); NC._enterWait = 2; }
+  if (NC.isMobile || realOn) { const o = document.createElement('div'); o.id = 'enterOv'; o.innerHTML = '<div>🪩<br><b>입장 중…</b><br><small>캐릭터와 조명을 준비하고 있어요</small><span class="eoBar"><i></i></span></div>'; document.body.appendChild(o); NC._enterWait = 1; }   // v57 첫 화면 1프레임만 그리고(셰이더 준비) 바로 공개
   /* v48 입장 워밍업: 옛 절차적 캐릭터가 잠깐 보였다 바뀌는 문제·입장 직후 수 초 멈춤 → 오버레이 뒤에서 모든 실사 모델 장착 + 셰이더·텍스처 GPU 업로드를 끝낸 뒤 공개 */
   NC._warmBusy = realOn;
   if (realOn) setTimeout(() => RH.warm(p => { const b = document.querySelector('#enterOv .eoBar i'); if (b) b.style.width = Math.round(10 + 90 * p) + '%'; }).catch(e => console.warn(e)).then(() => { RH._warmed = true; NC._warmBusy = false; NC._enterDone && NC._enterDone(); }), 30);

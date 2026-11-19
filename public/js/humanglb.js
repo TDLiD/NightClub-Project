@@ -401,6 +401,9 @@ modelFor = (C, r) => {   // v51 이 사람에게 실패한 모델이면 같은 �
 };
 function U32(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 let budget = 0;   // 한 번(0.35초)에 새로 입히는 인원 제한 → 시작할 때 수십 명을 한꺼번에 파싱해 멈추는 것 방지
+/* v57 모바일(특히 아이폰)은 경량 모델도 텍스처 256px 판(_lodm)을 씀 — 512px 판 5장 × 사람 수십 명이 GPU 메모리를 넘겨 Safari 가 페이지를 강제로 다시 불러오던(튕김) 원인 중 하나
+ *  (사람당 GPU 텍스처 약 7MB → 1.7MB) · 받기에 실패하면 512px 판으로 */
+const lodUrl = c => { const m = c.m, bad = c.r.g.userData.realBad; if (!NC.isMobile) return m.lod; const u = m.lodm || m.lod.replace(/_lod\.glb$/, '_lodm.glb'); return bad && bad.has(u) ? m.lod : u; };
 function want(r, url, opt) {   // 같은 사람의 모델 교체: 새 파일을 먼저 받아 둔 뒤 한 번에 바꿈(깜빡임 최소)
   const u = r.g.userData, cur = u.real; if (cur && (cur.url === url || cur.next === url)) return;
   if (cur && cur.pending) return; if (budget <= 0) return; budget--;
@@ -421,7 +424,7 @@ function lod(force, from) {
   const LO = { noSkin: ['_body'], skin: ['_head'], lod: true }, HI = { noSkin: ['_body'], skin: ['_head'] };
   cand.forEach(c => {
     if (c.d < near && nN < maxN) { nN++; acts.push([c, c.m.url, HI]); }
-    else if (c.m.lod) { nM++; acts.push([c, c.m.lod, LO]); }   // v50 거리·인원 한도 없이 모든 사람에게 실사 모델(옛 절차적 캐릭터로 돌아가지 않음)
+    else if (c.m.lod) { nM++; acts.push([c, lodUrl(c), LO]); }   // v50 거리·인원 한도 없이 모든 사람에게 실사 모델(옛 절차적 캐릭터로 돌아가지 않음)
     else if (c.m.url) acts.push([c, c.m.url, HI]);
   });
   /* v48.1 처리 순서: 아직 실사 모델이 없는 사람(옛 캐릭터로 보이는 중) → 가까운 순 → 고해상도/LOD 교체는 그다음 */
@@ -461,9 +464,22 @@ function procHide() {
 }
 RH._apply = apply;   // v54 시험용(고정 dt 로 자세 계산)
 RH.procHide = procHide; RH.allRoots = () => rootsAll().map(r => r.g);
+/* v57 메모리 정리: 아무도 쓰지 않게 된 모델 파일(블루스·대화가 끝난 상대의 고해상도 모델, 멀어져 경량으로 바뀐 사람의 이전 모델 등)을
+ *  모바일 12초 · PC 40초 뒤 GPU·메모리에서 해제(지오메트리·재질·텍스처 dispose) — 이리저리 행동할수록 메모리가 쌓여 아이폰에서 튕기던 원인 */
+let evAcc = 0; const lastUse = new Map();
+function evict() {
+  const now = performance.now(), used = new Set(), keepMs = NC.isMobile ? 12000 : 40000;
+  rootsAll().forEach(r => { const re = r.g.userData.real; if (re) { re.url && used.add(re.url); re.next && used.add(re.next); } });
+  RH.list.forEach(r => r.url && used.add(r.url));
+  for (const [url, pr] of RH.cache) { if (used.has(url)) { lastUse.set(url, now); continue; } if (!LOADED.has(url)) continue; const lu = lastUse.get(url) ?? now; if (!lastUse.has(url)) lastUse.set(url, now); if (now - lu < keepMs) continue;
+    RH.cache.delete(url); LOADED.delete(url); lastUse.delete(url); RH.stats.evicted = (RH.stats.evicted || 0) + 1;
+    pr.then(g => { const seen = new Set(); g.scene.traverse(o => { if (o.geometry && !seen.has(o.geometry)) { seen.add(o.geometry); o.geometry.dispose(); }
+      (Array.isArray(o.material) ? o.material : o.material ? [o.material] : []).forEach(m => { if (seen.has(m)) return; seen.add(m); for (const k in m) { const v = m[k]; if (v && v.isTexture && !seen.has(v)) { seen.add(v); v.dispose(); } } m.dispose(); }); }); }).catch(() => { }); }
+}
 const TICK = dt => {
   try { procHide(); } catch (e) { }
   RH.frame++; acc += dt; if (acc > .35) { acc = 0; try { lod(); } catch (e) { console.warn('[real] lod', e); } }
+  evAcc += dt; if (evAcc > 4) { evAcc = 0; try { evict(); } catch (e) { } }
   for (let i = RH.list.length - 1; i >= 0; i--) { const r = RH.list[i]; if (!r.root.parent) { RH.list.splice(i, 1); continue; } if (!r.root.visible) continue; apply(r, Math.min(dt, .05)); }
   try { sepCouple(Math.min(dt, .05)); } catch (e) { }
 };
@@ -481,15 +497,19 @@ RH.prestart = async () => {
   if (!RH.active() || RH._pre) return; RH._pre = true; const C = RH.cfg, mob = NC.isMobile || Q.level === 'low', urls = [];
   const lk = NC.entry && NC.entry.buildLook ? NC.entry.buildLook() : null, me = lk && lk.realModel && RH.modelOf(lk.realModel); if (me) urls.push(me.url);
   const ids = new Set(Object.values(C.assign || {})); ['f', 'm'].forEach(g => (C.staff && C.staff[g] || []).forEach(i => ids.add(i)));
-  ids.forEach(i => { const m = RH.modelOf(i); if (m && m.lod) urls.push(m.lod); });
+  ids.forEach(i => { const m = RH.modelOf(i); if (m && m.lod) urls.push(NC.isMobile ? (m.lodm || m.lod.replace(/_lod\.glb$/, '_lodm.glb')) : m.lod); });   // v57 모바일은 256px 판을 미리 받음
+  if (NC.isMobile) urls.splice(14);   // v57 모바일: 시작 화면에서 미리 받는 수를 14개로(그 이상은 입장 뒤 필요할 때)
   const idle = () => new Promise(r => (window.requestIdleCallback ? requestIdleCallback(r, { timeout: 400 }) : setTimeout(r, 30)));
   for (const u of urls) { if (NC.started && RH._warmed) break; await idle(); try { await load(u); } catch (e) { } }
   RH.stats.preloaded = urls.length;
 };
 RH.preload = urls => urls.reduce((p, u) => p.then(() => load(u).catch(() => null)), Promise.resolve());
 /* v48 입장 직후 워밍업: 현재 카메라 기준으로 모든 대상에 모델을 즉시 입히고(예산 무제한) 셰이더·텍스처를 미리 GPU 에 올림 */
-RH.warm = async (onProg, maxMs = 1200) => {   // v55 입장 대기 단축(최대 ~9초 → 보통 1~2초): 카메라 근처(14m) 사람 + 내 캐릭터만 기다리고, 나머지는 옛 몸을 숨긴 채 뒤에서 이어서 장착
-  if (!RH.active()) return; { const tg = performance.now(); while (NC.guestsReady && !NC.guestsReady() && performance.now() - tg < 500) await new Promise(r => setTimeout(r, 50)); }   // 테이블 손님 생성 대기(최대 0.5초)
+RH.warm = async (onProg, maxMs = 1200) => {   /* v57 최소 대기: 주변 사람은 기다리지 않고(공개 뒤 차례로 나타남) 내 캐릭터만 최대 1.2초 · 모바일은 셰이더 일괄 준비·텍스처 미리 올리기 생략(아이폰에서 수 초 멈춤) */
+  maxMs = 0;   // v55 입장 대기 단축(최대 ~9초 → 보통 1~2초): 카메라 근처(14m) 사람 + 내 캐릭터만 기다리고, 나머지는 옛 몸을 숨긴 채 뒤에서 이어서 장착
+  if (!RH.active()) return;
+  if (NC.isMobile) { try { const P0 = NC.player && NC.player.group, m0 = P0 ? P0.getWorldPosition(new T.Vector3()).add(new T.Vector3(0, 2.5, 4)) : null; lod(false, m0); } catch (e) { } onProg && onProg(1); return; }   // v57 모바일: 아무것도 기다리지 않고 곧바로 공개(사람들은 가까운 순으로 이어서 나타남)
+  { const tg = performance.now(); while (NC.guestsReady && !NC.guestsReady() && performance.now() - tg < 150) await new Promise(r => setTimeout(r, 50)); }   // 테이블 손님 생성 대기(최대 0.5초)
   const t0 = performance.now(), P = NC.player && NC.player.group, me = P ? P.getWorldPosition(new T.Vector3()) : null, from = me ? me.clone().add(new T.Vector3(0, 2.5, 4)) : null; try { lod(false, from); }   /* v55 가까운 사람부터 3명씩 차례로(전원 동시 요청 → 파싱이 몰려 가까운 사람도 늦던 문제) */ catch (e) { console.warn(e); }
   /* 기다릴 대상: 내 주변 8m 안에서 가장 가까운 10명만(입장 직후 화면 앞쪽) — 나머지는 공개 뒤 옛 몸을 숨긴 채 이어서 장착 */
   const d2 = r => { if (!me) return 0; const p = r.g.position; return (p.x - me.x) ** 2 + (p.z - me.z) ** 2; };
@@ -497,7 +517,9 @@ RH.warm = async (onProg, maxMs = 1200) => {   // v55 입장 대기 단축(최대
   const pend = () => { let k = 0; watch.forEach(r => { if (r.g.userData.real && r.g.userData.real.pending) k++; }); return k; };
   const tot = Math.max(1, pend());
   while (pend() && performance.now() - t0 < maxMs) { onProg && onProg(.85 * (1 - pend() / tot)); await new Promise(r => setTimeout(r, 50)); try { lod(false, from); } catch (e) { } }
-  { const pu = P && P.userData; while (pu && pu.real && pu.real.pending && performance.now() - t0 < maxMs + 1500) await new Promise(r => setTimeout(r, 50)); }   // 내 캐릭터는 꼭 실사로 시작
+  { const pu = P && P.userData, cap = NC.isMobile ? 0 : 1200; while (pu && pu.real && pu.real.pending && performance.now() - t0 < cap) {   // 모바일: 기다리지 않음(내 캐릭터는 공개 직후 곧바로 입혀짐)
+    onProg && onProg(.3 + .6 * Math.min(1, (performance.now() - t0) / 1200)); await new Promise(r => setTimeout(r, 40)); } }
+  if (NC.isMobile) { onProg && onProg(1); return; }   // 내 캐릭터는 꼭 실사로 시작
   const rd = NC.renderer; if (!rd) return;
   try { rd.compile(NC.scene, NC.camera); } catch (e) { }
   /* 텍스처 미리 올리기는 가까운 사람만, 0.4초 예산 — 나머지는 처음 보일 때 올라감 */
