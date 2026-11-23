@@ -8,13 +8,16 @@
 (() => {
 'use strict';
 const NC = window.NC, S = NC && NC.Motel; if (!S || !S._x) { console.warn('[motel19] motel.js 가 없어요'); return; }
-const X = S._x, { T, U, L, pick, BX, RHX, RHZ, RV, box, cyl, std, nSay, meSay, sys, say, wait, beep, modal, esc, tr, memOf, impaired, adminMax, attrs, save, NEED, consent, sitBoth, standBoth, standAct, endStanding, stopHand, startHand, applyMood, EVENTS, event, photo, roomService, checkout, renderPanel, panel, bar, placePartner, updBar } = X;
+const X = S._x, { T, U, L, pick, BX, RHX, RHZ, RV, box, cyl, std, nSay, meSay, sys, say, beep, modal, esc, tr, memOf, impaired, adminMax, attrs, save, NEED, consent, sitBoth, standBoth, standAct, endStanding, stopHand, startHand, applyMood, EVENTS, event, photo, roomService, checkout, renderPanel, panel, bar, placePartner, updBar } = X;
 const K = NC.Karaoke, P = () => NC.player, CZ = 90, V3 = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z);
 const toast = t => NC.ui.toast(t), clamp = U.clamp;
 
 /* ═════════════ 0. 상태 ═════════════ */
 const Z = { out: { me: 0, n: 0 }, wear: { me: '', n: '' }, wet: { me: 0, n: 0 }, drinks: { me: 0, n: 0 }, nonAlc: { me: false, n: false }, mood: 30, lim: {}, wins: { me: 0, n: 0 }, hist: [], pm: 0,
-  touch: null, lie: null, pin: null, slide: null, shower: null, jac: { fill: 0, on: false, in: false, foam: false }, paused: false, open: U.store.get('nc_m19open', {}), games: 0 };
+  touch: null, lie: null, pin: null, slide: null, shower: null, jac: { fill: 0, on: false, in: false, foam: false }, paused: false, open: U.store.get('nc_m19open', {}), games: 0, gen: 0, runTok: 0 };
+/* v61 취소 가능한 대기 — ⏹ 그만·다른 동작으로 세대(Z.gen)가 바뀌면 이전 연출의 다음 단계가 실행되지 않음(늦게 도착한 콜백이 새 자세를 덮어쓰던 문제) */
+const CANCEL = { m19cancel: true }; addEventListener('unhandledrejection', e => { if (e.reason === CANCEL) e.preventDefault(); });
+const wait = async ms => { const g = Z.gen; await X.wait(ms); if (g !== Z.gen) throw CANCEL; };
 function resetZ() { Object.assign(Z, { out: { me: 0, n: 0 }, wear: { me: '', n: '' }, wet: { me: 0, n: 0 }, drinks: { me: 0, n: 0 }, nonAlc: { me: false, n: false }, mood: 30, lim: {}, wins: { me: 0, n: 0 }, hist: [], pm: 0, touch: null, lie: null, pin: null, slide: null, shower: null, paused: false, games: 0 }); Z.jac = { fill: 0, on: false, in: false, foam: false }; }
 const adultOk = () => !!(U.store.get('nc_adult19', 0) || (NC.account && NC.account.adult));
 function verifyAdult() { return modal(`<h3>🔞 ${L('성인 전용', 'Adults only')}</h3><p>${L('이 메뉴는 만 19세 이상 성인을 위한 콘텐츠예요.<br>등장인물은 모두 성인이며, 모든 행동은 서로 동의할 때만 진행돼요.', 'This menu is for adults (19+). All characters are adults and every action needs mutual consent.')}</p>`, [[L('네, 만 19세 이상이에요', 'Yes, I am 19+'), 1, true], [L('아니요', 'No'), 0]]).then(({ val }) => { if (val) { U.store.set('nc_adult19', 1); if (NC.account) NC.account.adult = true; } return !!val; }); }   // 실제 본인인증 API 는 여기서 연결
@@ -83,7 +86,7 @@ function refreshAll() { refresh('me'); if (S.n) refresh('n'); }
 function garmentTick() { for (const g of [P().group, S.n && S.n.g]) { const r = g && g.userData.m19; if (!r) continue; const k = g.userData.seated ? .38 : 1; r.parts.forEach(m => { if (m.userData.hip) m.scale.y = m.userData.s0 * k; }); } }
 /* 짧은 암전 — 갈아입는 순간(옷 떠다님·메시 늘어남·순간이동 없이) */
 const ov = document.createElement('div'); ov.style.cssText = 'position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .22s;z-index:9989'; document.body.appendChild(ov);
-async function blink(fn, txt) { ov.textContent = ''; ov.style.opacity = 1; await wait(240); try { fn && fn(); } catch (e) { console.warn(e); } if (txt) { ov.style.cssText += ';display:flex;align-items:center;justify-content:center;color:#fff;font:700 18px sans-serif'; ov.textContent = txt; await wait(900); } await wait(160); ov.style.opacity = 0; await wait(240); ov.textContent = ''; }
+async function blink(fn, txt) { ov.textContent = ''; ov.style.opacity = 1; try { await wait(240); try { fn && fn(); } catch (e) { console.warn(e); } if (txt) { ov.style.cssText += ';display:flex;align-items:center;justify-content:center;color:#fff;font:700 18px sans-serif'; ov.textContent = txt; await wait(900); } await wait(160); } finally { ov.style.opacity = 0; setTimeout(() => { ov.textContent = ''; }, 240); } }
 function setOut(w, v, wear) { Z.out[w] = clamp(v, 0, 5); if (wear !== undefined) Z.wear[w] = wear; refresh(w); }
 
 /* ═════════════ 2. 자세 — 눕기 · 고정 · 미끄러지듯 이동 · 손 IK ═════════════ */
@@ -95,7 +98,7 @@ function lie(spec) {   // spec: { me:{x, roll, prone}, n:{...}, sheet:bool } —
 }
 function unlie() {
   if (!Z.lie) return false; const sp = Z.lie; Z.lie = null; setSheet(false);
-  for (const w of ['me', 'n']) { if (!sp[w] || (w === 'n' && !S.n)) continue; const g = G(w); g.rotation.x = 0; g.rotation.z = 0; g.position.y = 0; }
+  for (const w of ['me', 'n']) { if (!sp[w] || (w === 'n' && !S.n)) continue; const g = G(w); g.rotation.x = 0; g.rotation.z = 0; g.position.y = 0; if (NC.Pose) NC.Pose.release(g, 'motel-lie'); }
   const p = P(), b = RV.seats.bed; p.x = BX + b[0].x; p.z = CZ + b[0].z + .5; p.group.position.set(p.x, 0, p.z);
   if (S.n) { placePartner(BX + b[1].x, CZ + b[1].z + .5, Math.PI); S.n.state = 'motel'; } S.follow = true; return true;
 }
@@ -105,7 +108,7 @@ function lieTick() {
     if (w === 'me') { const p = P(); p.x = x; p.z = z; p.ry = 0; } else { S.n.x = x; S.n.z = z; }
     g.position.set(x, y0 + (s.roll ? .06 : 0), z);
     if (s.prone) g.rotation.set(-Math.PI / 2, Math.PI, 0); else { QZ.setFromAxisAngle(ZA, s.roll || 0); g.quaternion.copy(QZ).multiply(QX); }
-    g.userData.moving = false; }
+    g.userData.moving = false; if (NC.Pose) NC.Pose.claim(g, 'motel-lie', 'lying'); }   // v61 임대: 이 틱이 멈추면(어떤 경로로 빠져나가든) 0.4초 뒤 자세 관리자가 바로 세움
 }
 let sheetM = null;
 function setSheet(on) { if (sheetM) { if (sheetM.parent) sheetM.parent.remove(sheetM); sheetM.geometry.dispose(); sheetM = null; } if (!on || !RV.G) return;
@@ -152,12 +155,14 @@ const TOUCH = {   // t: 진행(초) → { 1:+쪽 점, -1:-쪽 점 }
   face: B => ({ 1: PT.cheek(B, 1), '-1': PT.cheek(B, -1) }),
   eyes: B => ({ 1: PT.eyes(B, 1), '-1': PT.eyes(B, -1) }),
   ice: B => ({ 1: PT.shoulder(B, 1).addScaledVector(B.tu, .03) }),
+  around: (B, t, d, A) => { const a = PT.shoulder(B, 1), b = PT.shoulder(B, -1); return { 1: (a.distanceTo(A.chest) > b.distanceTo(A.chest) ? a : b).addScaledVector(B.tu, .01) }; },   // 사진: 안쪽 팔로 상대의 먼 쪽 어깨를 감쌈
+  palm: (B, t, d, A) => ({ 1: PT.waistSide(B, PT.waistSide(B, 1).distanceTo(A.chest) < PT.waistSide(B, -1).distanceTo(A.chest) ? 1 : -1) }),
 };
 function touch(kind, dur, actor = 'me', tgt = 'n') { Z.touch = { kind, t: 0, dur, actor, tgt }; }
 function touchTick(dt) {
   const tc = Z.touch, C = NC.Couple; if (!tc || !C || !S.n) return; if (!Z.paused) tc.t += dt; if (tc.t > tc.dur) { Z.touch = null; const u = G(tc.actor).userData; u.handPose = null; return; }
   const ga = G(tc.actor), gb = G(tc.tgt); ga.updateMatrixWorld(true); gb.updateMatrixWorld(true); const A = C.bodyX(ga), B = C.bodyX(gb); if (!A || !B || !A.R) return;
-  const tg = TOUCH[tc.kind](B, tc.t, tc.dur), w = Math.min(1, tc.t / .45, (tc.dur - tc.t) / .4), used = new Set();
+  const tg = TOUCH[tc.kind](B, tc.t, tc.dur, A), w = Math.min(1, tc.t / .45, (tc.dur - tc.t) / .4), used = new Set();
   for (const s of Object.keys(tg)) { const p = tg[s]; if (!p) continue; let sd = A.R.shL.getWorldPosition(V3()).distanceTo(p) < A.R.shR.getWorldPosition(V3()).distanceTo(p) ? 'L' : 'R'; if (used.has(sd)) sd = sd === 'L' ? 'R' : 'L'; used.add(sd);
     const pl = A.R['sh' + sd].getWorldPosition(V3()).sub(A.chest); pl.y = 0; pl.normalize().add(V3(0, -1, 0)); if (A.fwd) pl.addScaledVector(A.fwd, -.35);
     try { C.ikArm(A.R, sd, p, w, pl, B); } catch (e) { } }
@@ -244,7 +249,7 @@ async function secondThought(kind) {
 }
 function exitBoothNow() { const pn = Z.pin; if (!pn) return; const inB = s => s && s.x < BX - 1.5 && s.z > CZ + RHZ - 2.1; if (!inB(pn.me) && !inB(pn.n)) return; const c = RV.seats.bed, p = P();
   if (inB(pn.me)) { p.x = BX + c[0].x; p.z = CZ + c[0].z + .6; p.group.position.set(p.x, 0, p.z); } if (inB(pn.n) && S.n) placePartner(BX + c[1].x, CZ + c[1].z + .6, Math.PI); }
-function stopAll(silent) { let had = !!(Z.touch || Z.lie || Z.pin || Z.shower || Z.slide); exitBoothNow(); if (Z.jac.in) { Z.jac.in = false; if (P().seat) NC.requestStand(); if (S.n) { NC.unseatAvatar(S.n.g); placePartner(BX + RV.seats.bed[1].x, CZ + RV.seats.bed[1].z + .6, Math.PI); } had = true; } Z.touch = null; Z.slide = null; if (Z.shower) { Z.shower = null; waterSound(false); } const wasLie = unlie(); Z.pin = null; if (S.n && S.n.state === 'lying') S.n.state = 'motel'; S.follow = true; Z.paused = false; Z.running = false; return had || wasLie; }
+function stopAll(silent) { Z.gen++; try { endScene(); } catch (e) { } let had = !!(Z.touch || Z.lie || Z.pin || Z.shower || Z.slide); exitBoothNow(); if (Z.jac.in) { Z.jac.in = false; if (P().seat) NC.requestStand(); if (S.n) { NC.unseatAvatar(S.n.g); placePartner(BX + RV.seats.bed[1].x, CZ + RV.seats.bed[1].z + .6, Math.PI); } had = true; } Z.touch = null; Z.slide = null; if (Z.shower) { Z.shower = null; waterSound(false); } const wasLie = unlie(); Z.pin = null; if (S.n && S.n.state === 'lying') S.n.state = 'motel'; S.follow = true; Z.paused = false; Z.running = false; return had || wasLie; }
 
 /* ═════════════ 5. 활동 ═════════════ */
 const sitBed = () => sitBoth('bed'), sitSofa = () => sitBoth('sofa');
@@ -611,7 +616,7 @@ const GROUPS = [
     ['pm', L('🌙 둘만의 시간 (서로 동의 · 암전)', '🌙 Private moment (mutual · fade)'), privateMoment, () => lockBody()]]],
 ];
 const lab = it => typeof it[1] === 'function' ? it[1]() : it[1];
-S.extActs = []; GROUPS.forEach(([, , list]) => list.forEach(it => S.extActs.push(['x19_' + it[0], '', async () => { if (Z.running) { toast(L('⏳ 지금 하는 걸 먼저 마쳐요 (⏹ 그만으로 멈출 수 있어요)', '⏳ Finish the current activity first')); return; } const why = it[3] && it[3](); if (why) { toast(why); nSay(why.includes('취') ? '오늘은 이런 건 안 할래요. 맨정신일 때 해요 💧' : '…지금은 안 돼요 ㅎㅎ', 'smile'); return; } Z.running = true; try { await it[2](); } catch (e) { console.error('[motel19]', it[0], e); } finally { Z.running = false; } renderIfOpen(); }])));
+S.extActs = []; GROUPS.forEach(([, , list]) => list.forEach(it => S.extActs.push(['x19_' + it[0], '', async () => { if (Z.running) { toast(L('⏳ 지금 하는 걸 먼저 마쳐요 (⏹ 그만으로 멈출 수 있어요)', '⏳ Finish the current activity first')); return; } const why = it[3] && it[3](); if (why) { toast(why); nSay(why.includes('취') ? '오늘은 이런 건 안 할래요. 맨정신일 때 해요 💧' : '…지금은 안 돼요 ㅎㅎ', 'smile'); return; } const my = ++Z.runTok; Z.running = true; try { await it[2](); } catch (e) { if (e !== CANCEL) console.error('[motel19]', it[0], e); } finally { if (Z.runTok === my) Z.running = false; } renderIfOpen(); }])));
 const renderIfOpen = () => { if (panel.style.display === 'flex') renderPanel(); };
 S.extPanel = () => {
   if (S.step !== 'room' || !S.n) return ''; const chip = `<div class="m19c">${L('나', 'Me')}: ${stateTxt('me')} · ${esc(S.n.name)}: ${stateTxt('n')} · 🍷 ${Z.drinks.me}/${Z.drinks.n}${drunkN() || S.n.drunk ? ' 🥴' : ''} · 🔥 ${L('분위기', 'Mood')} ${moodNow()}</div>`;
@@ -632,6 +637,52 @@ const css = document.createElement('style'); css.textContent = `
 const pb = document.createElement('button'); pb.id = 'mPause'; pb.textContent = L('⏸ 잠깐', '⏸ Pause'); const ms = bar.querySelector('#mStop'); if (ms) bar.insertBefore(pb, ms);
 pb.onclick = () => { if (!inRoom()) return; Z.paused = !Z.paused; pb.textContent = Z.paused ? L('▶ 계속', '▶ Resume') : L('⏸ 잠깐', '⏸ Pause'); nSay(Z.paused ? pick(['응, 잠깐 쉬어요 ㅎㅎ', '천천히 해요. 숨 좀 고르고 ㅎㅎ']) : '응 ㅎㅎ', 'smile'); if (Z.paused && Z.touch) Z.touch.dur = Math.min(Z.touch.dur, Z.touch.t + .5); };
 
+/* ═════════════ 7-2. v62 장면(일반·로맨틱 활동을 사람처럼) — 시선·눈맞춤·말하고 듣기·반응을 매 프레임 조율 ═════════════
+ *  기존 활동 함수는 그대로 두고 '감싸서' 장면을 덧붙임: TV는 화면을 보다 가끔 서로 보고 같이 웃음 · 음악은 박자에 고개·어깨 · 대화는 말하는 사람이 손짓, 듣는 사람이 끄덕임 ·
+ *  창밖은 나란히 서서 밖을 봄 · 조명/음악은 스위치까지 걸어가 누름 · 사진은 나란히 붙어 안쪽 팔로 어깨를 감쌈 · 로맨틱한 말·음악은 눈맞춤과 느린 흔들림 */
+const SC = { kind: null };
+const tnow = () => performance.now() / 1000;
+const lookSc = (g, tgt) => { const u = g.userData; if (u.lookAt && !u.lookAt._sc && u.lookAt !== NC.player) return; /* 모텔 기본 눈맞춤(플레이어)보다는 장면이 우선 */ u.lookAt = tgt ? Object.assign({ _sc: 1 }, tgt) : null; };
+const posOf = g => ({ x: g.position.x, z: g.position.z });
+const gIdle = g => !(g.userData.motion && g.userData.motion.g);
+function scene(kind, o = {}) { endScene(); Object.assign(SC, { kind, t0: tnow(), next: tnow() + 2 + Math.random() * 2, spk: Math.random() < .5 ? 'n' : 'me', gl: false }, o); }
+function endScene() { if (!SC.kind) return; SC.kind = null; for (const g of [P().group, S.n && S.n.g]) if (g && g.userData.lookAt && g.userData.lookAt._sc) g.userData.lookAt = null; }
+function sceneTick(dt) {
+  if (!SC.kind || !S.n || S.alone || S.step !== 'room') return; const t = tnow(), pg = P().group, ng = S.n.g, b = NC.Audio && NC.Audio.beat ? NC.Audio.beat() : null;
+  if (t - SC.t0 > (SC.max || 90)) return endScene();
+  const each = () => { lookSc(pg, posOf(ng)); lookSc(ng, posOf(pg)); };
+  if (SC.kind === 'tv') { const tv = RV.tv ? RV.tv.getWorldPosition(V3()) : null;
+    if (t > SC.next) { SC.gl = !SC.gl; SC.next = t + (SC.gl ? 1.2 + Math.random() : 5 + Math.random() * 6); if (SC.gl && Math.random() < .45) { tryG(pg, 'laugh'); setTimeout(() => tryG(ng, 'laugh'), 250); } }
+    if (SC.gl) each(); else if (tv) { lookSc(pg, tv); lookSc(ng, tv); } }
+  else if (SC.kind === 'music') { if (t > SC.next) { SC.gl = !SC.gl; SC.next = t + (SC.gl ? 1.5 : 4 + Math.random() * 4); } if (SC.gl) each(); else { lookSc(pg, null); lookSc(ng, null); }
+    if (b) for (const [g, ph] of [[pg, 0], [ng, .12]]) { const R = g.userData.rig; if (!R) continue; const k = Math.max(0, Math.sin((b.phase + ph) * Math.PI * 2)); R.head.rotation.x += k * .06; R.neck.rotation.x += k * .02; R.torso.rotation.z += Math.sin((b.phase + ph) * Math.PI) * .025; } }
+  else if (SC.kind === 'talk') { each(); if (t > SC.next) { SC.spk = Math.random() < .7 ? (SC.spk === 'me' ? 'n' : 'me') : SC.spk; SC.next = t + 2.4 + Math.random() * 2.2; const sp = SC.spk === 'me' ? pg : ng, li = SC.spk === 'me' ? ng : pg;
+      if (gIdle(sp)) tryG(sp, 'talkHands'); if (gIdle(li) && Math.random() < .6) setTimeout(() => gIdle(li) && tryG(li, 'nod'), 700); if (SC.spk === 'n' && ng.userData.setExpr && Math.random() < .4) ng.userData.setExpr(pick(['smile', 'laugh', 'shy']), 1.5); } }
+  else if (SC.kind === 'eat') { each(); if (t > SC.next) { SC.next = t + 3 + Math.random() * 3; const g = Math.random() < .5 ? pg : ng; if (gIdle(g)) tryG(g, 'eat'); } }
+  else if (SC.kind === 'sip') { if (t > SC.next) { SC.gl = !SC.gl; SC.next = t + 2.5 + Math.random() * 3; const g = Math.random() < .5 ? pg : ng; if (gIdle(g)) tryG(g, 'drink'); } each(); }
+  else if (SC.kind === 'window') { const s = RV.spots.window, out = { x: BX + s.x - 3, z: CZ + s.z }; if (t > SC.next) { SC.gl = !SC.gl; SC.next = t + (SC.gl ? 1.4 : 4 + Math.random() * 4); } if (SC.gl) each(); else { lookSc(pg, out); lookSc(ng, out); } }
+  else if (SC.kind === 'gaze' || SC.kind === 'romance') { each(); if (SC.kind === 'romance') for (const [g, ph] of [[pg, 0], [ng, .5]]) { const R = g.userData.rig; if (R && !g.userData.seated) { const w = Math.sin(t * 1.3 + ph) * .03; R.hips.rotation.z += w; R.torso.rotation.z -= w * .6; } } }
+}
+async function photoPose() {   // 나란히 붙어 서기 → 안쪽 팔로 어깨 감싸기 → 둘 다 카메라 보고 웃음 → 찰칵 → 놓기
+  await standPair('face', .5); const p = P(), n = S.n, rx = Math.cos(p.ry), rz = -Math.sin(p.ry), x1 = p.x + rx * .42, z1 = p.z + rz * .42;
+  Z.slide = { x0: n.x, z0: n.z, x1, z1, r0: n.g.rotation.y, r1: p.ry, t: 0, dur: .6 }; Z.pin = { me: { x: p.x, z: p.z, ry: p.ry }, n: { x: x1, z: z1, ry: p.ry } }; await wait(700);
+  const cam = { x: p.x + Math.sin(p.ry) * 2.5 + rx * .2, z: p.z + Math.cos(p.ry) * 2.5 + rz * .2 }; lookSc(p.group, cam); lookSc(n.g, cam); SC.kind = 'photo';
+  touch('around', 3.6, 'me', 'n'); expr(P().group, 'smile', 3); expr(n.g, n.trait === 'shy' ? 'shy' : 'joy', 3); await wait(1600); X.photo(); await wait(1700); endScene(); freePair();
+}
+async function walkTo(x, z) { return new Promise(res => { const p = P(); if (Math.hypot(p.x - x, p.z - z) < .35) return res(); let done = false; const fin = () => { if (!done) { done = true; res(); } }; NC.walkPlayer([{ x, z }], fin); setTimeout(fin, 4000); }); }
+async function switchThen(fn) { const d = RV.spots.door; unlie(); standBoth(); await walkTo(BX + d.x + .45, CZ + d.z - .5); P().ry = Math.PI; P().group.rotation.y = Math.PI; SC.kind = 'switch'; SC.t0 = tnow(); lookSc(S.n.g, posOf(P().group)); tryG(P().group, 'reach'); await wait(700); fn(); await wait(600); endScene(); }
+/* 기존 활동 감싸기 */
+const WRAP = {
+  tv: (o) => { o(); scene('tv'); }, music: (o) => { o(); scene('music'); }, talk: (o) => { o(); scene('talk'); }, chat: (o) => { o(); scene('talk', { max: 40 }); }, bed: (o) => { o(); scene('talk', { max: 30 }); },
+  service: async (o) => { await o(); scene('eat', { max: 60 }); }, drink: (o) => { o(); scene('sip', { max: 40 }); },
+  window: (o) => { o(); setTimeout(() => { if (S.n && !S.alone) { const s = RV.spots.window; placeNear(BX + s.x + .2, CZ + s.z - .45); } scene('window', { max: 45 }); }, 1800); },
+  light: (o) => switchThen(o), change: (o) => switchThen(o), photo: () => photoPose(),
+  words: (o) => { o(); scene('gaze', { max: 8 }); tryG(S.n.g, 'shy'); }, romusic: (o) => { o(); scene('romance', { max: 40 }); }, mood: (o) => { o(); scene('romance', { max: 40 }); }, private: (o) => { o(); scene('talk', { max: 45 }); },
+  hand: (o) => { o(); scene('gaze', { max: 10 }); },
+};
+function placeNear(x, z) { const n = S.n; if (!n) return; S.follow = false; Z.slide = { x0: n.x, z0: n.z, x1: x, z1: z, r0: n.g.rotation.y, r1: -Math.PI / 2, t: 0, dur: Math.max(.6, Math.hypot(n.x - x, n.z - z) / 1.1) }; n.state = 'motel'; setTimeout(() => { S.follow = true; }, 30000); }
+for (const sec of ['general', 'romance']) for (const a of X.ACTS[sec]) { const w = WRAP[a[0]]; if (!w || a._w) continue; const orig = a[2]; a[2] = () => w(orig); a._w = true; }
+
 /* ═════════════ 8. 수명 주기 · 매 프레임 ═════════════ */
 S.onBuild = onBuild;
 S.onRoom = () => { resetZ(); refreshAll(); };
@@ -641,10 +692,11 @@ let acc = 0;
 NC.tickers.push(dt => {
   if (!dt || !S.on) return; dt = Math.min(dt, .1);
   if (S.step === 'room' || S.step === 'morning') { slideTick(dt); pinTick(); lieTick(); touchTick(dt); bathTick(dt); garmentTick();
+    try { sceneTick(dt); } catch (e) { console.warn('[scene]', e); }
     if (Z.jac.filling && RV.water) { Z.jac.fill = Math.min(1, (performance.now() - Z.jac.filling) / 18000); RV.water.position.y = .1 + .4 * Z.jac.fill; if (Z.jac.fill >= 1) { Z.jac.filling = false; waterSound(false); sys(L('🛁 자쿠지에 물이 가득 찼어요', '🛁 The jacuzzi is full')); } }
     acc += dt; if (acc > .6) { acc = 0; refreshAll(); } }
   else if (S.step === 'leaving' && (P().group.userData.m19 || (S.n && S.n.g.userData.m19))) S.onCheckout();
 });
-S.x19 = { Z, ask, refreshAll, visualOf, stopAll, GROUPS, lie, unlie, buildGarment, clearGarment, bonesOf };   // 시험·확장용
+S.x19 = { SC, Z, ask, refreshAll, visualOf, stopAll, GROUPS, lie, unlie, buildGarment, clearGarment, bonesOf };   // 시험·확장용
 console.info('[motel19] v60 🔥 19+ 프라이빗 익스피리언스 — 객실 전용');
 })();

@@ -146,7 +146,7 @@ function plan(A, B, lead, act, e) {
     else if (acc) { if (ht === 'romantic') { o.L = P.neckBack(B, sL); o.R = P.neckBack(B, sR); } else if (ht === 'warm') { o.L = P.neckBack(B, sL); o.R = P.upperBack(B, sR); } else { o.L = P.upperBack(B, sL); o.R = P.upperBack(B, sR); } }
     o.head = ht === 'romantic' && !lead ? P.shoulderTop(B, sR).addScaledVector(UP, .02) : null; o.wHead = .5; o.hp = { L: 'touch', R: 'touch' }; }
   else if (k === 'waist') { if (lead) { o.L = P.lowBack(B, sL); o.R = P.lowBack(B, sR); } else if (acc) { o.L = P.neckBack(B, sL); o.R = P.neckBack(B, sR); } }
-  else if (k === 'whisper') { if (lead) { o.R = P.upperArm(B, sR); o.head = P.ear(B, sR); o.wHead = 1; } else { o.head = acc ? P.lips(B) : null; o.tilt = acc ? -.28 * sR : 0; } }
+  else if (k === 'whisper') { if (lead) { o.R = P.upperArm(B, sR); o.head = P.ear(B, sR); o.wHead = 1; o.L = P.lips(A).addScaledVector(A.hr || A.right, sR * .07).addScaledVector(A.hf || A.fwd, .05); o.hp = { L: 'cup', R: 'touch' }; }   /* v62 반대손으로 입가를 살짝 가림(상대 귀 쪽) */ else { o.head = acc ? P.lips(B) : null; o.tilt = acc ? -.28 * sR : 0; } }
   else if (k === 'spin') { const top = A.head.clone().lerp(B.head, .5).addScaledVector(UP, .3); if (lead) { o.L = top; o.R = P.waistSide(B, sR); o.hp = { L: 'grip' }; } else { o.R = top; o.L = null; o.hp = { R: 'grip' }; } o.head = null; }
   else if (k === 'dip') { if (lead) { o.R = P.upperBack(B, sR); o.L = P.waistSide(B, sL); o.head = P.lips(B); o.wHead = .8; } else if (acc) { o.L = P.neckBack(B, sL); o.R = null; o.head = P.lips(B); o.wHead = .5; } }
   else if (k === 'forehead') { o.head = P.brow(B); o.wHead = 1; }

@@ -349,7 +349,7 @@ function followTick(dt) {
   if (moving) { const sp = U.clamp(d * 3.6, .8, 4.2); const k = Math.min(1, sp * dt / d); n.x += dx * k; n.z += dz * k; NC.collide && NC.collide(n, .3); n.state = 'escort'; u.moving = true; n.g.rotation.y = U.lerpAngle(n.g.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 8)); }
   else { if (n.state === 'escort') n.state = 'motel'; u.moving = false; const yw = Math.atan2(p.x - n.x, p.z - n.z); n.g.rotation.y = U.lerpAngle(n.g.rotation.y, p.group.userData.moving ? p.ry : yw, Math.min(1, dt * 3)); }
   n.g.position.set(n.x, 0, n.z);
-  S.lookT = (S.lookT || 0) - dt; if (S.lookT < 0) { S.lookT = 2.5 + Math.random() * 4; u.lookAt = Math.random() < .55 ? p : null; }   // 가끔 눈맞춤
+  S.lookT = (S.lookT || 0) - dt; if (S.lookT < 0 && !(u.lookAt && u.lookAt._sc)) { S.lookT = 2.5 + Math.random() * 4; u.lookAt = Math.random() < .55 ? p : null; }   // 가끔 눈맞춤
 }
 function startHand() { if (!NC.Couple || !S.n) return; S.hand = { t: 0 }; }
 function stopHand() { S.hand = null; }

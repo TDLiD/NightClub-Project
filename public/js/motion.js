@@ -10,7 +10,7 @@
 'use strict';
 const NC = window.NC; if (!NC) return;
 const U = NC.util, PI = Math.PI;
-const JOINTS = ['torso', 'neck', 'head', 'shL', 'elL', 'shR', 'elR', 'legL', 'knL', 'legR', 'knR'];
+const JOINTS = ['hips', 'torso', 'neck', 'head', 'shL', 'elL', 'shR', 'elR', 'legL', 'knL', 'legR', 'knR'];   // v61 hips 포함: 골반 회전도 기본 자세 레이어가 소유(다른 시스템이 더한 값이 남아 몸 전체가 기울던 원인)
 const REST = { shL: [0, 0, -.12], shR: [0, 0, .12], elL: [-.12, 0, 0], elR: [-.12, 0, 0] };
 const beatInfo = () => (NC.Audio && NC.Audio.beat ? NC.Audio.beat() : (() => { const b = performance.now() / 1000 * 118 / 60; return { phase: b % 1, n: Math.floor(b), bpm: 118 }; })());
 
@@ -52,8 +52,12 @@ function BLUES_ACT(p, u) {
     else { J('shR', [-2.75, 0, -.15], w); J('elR', [-.25, 0, 0], w); J('shL', [-.6, 0, -.6], w); J('elL', [-.4, 0, 0], w); p.bodyY = (p.bodyY || 0) + .025 * w; }
   } else if (k === 'dip') {                              // 딥: 리드가 오른팔로 등을 받치고 상체를 숙임 → 상대가 뒤로 젖혀 눕고 한쪽 팔을 우아하게 뻗음
     const w = env3(e, .2, H, D - .9, D - .1);
-    if (lead) { const [, , c, d] = HUG_LEAD(); J('shR', c, w); J('elR', [d, 0, 0], w); J('torso', [.32, 0, 0], w); J('head', [.28, 0, 0], w); J('knL', [.3, 0, 0], w); J('knR', [.3, 0, 0], w); p.hipsY = U.lerp(p.hipsY, u.hipH - .06, w); }
-    else if (acc) { J('torso', [-.62, 0, 0], w); J('neck', [-.12, 0, 0], w); J('head', [-.18, .2, 0], w);   /* v39 목·머리가 과하게 꺾이지 않게 */ J('shR', [-.4, 0, -1.35], w); J('elR', [-.15, 0, 0], w); J('legL', [.35, 0, -.05], w); J('knL', [.6, 0, 0], w); J('legR', [-.15, 0, .05], w); p.hipsY = U.lerp(p.hipsY, u.hipH - .05, w); }
+    /* v61 딥 재설계 — 통짜로 넘어가지 않게: 받치는 사람은 앞뒤로 다리를 벌린 런지(앞 무릎 굽힘·골반 낮춤)로 체중을 받고 상체를 숙여 등을 받침,
+     *  눕는 사람은 '지지하는 다리(무릎 굽힘) + 앞으로 뻗은 다리' 위에서 골반→허리→목→머리로 나눠 휘어짐(척추 곡선) · 발은 바닥에 남음(발 고정 IK) */
+    if (lead) { const [, , c, d] = HUG_LEAD(); J('shR', c, w); J('elR', [d, 0, 0], w); J('hips', [.06, 0, 0], w); J('torso', [.26, 0, 0], w); J('neck', [.08, 0, 0], w); J('head', [.18, 0, 0], w);
+      J('legL', [-.32, 0, -.07], w); J('knL', [.48, 0, 0], w); J('legR', [.2, 0, .07], w); J('knR', [.14, 0, 0], w); p.hipsY = U.lerp(p.hipsY ?? u.hipH, u.hipH - .075, w); }
+    else if (acc) { J('hips', [-.14, 0, 0], w); J('torso', [-.46, 0, 0], w); J('neck', [-.13, 0, 0], w); J('head', [-.12, .18, 0], w); J('shR', [-.4, 0, -1.35], w); J('elR', [-.15, 0, 0], w);
+      J('legR', [-.1, 0, .05], w); J('knR', [.4, 0, 0], w); J('legL', [-.46, 0, -.05], w); J('knL', [.12, 0, 0], w); p.hipsY = U.lerp(p.hipsY ?? u.hipH, u.hipH - .085, w); }
     else { const r = env3(e, .6, .9, D - .5, D); J('torso', [-.1, 0, 0], r); arms([-1.2, 0, .3], -.4, [-1.2, 0, -.3], -.4, r); }
   } else if (k === 'forehead') {                         // 이마 맞대기: 서로 고개를 숙여 이마를 붙이고 눈을 감음
     const w = env3(e, 0, .9, D - .7, D), r = acc ? 1 : env3(e, 0, .5, H, H + .3);
@@ -253,6 +257,16 @@ const BASE = {
 /* ── 제스처 (dur 초, 기본 표정) ── */
 const GEST = {
   /* v60 모텔 19+ — 가위바위보 · 따르기 · 로션 · 기지개 · 머리 말리기 · 막춤 */
+  /* v62 자율 행동(behavior.js) — 머리 만지기 · 휴대폰 보기 · 옷매무새 · 목 풀기 · 시계 보기 */
+  hairTouch: { dur: 2.6, expr: 'smile', f(p, t) { const k = Math.min(1, t / .5, (2.6 - t) / .5), q = Math.sin(t * 3) * .08; p.shR = [-.55 * k, 0, 1.75 * k]; p.elR = [-2.05 * k + q, 0, 0]; p.head = [-.04 * k, -.18 * k, .12 * k]; p.torso = [0, -.06 * k, .03 * k]; } },
+  phone: { dur: 4.5, f(p, t) { const k = Math.min(1, t / .6, (4.5 - t) / .6); p.shL = [-.5 * k, 0, .22 * k]; p.elL = [-1.55 * k, 0, 0]; p.shR = [-.55 * k, 0, -.28 * k]; p.elR = [-1.7 * k + Math.sin(t * 6) * .03 * k, 0, 0]; p.head = [.42 * k, 0, 0]; p.neck = [.14 * k, 0, 0]; p.torso = [.05 * k, 0, 0]; } },
+  adjust: { dur: 2.2, f(p, t) { const k = Math.min(1, t / .4, (2.2 - t) / .4), q = Math.max(0, Math.sin(t * 7)) * .12 * k; p.shL = [-.3 * k - q, 0, .18 * k]; p.elL = [-.55 * k, 0, 0]; p.shR = [-.3 * k - q, 0, -.18 * k]; p.elR = [-.55 * k, 0, 0]; p.torso = [.1 * k, 0, 0]; p.head = [.32 * k, 0, 0]; } },
+  neckRoll: { dur: 2.2, f(p, t) { const k = Math.sin(Math.min(1, t / 2.2) * Math.PI), a = t * 2.9; p.head = [.12 * k * Math.cos(a), 0, .22 * k * Math.sin(a)]; p.neck = [.05 * k * Math.cos(a), 0, .08 * k * Math.sin(a)]; } },
+  watch: { dur: 1.8, f(p, t) { const k = Math.min(1, t / .35, (1.8 - t) / .35); p.shL = [-.7 * k, 0, .35 * k]; p.elL = [-1.7 * k, 0, -.5 * k]; p.head = [.35 * k, .2 * k, 0]; } },
+  /* v62 모텔 장면 — 말할 때 손짓 · 먹기 · 스위치 누르기 */
+  talkHands: { dur: 2.6, f(p, t) { const k = Math.min(1, t / .35, (2.6 - t) / .45), a = Math.sin(t * 4.2), b = Math.sin(t * 3.1 + 1); p.shR = [(-.42 + .1 * a) * k, 0, (-.32 + .06 * b) * k]; p.elR = [(-1.15 + .25 * b) * k, 0, 0]; p.shL = [(-.3 + .08 * b) * k, 0, (.25 - .05 * a) * k]; p.elL = [(-.95 + .2 * a) * k, 0, 0]; p.head = [.04 * a * k, .1 * b * k, .04 * a * k]; } },
+  eat: { dur: 2.8, f(p, t) { const c = Math.min(1, t / .4, (2.8 - t) / .4), up = Math.max(0, Math.sin(t * 2.4)) * c; p.shR = [-(.45 + .55 * up), 0, -.32]; p.elR = [-(1.0 + 1.0 * up), 0, 0]; p.shL = [-.35 * c, 0, .2 * c]; p.elL = [-1.1 * c, 0, 0]; p.head = [.18 * c - .06 * up, 0, 0]; p.torso = [.08 * c, 0, 0]; } },
+  reach: { dur: 1.6, f(p, t) { const k = Math.sin(Math.min(1, t / 1.6) * Math.PI); p.shR = [-1.25 * k, 0, -.12 * k]; p.elR = [-.35 * k, 0, 0]; p.torso = [.06 * k, -.12 * k, 0]; p.head = [-.05 * k, -.1 * k, 0]; } },
   rpsPump: { dur: 1.5, f(p, t) { const b = Math.abs(Math.sin(Math.min(t, 1.2) * Math.PI * 2.5)); p.shR = [-1.05, 0, -.18]; p.elR = [-1.15 + .55 * b, 0, 0]; p.torso = [.05, 0, 0]; } },
   rpsShow: { dur: 2.4, f(p, t) { const k = Math.min(1, t / .2); p.shR = [-1.3 * k, 0, -.15]; p.elR = [-.25, 0, 0]; p.torso = [.06, 0, 0]; } },
   pour: { dur: 2.2, f(p, t) { const k = Math.min(1, t / .4, (2.2 - t) / .4); p.shR = [-.95 * k, 0, -.35]; p.elR = [-.7, 0, -.5 * k]; p.shL = [-.7 * k, 0, .2]; p.elL = [-1.3, 0, 0]; p.torso = [.12 * k, 0, 0]; p.head = [.25 * k, 0, 0]; }, glass: true },
@@ -380,14 +394,16 @@ function update(a, dt, opt = {}) {
   }
   const cf = u.cfix; if (cf) for (const j in cf) { const tg = p[j] || REST[j] || ZERO, c = cf[j]; p[j] = [tg[0] + c[0], tg[1] + c[1], tg[2] + c[2]]; }   // v26 접촉 보정(contact.js): 팔이 상대 몸을 뚫지 않게 더한 관절 오프셋
   const k = 1 - Math.exp(-dt * 14);
-  const il = u.ikLock && performance.now() - u.ikLock.t < 200 ? u.ikLock : null;   // v45 couple.js 가 팔을 IK 로 잡고 있으면 그만큼 안무 자세로 끌지 않음(오일러 보간으로 팔이 꺾이던 문제)
-  for (const j of JOINTS) { const tg = p[j] || REST[j] || ZERO, r = R[j].rotation; let kk = k;
-    if (il && (j === 'shL' || j === 'elL' || j === 'shR' || j === 'elR')) { kk = k * (1 - Math.min(1, il[j[2]] || 0)); }
-    r.x += (tg[0] - r.x) * kk; r.y += (tg[1] - r.y) * kk; r.z += (tg[2] - r.z) * kk; }
+  /* v61 기본 자세 레이어(상태 보관형): 관절 자세는 u.mp 에 따로 보관해 목표로 보간하고, 매 프레임 '덮어쓴' 뒤 다른 시스템(커플 IK·생동감·접촉 보정)이 그 위에 더함
+   *  → 덧붙인 값은 그 프레임에만 존재. 예전에는 r.x += (tg - r.x)·k 로 '현재 회전'에서 보간해서 다른 시스템이 매 프레임 더한 값이 1/k 배로 누적·증폭되고,
+   *    hips 처럼 목록에 없는 관절은 아예 되돌아오지 않아 동작이 끝나도 몸이 기운 채로 걸어 다녔음 */
+  const mp = u.mp || (u.mp = {});
+  for (const j of JOINTS) { const B = R[j]; if (!B) continue; const tg = p[j] || REST[j] || ZERO; let s = mp[j]; if (!s) s = mp[j] = [B.rotation.x, B.rotation.y, B.rotation.z];
+    s[0] += (tg[0] - s[0]) * k; s[1] += (tg[1] - s[1]) * k; s[2] += (tg[2] - s[2]) * k; B.rotation.set(s[0], s[1], s[2]); }
   R.hips.position.y += ((p.hipsY != null ? p.hipsY : u.hipH) - R.hips.position.y) * k;
   R.body.position.y += ((p.bodyY || 0) - R.body.position.y) * k; R.body.position.x += ((p.bodyX || 0) - R.body.position.x) * k;
   // 호흡: 어깨가 아주 미세하게 오르내림
-  { const br = Math.sin(m.t * 1.45 + u.seed * 6); if (u.shY == null) { u.shY = R.shL.position.y; } R.shL.position.y = R.shR.position.y = u.shY + .0045 * br; R.torso.rotation.x += .008 * br * k; }
+  { const br = Math.sin(m.t * 1.45 + u.seed * 6); if (u.shY == null) { u.shY = R.shL.position.y; } R.shL.position.y = R.shR.position.y = u.shY + .0045 * br; R.torso.rotation.x += .008 * br; }
   if (u.skirt) u.skirt.scale.y += ((u.seated ? .45 : 1) - u.skirt.scale.y) * k;
   secondary(a, u, dt);   // v40 관절 이음살 · 손가락 · 치마 2차 움직임
   if (u.glass) u.glass.visible = glass;

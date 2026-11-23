@@ -254,8 +254,8 @@ function tickGroups(dt) {
       a.x = g.c.x - Math.cos(ang) * d; a.z = g.c.z - Math.sin(ang) * d; b.x = g.c.x + Math.cos(ang) * d; b.z = g.c.z + Math.sin(ang) * d;
       const ry = Math.atan2(b.x - a.x, b.z - a.z); a.g.rotation.y = ry; b.g.rotation.y = ry + Math.PI; a.g.userData.kissK = b.g.userData.kissK = Math.max(0, Math.sin(now * .5));
       a.g.position.set(a.x, NC.groundY(a.x, a.z), a.z); b.g.position.set(b.x, NC.groundY(b.x, b.z), b.z); }
-    else if (g.frame === 'onTable') { const f = g.ns[0]; f.g.position.y = NC.groundY(f.x, f.z) + .82; }
-    else if (g.frame === 'onTable2') { g.ns.slice(0, 2).forEach(f => { f.g.position.y = NC.groundY(f.x, f.z) + .82; }); }
+    else if (g.frame === 'onTable') { const f = g.ns[0]; f.g.position.y = NC.groundY(f.x, f.z) + .82; NC.Pose && NC.Pose.claim(f.g, 'ep-table', 'custom'); }
+    else if (g.frame === 'onTable2') { g.ns.slice(0, 2).forEach(f => { f.g.position.y = NC.groundY(f.x, f.z) + .82; NC.Pose && NC.Pose.claim(f.g, 'ep-table', 'custom'); }); }
     if (g.flash) { g.flash = 0; const t = ctr(g); if (NC.camera && Math.hypot(t.x - P().x, t.z - P().z) < 14) { const L_ = flashLight(); if (L_) { L_.position.set(t.x, 2.2 + (g.vip != null ? W.vip[g.vip].y : 0), t.z); L_.intensity = 3; setTimeout(() => { L_.intensity = 0; }, 120); } } }
     // 대본 진행 + 2~3분마다 다른 장면으로
     g.reroll -= dt; g.wait -= dt;
