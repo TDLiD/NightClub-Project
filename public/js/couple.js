@@ -45,7 +45,7 @@ function ikArm(R, sd, target, w, poleW, obs, opt) {
     st.seen = now; target = st.p.clone();
   }
   const N = obs && obs.realN ? obs.realN : NC.Contact && NC.Contact.norm;   // v47 상대가 실사 모델이면 실제 뼈 캡슐로 관통 검사
-  if (obs && N) { const n0 = N(target, obs); if (n0 < 1.05) { const c = obs.hips.clone().lerp(obs.neck, U.clamp((target.y - obs.hips.y) / Math.max(.01, obs.neck.y - obs.hips.y), 0, 1)); const r = target.clone().sub(c); r.y = 0; if (r.lengthSq() > 1e-6) target = c.clone().add(r.multiplyScalar(1.07 / Math.max(.2, n0))).setY(target.y); } }
+  if (obs && N) { const n0 = N(target, obs); if (n0 < 1.07) {   /* v63 문턱값(1.05)과 밀어낸 위치(1.07) 사이에 틈이 있어 경계에서 손 목표가 매 프레임 튀었음 → 1.07 에서 이어지게 */ const c = obs.hips.clone().lerp(obs.neck, U.clamp((target.y - obs.hips.y) / Math.max(.01, obs.neck.y - obs.hips.y), 0, 1)); const r = target.clone().sub(c); r.y = 0; if (r.lengthSq() > 1e-6) target = c.clone().add(r.multiplyScalar(1.07 / Math.max(.2, n0))).setY(target.y); } }
   const Lm = L1 + L2, dMin = Math.sqrt(L1 * L1 + L2 * L2 - 2 * L1 * L2 * Math.cos(Math.PI - EL_MAX)), k0 = Lm * (1 - SOFT), pq = par.getWorldQuaternion(new T.Quaternion()).invert();
   /* 주어진 손 목표(월드)에 대해 팔꿈치 회전각 후보를 시험해 가장 덜 뚫는 자세를 찾음 */
   const solve = (tgW, swList) => {
@@ -252,6 +252,7 @@ function tickBlues() {
  *  ③ 접촉 순간 반응(받는 사람은 숨을 살짝 들이쉬며 상체가 0.5초 동안 미세하게 젖혀졌다 돌아옴) ④ 다가가며 앞쪽 무릎에 체중 */
 const LAG = .18, imp = new WeakMap();
 function life(A, B, act, e, start, who, lead) {
+  if (NC.Couple && NC.Couple.noLife) return;   // 시험용 끄기
   const R = A.R, t = performance.now() / 1000, b = NC.Audio && NC.Audio.beat ? NC.Audio.beat() : { phase: (t * 118 / 60) % 1, n: Math.floor(t * 118 / 60) };
   const intimate = act && HEAD_ACTS.has(act.k) ? 1 : act ? .5 : 0, holdW = act ? 1 - (act ? Math.min(1, env(e, 0, .6, act.dur - .6, act.dur)) : 0) : 1;
   /* v56 사람마다 ±10% 다른 리듬(진폭·위상·반응) — 매번 똑같이 반복되는 루프 = 로봇 */

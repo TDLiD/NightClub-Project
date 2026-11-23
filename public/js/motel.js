@@ -227,6 +227,14 @@ const CORV = { doors: [] };
 /* ── 3-4 객실(종류별로 다시 꾸밈) ── */
 const RHX = 4.4, RHZ = 3.8, RH = 2.9;
 const ROOM = RM.make('motelRoom', L('🛏 객실', '🛏 Guest room'), BX, 90, RHX, RHZ, RH);
+/* v65 충돌 버그 수정: 모텔 가구 사각형(rects)은 구역 중심 기준 좌표로 넣었는데, rooms.js 충돌 검사는 월드 좌표로 비교 → 모텔 안 가구(침대·소파·샤워부스·자쿠지·로비 카운터·주차된 차)에 충돌이 전혀 없었음
+ *  → 구역 중심을 빼서 비교하도록 각 구역의 충돌 함수를 교체 */
+for (const R of [EXT, LOB, COR, ROOM]) { const z = (NC.world.extraZones || []).find(e => e.name === R.id); if (!z) continue;
+  z.collide = (p, r) => { const q = { x: p.x - R.cx, z: p.z - R.cz }, X0 = -R.hx + r, X1 = R.hx - r, Z0 = -R.hz + r, Z1 = R.hz - r;
+    NC.world.collideRects(q, r, R.rects); q.x = U.clamp(q.x, X0, X1); q.z = U.clamp(q.z, Z0, Z1);
+    for (const [x0, z0, x1, z1] of R.rects) if (q.x > x0 - r + 1e-3 && q.x < x1 + r - 1e-3 && q.z > z0 - r + 1e-3 && q.z < z1 + r - 1e-3) {   // 벽에 붙은 가구 안쪽에 남았으면 '방 안쪽으로 열린 면'으로 꺼냄
+      const c = [[x0 - r, q.z], [x1 + r, q.z], [q.x, z0 - r], [q.x, z1 + r]].filter(([x, zz]) => x >= X0 && x <= X1 && zz >= Z0 && zz <= Z1).sort((a, b) => Math.hypot(a[0] - q.x, a[1] - q.z) - Math.hypot(b[0] - q.x, b[1] - q.z))[0]; if (c) { q.x = c[0]; q.z = c[1]; } }
+    p.x = q.x + R.cx; p.z = q.z + R.cz; }; }
 ROOM.entry = { x: RHX - .9, z: RHZ - .7, ry: Math.PI };
 const RV = { G: null, seats: {}, tv: null, tvCv: null, tvTex: null, win: null, winCv: null, lights: [], spots: {} };
 function disposeG(g) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.map && m.map.isCanvasTexture) m.map.dispose(); m.dispose && !m._shared && m.dispose(); }); }); }
@@ -334,7 +342,7 @@ const modal = (html, btns) => NC.ui.modal(html, btns);
 const esc = s => U.esc ? U.esc(s) : String(s).replace(/[<>&]/g, '');
 const areas = [EXT, LOB, COR, ROOM];
 function partnerVisible(R) { const n = S.n; if (!n) return; areas.forEach(a => { const i = a.npcs.indexOf(n); if (i >= 0) a.npcs.splice(i, 1); }); if (R) R.npcs.push(n); }
-function placePartner(x, z, ry) { const n = S.n; if (!n) return; if (n.state === 'seated') NC.unseatAvatar(n.g); n.state = 'motel'; n.x = x; n.z = z; n.g.position.set(x, 0, z); if (ry != null) n.g.rotation.y = ry; n.g.visible = true; n.g.userData.moving = false; }
+function placePartner(x, z, ry) { const n = S.n; if (!n) return; if (n.state === 'seated') NC.unseatAvatar(n.g); n.state = 'motel'; n.x = x; n.z = z; NC.collide && NC.collide(n, .3); x = n.x; z = n.z; n.g.position.set(x, 0, z);   /* v65 가구 안에 세우지 않음 */ if (ry != null) n.g.rotation.y = ry; n.g.visible = true; n.g.userData.moving = false; }
 /* 이동: rooms.js go() 로 페이드 전환 + 동반자도 같은 구역으로 */
 function goArea(R, spot, after) {
   S.area = R; partnerVisible(R); stopHand(); endStanding(); S.follow = false;

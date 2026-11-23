@@ -808,7 +808,7 @@ NC.tickers.push(dt => {
   n.g.rotation.y = ny;
   /* v47 발도 함께: 턴·돌아서기 중이거나 서로 당겨 거리가 빠르게 변하면 제자리 걸음(발 디딤)으로 — 발이 붙은 채 몸만 도는 것 방지 */
   { const turning = A && ((A.spin && ae > .4 && ae < A.hit + .6) || (A.flip && ((ae > .25 && ae < 1.2) || (ae > A.dur - 1 && ae < A.dur - .05)))), dd = BL._d != null ? Math.abs(d - BL._d) / Math.max(dt, 1e-3) : 0; BL._d = d;
-    if (!(BL.s0 && BL.t < 1.4)) { n.g.userData.moving = turning || dd > .06; n.g.userData.walkSlow = turning ? .55 : .4; P.group.userData.moving = dd > .09; } }
+    if (!(BL.s0 && BL.t < 1.4)) { if (K.noMoveFix) { n.g.userData.moving = turning || dd > .06; n.g.userData.walkSlow = turning ? .55 : .4; P.group.userData.moving = dd > .09; } else { const H = BL.hy || (BL.hy = { n: 0, p: 0 }); H.n = turning ? .35 : dd > .06 ? .25 : Math.max(0, H.n - dt); H.p = dd > .09 ? .25 : Math.max(0, H.p - dt); n.g.userData.moving = H.n > 0; n.g.userData.walkSlow = turning ? .55 : .4; P.group.userData.moving = H.p > 0; } } }   /* v63 히스테리시스: 거리 변화율이 문턱값 근처에서 오르내리면 매 프레임 '걷기↔서기'가 뒤집혀 발 고정·모션캡처 레이어가 켜졌다 꺼지며 떨렸음 → 한 번 켜지면 0.25초 유지 */
   P.group.position.set(P.x, NC.groundY(P.x, P.z), P.z); n.g.position.set(n.x, NC.groundY(n.x, n.z), n.z);
 });
 $('#kCall').onclick = () => callWaiter();

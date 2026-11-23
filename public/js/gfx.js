@@ -272,7 +272,7 @@ const finalMat = sm(`uniform sampler2D tScene, tBloom; uniform float bloomStr, e
     c *= mix(1.0, smoothstep(0.85, 0.15, r2 * 1.9), vignette);
     float n = fract(sin(dot(vUv * 1000.0 + time, vec2(12.9898, 78.233))) * 43758.5453) - 0.5; c += n * grain * (1.0 - l * 0.6);
     gl_FragColor = vec4(srgb(clamp(c, 0.0, 1.0)), 1.0); }`,
-{ tScene: { value: null }, tBloom: { value: null }, bloomStr: { value: .42 }, exposure: { value: EXPOSURE }, vignette: { value: .55 }, grain: { value: .035 }, ca: { value: .014 }, time: { value: 0 }, sat: { value: 1.06 }, wobble: { value: 0 } });
+{ tScene: { value: null }, tBloom: { value: null }, bloomStr: { value: .42 }, exposure: { value: EXPOSURE }, vignette: { value: .4 }, grain: { value: .012 }, ca: { value: 0 }, time: { value: 0 }, sat: { value: 1.06 }, wobble: { value: 0 } });
 if (!Q.film) { finalMat.uniforms.grain.value = 0; finalMat.uniforms.ca.value = 0; }
 
 const gl2 = R.capabilities.isWebGL2, halfOK = gl2 ? !!(R.extensions.get('EXT_color_buffer_float') || R.extensions.get('EXT_color_buffer_half_float')) : !!(R.extensions.get('OES_texture_half_float') && R.extensions.get('EXT_color_buffer_half_float'));

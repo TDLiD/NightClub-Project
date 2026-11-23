@@ -99,7 +99,7 @@ function lie(spec) {   // spec: { me:{x, roll, prone}, n:{...}, sheet:bool } —
 function unlie() {
   if (!Z.lie) return false; const sp = Z.lie; Z.lie = null; setSheet(false);
   for (const w of ['me', 'n']) { if (!sp[w] || (w === 'n' && !S.n)) continue; const g = G(w); g.rotation.x = 0; g.rotation.z = 0; g.position.y = 0; if (NC.Pose) NC.Pose.release(g, 'motel-lie'); }
-  const p = P(), b = RV.seats.bed; p.x = BX + b[0].x; p.z = CZ + b[0].z + .5; p.group.position.set(p.x, 0, p.z);
+  const p = P(), b = RV.seats.bed; p.x = BX + b[0].x; p.z = CZ + b[0].z + .5; NC.collide(p, .38); p.group.position.set(p.x, 0, p.z);
   if (S.n) { placePartner(BX + b[1].x, CZ + b[1].z + .5, Math.PI); S.n.state = 'motel'; } S.follow = true; return true;
 }
 function lieTick() {
@@ -118,7 +118,7 @@ function setSheet(on) { if (sheetM) { if (sheetM.parent) sheetM.parent.remove(sh
   sheetM.position.set(BX, bedTop() + (side ? .33 : .25), CZ - RHZ + .32 + 1.72 - len / 2 + .12); sheetM.castShadow = true; RV.G.add(sheetM); }
 function pinTick() { const pn = Z.pin; if (!pn) return; for (const w of ['me', 'n']) { const s = pn[w]; if (!s || (w === 'n' && !S.n)) continue; const g = G(w);
   if (w === 'me') { const p = P(); p.x = s.x; p.z = s.z; p.ry = s.ry; } else { S.n.x = s.x; S.n.z = s.z; S.n.state = s.state || 'motel'; } g.position.x = s.x; g.position.z = s.z; g.rotation.y = s.ry; g.userData.moving = false; } }
-function slideTick(dt) { const s = Z.slide; if (!s || !S.n) return; s.t = Math.min(1, s.t + dt / s.dur); const k = s.t * s.t * (3 - 2 * s.t), n = S.n; n.x = s.x0 + (s.x1 - s.x0) * k; n.z = s.z0 + (s.z1 - s.z0) * k; n.g.position.x = n.x; n.g.position.z = n.z; n.g.rotation.y = U.lerpAngle(s.r0, s.r1, k); n.g.userData.moving = s.t < 1; if (s.t >= 1) { Z.slide = null; if (Z.pin && Z.pin.n) Object.assign(Z.pin.n, { x: n.x, z: n.z, ry: s.r1 }); } }
+function slideTick(dt) { const s = Z.slide; if (!s || !S.n) return; s.t = Math.min(1, s.t + dt / s.dur); const k = s.t * s.t * (3 - 2 * s.t), n = S.n; n.x = s.x0 + (s.x1 - s.x0) * k; n.z = s.z0 + (s.z1 - s.z0) * k; NC.collide && NC.collide(n, .28);   /* v65 다가올 때 침대·소파를 통과하지 않음 */ n.g.position.x = n.x; n.g.position.z = n.z; n.g.rotation.y = U.lerpAngle(s.r0, s.r1, k); n.g.userData.moving = s.t < 1; if (s.t >= 1) { Z.slide = null; if (Z.pin && Z.pin.n) Object.assign(Z.pin.n, { x: n.x, z: n.z, ry: s.r1 }); } }
 /* 플레이어 앞(face) 또는 앞에서 등지고(back) 서기 — 방 가운데로 걸어간 뒤 상대가 다가옴 */
 function standPair(mode = 'face', dist = .46) {
   return new Promise(res => { unlie(); standBoth(); stopHand(); endStanding(); const c = RV.spots.center, p = P(), tx = BX + c.x, tz = CZ + c.z;

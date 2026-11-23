@@ -75,7 +75,12 @@ const A = NC.Audio = {
   },
   speaking(on) { this.ducking = Math.max(0, this.ducking + (on ? 1 : -1)); },
   /* 박자 시계 (조명·LED·NPC 춤·리듬 게임용) — 소리는 내지 않음 */
-  beat() { if (!this.ctx) { const b = performance.now() / 1000 * this.bpm / 60; return { phase: b % 1, n: Math.floor(b), bpm: this.bpm, time: performance.now() / 1000 }; } const b = Math.max(0, this.ctx.currentTime - this.t0) * this.bpm / 60; return { phase: b % 1, n: Math.floor(b), bpm: this.bpm, time: this.ctx.currentTime }; },
+  beat() { if (!this.ctx) { const b = performance.now() / 1000 * this.bpm / 60; return { phase: b % 1, n: Math.floor(b), bpm: this.bpm, time: performance.now() / 1000 }; } /* v63 떨림 원인 제거: AudioContext.currentTime 은 오디오 버퍼 단위(PC 약 10ms, 블루투스·모바일 20~40ms)로 계단처럼 갱신돼
+     *  화면 프레임(16.7ms)과 어긋남 → 박자에 맞춘 체중 이동·흔들림이 프레임마다 앞뒤로 튀어 커플 댄스가 떨렸음.
+     *  → 화면 시계(performance.now)로 매끄럽게 진행하고, 오디오 시계와의 차이만 천천히(0.6초 시정수) 따라감 · 곡이 바뀌거나 0.25초 넘게 어긋나면 즉시 맞춤 */
+    const pn = performance.now() / 1000, raw = Math.max(0, this.ctx.currentTime - this.t0), off = raw - pn, S = this._bs || (this._bs = { off, last: pn, t0: this.t0 });
+    if (S.t0 !== this.t0 || Math.abs(off - S.off) > .25) { S.off = off; S.t0 = this.t0; } else { const dt = Math.min(.1, Math.max(0, pn - S.last)); S.off += (off - S.off) * (1 - Math.exp(-dt / .6)); }
+    S.last = pn; const at = Math.max(0, pn + S.off), b = at * this.bpm / 60; return { phase: b % 1, n: Math.floor(b), bpm: this.bpm, time: this.ctx.currentTime }; },
   beatTime(n) { return this.t0 + n * 60 / this.bpm; },
   /* v53 실제 음악 박자 따라가기: 재생 중인 MP3 의 저음(40~160Hz) 에너지로 킥을 찾아 BPM 을 추정하고, 박자 시계(t0·bpm)를 살짝씩 맞춤
    *  → 박자 시계를 쓰는 조명·레이저·LED 벽·NPC 춤·무대 댄서가 모두 실제 노래에 맞춰 움직임. energy(0~1)는 조명 세기에 사용 */

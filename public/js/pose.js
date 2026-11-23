@@ -41,7 +41,13 @@ function end(g, tok) { const r = R.get(g); if (!r || !r.action || (tok && r.acti
 const alive = (g, tok) => { const r = R.get(g); return !!(r && r.action && r.action.tok === tok); };
 
 /* ── 복구 ── */
-function upright(g, k) { _e.setFromQuaternion(g.quaternion, 'YXZ'); _q.setFromEuler(_e.set(0, _e.y, 0, 'YXZ')); if (k >= 1) g.quaternion.copy(_q); else g.quaternion.slerp(_q, k); }
+function upright(g, k) { _e.setFromQuaternion(g.quaternion, 'YXZ'); const yaw = _e.y; _q.setFromEuler(_e.set(0, yaw, 0, 'YXZ')); if (k >= 1) g.quaternion.copy(_q); else g.quaternion.slerp(_q, k);
+  _v.copy(UP).applyQuaternion(g.quaternion); if (_v.y > .9999) g.rotation.set(0, yaw, 0); }   // 다 섰으면 오일러를 (0, yaw, 0) 형태로 정리
+/* v65 '거꾸로 보며 걷기' 버그: 쿼터니언으로 회전을 다루면 three.js 가 오일러를 (π, y, π) 같은 '같은 자세의 다른 표기'로 바꿔 둠.
+ *  이동 코드는 rotation.y 만 덮어쓰므로 x=z=π 가 남으면 실제 방향이 (π − y) 로 뒤집혀 → 캐릭터가 진행 방향이 아닌 쪽(카메라 쪽)을 본 채 걸었음.
+ *  몸은 똑바로 서 있어서(기울기 0) 기존 검사에 안 걸렸음 → 임대 없는 캐릭터는 x·z 표기를 항상 0 으로 정리(이동 코드가 의도한 y 유지) */
+function canon(g) { const r = g.rotation; if (Math.abs(r.x) < 1e-4 && Math.abs(r.z) < 1e-4) return false; _v.copy(UP).applyQuaternion(g.quaternion); if (_v.y < .9995) return false;
+  const flip = Math.abs(Math.abs(r.x) - Math.PI) < .05 && Math.abs(Math.abs(r.z) - Math.PI) < .05; if (flip) r.set(0, r.y, 0); else { _e.setFromQuaternion(g.quaternion, 'YXZ'); r.set(0, _e.y, 0); } return true; }
 function recover(g, reason = 'manual', hard = false) {
   const u = g.userData, r = rec(g); r.leases.clear(); r.action = null;
   u.bAct = null; u.handTgt = null; u.cfix = null; u.ikLock = null; u.handPose = null; u.footPlant = null; u.swayOff = null;
@@ -62,6 +68,7 @@ function check(g, dt, inBlues) {
   _v.copy(UP).applyQuaternion(g.quaternion); const tilt = Math.acos(U.clamp(_v.y, -1, 1)); r.tilt = tilt;
   if (tilt > .015 && !lying && !custom) { const fast = u.moving || tilt > 1; upright(g, 1 - Math.exp(-dt * (fast ? 22 : 10))); if (!r._tiltLogged) { r._tiltLogged = true; issues.push('root-tilt'); log(g, 'root-tilt', `임대 없는 루트 기울기 ${(tilt * 57.3).toFixed(0)}°${u.moving ? ' (걷는 중)' : ''} → 바로 세움`); } }
   else if (tilt < .01) r._tiltLogged = false;
+  if (!lying && !custom && canon(g) && !r._canLogged) { r._canLogged = true; log(g, 'yaw-flip', '회전 표기(π,y,π) 정리 → 진행 방향을 보고 걷게'); }
   /* 2) 바닥 — 눕기·자유 연출 임대가 없는데 뜨거나 파묻힘 */
   const dy = g.position.y - gy(g); r.gdy = dy;
   if (!lying && !custom && Math.abs(dy) > .06 && !(NC.player && g === NC.player.group && (NC.player.y || 0) > .05)) { g.position.y -= dy * (1 - Math.exp(-dt * 12)); if (!r._gLogged) { r._gLogged = true; issues.push('ground'); log(g, 'ground', `바닥에서 ${dy.toFixed(2)}m → 다시 디딤`); } }

@@ -229,6 +229,7 @@ const attach0 = async (root, url, opt = {}) => {
     (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (!m) return; const n = ((m.name || '') + ' ' + (o.name || '')).toLowerCase();
       if (NC.Avatar && NC.Avatar.skinCompile && m.isMeshStandardMaterial && !noSkin.some(k => n.includes(k)) && (skinNames.some(k => n.includes(k)) || /skin/.test(n) || (multi && /body|head|face/.test(n))) && !/hair|cloth|shirt|pant|shoe|eye|lash|brow|teeth|tongue/.test(n)) { m.onBeforeCompile = NC.Avatar.skinCompile; m.customProgramCacheKey = () => 'realSkin'; m.needsUpdate = true; }
       if (m.envMapIntensity != null) m.envMapIntensity = Math.min(m.envMapIntensity, 1);
+      { const an = Math.min(NC.isMobile ? 4 : 8, (NC.renderer && NC.renderer.capabilities.getMaxAnisotropy()) || 1); for (const k of ['map', 'normalMap']) if (m[k] && m[k].anisotropy !== an) { m[k].anisotropy = an; m[k].needsUpdate = true; } }   // v63 비스듬히 본 얼굴·옷 텍스처가 뭉개지지 않게(이방성 필터링)
       if (/opacity|hair|lash/.test(n) && m.map) { m.transparent = false; m.alphaTest = .42; m.alphaToCoverage = true; m.side = T.DoubleSide; m.depthWrite = true; m.roughness = .48; }   // v46 머리카락·속눈썹 카드: 알파 테스트 + 커버리지(정렬 문제 없이 가는 머리결)
       if (opt.lod) { m.normalScale && m.normalScale.set(.7, .7); } }); });
   // 절차적 메시 숨김(잔·마이크·이름표 유지)
@@ -304,7 +305,7 @@ const _fp = new T.Vector3(), _fq = new T.Quaternion(), _fa = new T.Vector3(), _f
 function coupleBody(r, u, dt) { coupleBody0(r, u, dt); try { faceIK(r, u); } catch (e) { if (!RH._fErr) { RH._fErr = 1; console.warn('[faceIK]', e); } } }
 function coupleBody0(r, u, dt) {
   const now = performance.now(), F = u.footPlant && now - u.footPlant.t < 200 ? u.footPlant : null, Bn = r.Bn;
-  const lockOK = F && !u.moving && !u.seated;   // v56 걸어오는 중·앉아 있는 중에는 발을 고정하지 않음(고정된 발을 끌고 걸어 무릎이 굽고 구부정해지던 원인)
+  const lockOK = F && !u.moving && !u.seated && !RH.noFoot;   // v56 걸어오는 중·앉아 있는 중에는 발을 고정하지 않음(고정된 발을 끌고 걸어 무릎이 굽고 구부정해지던 원인)
   if (u.moving || u.seated) r.fp = null;
   r.fpW = (r.fpW || 0) + ((lockOK ? (F.w ?? 1) : 0) - (r.fpW || 0)) * Math.min(1, dt * 4); const w = r.fpW;
   /* 호흡: 가슴 뼈를 뼈 방향에 수직인 두 축으로만 ±1% (2.5초 주기, 사람마다 위상 다름) */
@@ -433,6 +434,7 @@ function lod(force, from) {
 }
 /* v47 커플 몸통·머리 관통 보정: 두 실사 모델의 몸통/머리 캡슐이 1cm 넘게 겹치면 보이는 모델만 서로 반씩 밀어냄(부드럽게) */
 function sepCouple(dt) {
+  if (RH.noSep) { RH.list.forEach(r => r.sep && r.sep.multiplyScalar(0)); return; }   // 시험용 끄기
   const BL = NC.Karaoke && NC.Karaoke.BL, P = NC.player && NC.player.group, n = BL && BL.n;
   const pairs = n && P ? [[P, n.g]] : []; const live = new Set();
   for (const [ga, gb] of pairs) { const ra = ga.userData.real, rb = gb.userData.real; if (!ra || !rb || ra.pending || rb.pending) continue; live.add(ra); live.add(rb);
