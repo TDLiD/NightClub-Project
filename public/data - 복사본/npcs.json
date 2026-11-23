@@ -1,0 +1,2539 @@
+{
+ "_설명": [
+  "personas: 부킹 핵심 AI NPC 5명 (LLM 시스템 프롬프트·호감도 엔진·미니게임이 이 데이터를 그대로 사용합니다. 서버도 이 파일을 읽어 프롬프트를 만듭니다)",
+  "npcs: 일반 손님(크라우드). 기존 데이터 그대로 + id/gender/age 추가. 대본형 부킹 + 간단 AI 대화",
+  "look.face 값을 바꾸면 얼굴이 바뀝니다: eyeSize(0.7~1.3) eyeTilt(-0.2~0.2, +면 눈꼬리 올라감) liner(아이라인) blush(볼터치) lipColor lipFull browThick browTilt beard(stubble/goatee) glasses freckles",
+  "likes/dislikes 의 kw 는 호감도 규칙 엔진이 플레이어 발언에서 찾는 키워드입니다. 색은 '#RRGGBB'.",
+  "v5: 페르소나 외형은 오리지널 스타일라이즈드 디자인(크롭·셋업 수트·오버셔츠·쇼츠·모자)",
+  "v32: 90년대 클럽 실사 캐릭터 8명(v32:true) — look.body(slim/average/soft/athletic/stocky/curvy)·belly·metallic·sequin·leather·polo·platform, pose(dance/drink/talk/lean)",
+  "always:true — 모바일 인원 제한·온라인 모드에서도 항상 등장(입장 시 무대 앞에 배치)"
+ ],
+ "personas": [
+  {
+   "id": "harin",
+   "name": "하린",
+   "gender": "f",
+   "age": 27,
+   "job": "패션 MD",
+   "mbti": "ENFP",
+   "trait": "outgoing",
+   "tag": "🎉 핵인싸",
+   "tagline": "동대문과 성수 팝업을 누비는 트렌드 레이더, 오늘의 기분은 핑크 시퀸",
+   "appearance": "웨이브 진 브라운 롱헤어, 핑크 시퀸 미니 드레스, 반짝이는 귀걸이, 큰 눈과 생기 있는 볼터치",
+   "personality": "에너지가 넘치고 리액션이 크다. 새로운 사람·장소에 호기심이 많지만 금방 질리기도 한다. 진심 어린 관심에 약하다.",
+   "speech": "밝고 빠른 존댓말에 가끔 반말이 섞인다. '대박', '진짜요?', '완전~' 같은 감탄사를 자주 쓴다.",
+   "catchphrases": [
+    "대박!",
+    "완전 내 스타일~",
+    "에이 설마~"
+   ],
+   "likes": [
+    {
+     "topic": "패션",
+     "kw": [
+      "옷",
+      "패션",
+      "스타일",
+      "코디",
+      "신발",
+      "가방",
+      "쇼핑",
+      "드레스",
+      "옷차림"
+     ]
+    },
+    {
+     "topic": "여행",
+     "kw": [
+      "여행",
+      "해외",
+      "제주",
+      "바다",
+      "비행기",
+      "휴가"
+     ]
+    },
+    {
+     "topic": "90년대 가요",
+     "kw": [
+      "90년대",
+      "옛날 노래",
+      "가요",
+      "듀스",
+      "룰라",
+      "쿨",
+      "터보",
+      "추억"
+     ]
+    },
+    {
+     "topic": "맛집",
+     "kw": [
+      "맛집",
+      "먹방",
+      "디저트",
+      "떡볶이",
+      "음식",
+      "배고"
+     ]
+    },
+    {
+     "topic": "강아지",
+     "kw": [
+      "강아지",
+      "댕댕",
+      "반려견",
+      "멍멍"
+     ]
+    }
+   ],
+   "dislikes": [
+    {
+     "topic": "자랑",
+     "kw": [
+      "연봉",
+      "외제차",
+      "내 차",
+      "돈 많",
+      "부자",
+      "명품 사줄"
+     ]
+    },
+    {
+     "topic": "정치",
+     "kw": [
+      "정치",
+      "선거",
+      "대통령"
+     ]
+    }
+   ],
+   "pullPush": 0.35,
+   "baseAffinity": 42,
+   "voice": {
+    "pitch": 1.25,
+    "rate": 1.1,
+    "index": 0
+   },
+   "look": {
+    "gender": "f",
+    "height": 1.66,
+    "build": 0.95,
+    "skin": "#f7dcc8",
+    "hairStyle": "ponytail",
+    "hairColor": "#b99cff",
+    "top": "crop",
+    "topColor": "#ff3d8a",
+    "bottom": "skirt",
+    "bottomColor": "#f4f4f6",
+    "face": {
+     "eyeColor": "#4a2e1a",
+     "eyeSize": 1.15,
+     "eyeTilt": 0.05,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0.02,
+     "browArch": 0.8,
+     "lipColor": "#e0457a",
+     "lipW": 1.05,
+     "lipFull": 1.2,
+     "nose": 0.85,
+     "faceW": 0.94,
+     "jaw": 0.96,
+     "blush": 0.45,
+     "liner": 0.8,
+     "shadow": "#c88a6a",
+     "earring": true
+    },
+    "pattern": "solid",
+    "shoeColor": "#ffffff",
+    "hat": null
+   },
+   "secrets": [
+    {
+     "at": 60,
+     "text": "사실 오늘 친구한테 바람맞아서 혼자 왔다"
+    },
+    {
+     "at": 80,
+     "text": "언젠가 내 이름 건 브랜드를 만드는 게 꿈이다"
+    }
+   ],
+   "truths": {
+    "첫인상": "솔직히요? 처음엔 좀 쑥스러워 보였는데 지금은 완전 반전이에요 ㅎㅎ",
+    "연애관": "같이 있으면 웃음이 끊기지 않는 사람이 최고죠!",
+    "취향": "반짝이는 거, 맛있는 거, 시끄러운 음악! 다 좋아요",
+    "흑역사": "중학교 때 장기자랑에서 룰라 춤 추다 신발 날아갔어요…",
+    "이상형": "리액션 좋은 사람! 제 말에 '진짜요?' 해 주는 사람",
+    "최근 고민": "팝업 오픈이 다음 주라 잠을 못 자요 ㅠㅠ"
+   },
+   "balance": {
+    "b1": "a",
+    "b2": "a",
+    "b3": "b",
+    "b4": "a",
+    "b5": "a",
+    "b6": "b",
+    "b7": "a",
+    "b8": "a"
+   },
+   "lines": {
+    "greet": [
+     "어머 안녕하세요~! 혹시 저 아까 스테이지에서 춤추는 거 보셨어요? ㅎㅎ",
+     "대박, 말 걸어 주실 줄 알았어요! 오늘 분위기 완전 좋죠?"
+    ],
+    "like": [
+     "{topic} 얘기요? 대박, 저 그거 얘기하면 밤새요!",
+     "오 {topic}! 완전 내 스타일~ 더 말해 봐요!"
+    ],
+    "compliment": [
+     "에이 설마~ 근데 기분은 좋네요 ㅎㅎ",
+     "진짜요? 오늘 드레스 고르는 데 한 시간 걸렸거든요!"
+    ],
+    "ask": [
+     "근데 오늘 여기 누구랑 왔어요?",
+     "요즘 제일 꽂힌 노래 뭐예요?",
+     "주말엔 보통 뭐 해요? 저 맞혀 볼까요?"
+    ]
+   },
+   "tint": {
+    "hair": "#c9a8ff",
+    "top": "#ff6fb0",
+    "bottom": "#f4f4f6"
+   },
+   "vrmModel": "models/sample_girl.vrm",
+   "photo": "real/f_03.jpg"
+  },
+  {
+   "id": "seojin",
+   "name": "서진",
+   "gender": "f",
+   "age": 30,
+   "job": "변호사",
+   "mbti": "INTJ",
+   "trait": "cool",
+   "tag": "😎 시크",
+   "tagline": "판결문처럼 정확한 말, 그런데 와인 한 잔이면 반 박자 느슨해지는 사람",
+   "appearance": "칼단발 블랙 헤어, 날렵한 고양이 눈매, 딥 레드 립, 네이비 테일러드 재킷에 블랙 스커트",
+   "personality": "분석적이고 독립적. 겉으로는 차갑지만 지적인 대화와 위트에는 확실히 반응한다. 허세와 느끼함을 바로 간파한다.",
+   "speech": "차분하고 짧은 존댓말. 건조한 유머와 정곡을 찌르는 되묻기. 감정 표현은 아끼지만 '…인정' 한 마디가 최고의 칭찬.",
+   "catchphrases": [
+    "근거는요?",
+    "흥미롭네요.",
+    "…인정."
+   ],
+   "likes": [
+    {
+     "topic": "와인",
+     "kw": [
+      "와인",
+      "레드",
+      "화이트",
+      "샴페인",
+      "소믈리에"
+     ]
+    },
+    {
+     "topic": "재즈",
+     "kw": [
+      "재즈",
+      "피아노",
+      "블루스",
+      "LP",
+      "엘피"
+     ]
+    },
+    {
+     "topic": "책",
+     "kw": [
+      "책",
+      "독서",
+      "소설",
+      "작가",
+      "읽"
+     ]
+    },
+    {
+     "topic": "체스·전략 게임",
+     "kw": [
+      "체스",
+      "바둑",
+      "보드게임",
+      "전략",
+      "추리"
+     ]
+    },
+    {
+     "topic": "고양이",
+     "kw": [
+      "고양이",
+      "냥이",
+      "집사"
+     ]
+    }
+   ],
+   "dislikes": [
+    {
+     "topic": "허세",
+     "kw": [
+      "연봉",
+      "외제차",
+      "돈 많",
+      "내가 좀",
+      "인맥"
+     ]
+    },
+    {
+     "topic": "느끼한 멘트",
+     "kw": [
+      "천사",
+      "하늘에서",
+      "운명",
+      "첫눈에 반",
+      "여신"
+     ]
+    }
+   ],
+   "pullPush": 0.7,
+   "baseAffinity": 32,
+   "voice": {
+    "pitch": 0.9,
+    "rate": 1.0,
+    "index": 1
+   },
+   "look": {
+    "gender": "f",
+    "height": 1.68,
+    "build": 0.95,
+    "skin": "#f1c9a5",
+    "hairStyle": "long",
+    "hairColor": "#14101a",
+    "top": "jacket",
+    "topColor": "#25284a",
+    "bottom": "pants",
+    "bottomColor": "#25284a",
+    "face": {
+     "eyeColor": "#2a1a10",
+     "eyeSize": 0.98,
+     "eyeTilt": 0.16,
+     "eyeGap": 0.01,
+     "lid": 0,
+     "browThick": 0.85,
+     "browTilt": 0.14,
+     "browArch": 0.3,
+     "lipColor": "#a3263f",
+     "lipW": 0.95,
+     "lipFull": 1.0,
+     "nose": 0.9,
+     "faceW": 0.9,
+     "jaw": 1.02,
+     "blush": 0.12,
+     "liner": 1.0,
+     "shadow": "#8a6ad0",
+     "earring": true,
+     "mole": [
+      0.22,
+      0.62
+     ],
+     "glasses": false,
+     "sunglasses": false
+    },
+    "setup": true,
+    "pattern": "solid",
+    "shoeColor": "#141018",
+    "hat": null
+   },
+   "secrets": [
+    {
+     "at": 60,
+     "text": "법정보다 여기가 더 시끄러운데 이상하게 머리는 조용해진다"
+    },
+    {
+     "at": 80,
+     "text": "사실 춤추는 걸 좋아한다. 아무한테도 말 안 한 비밀"
+    }
+   ],
+   "truths": {
+    "첫인상": "생각보다 덜 뻔했어요. 그게 칭찬이에요.",
+    "연애관": "서로의 시간을 존중하는 관계. 그리고 대화가 지루하지 않을 것.",
+    "취향": "레드 와인, 빌 에반스, 비 오는 날의 서점.",
+    "흑역사": "모의재판에서 판사님을 '엄마'라고 부른 적 있어요. 끝.",
+    "이상형": "제 질문에 근거 있게 대답하는 사람.",
+    "최근 고민": "고양이가 저보다 제 소파를 더 좋아해요."
+   },
+   "balance": {
+    "b1": "b",
+    "b2": "b",
+    "b3": "a",
+    "b4": "b",
+    "b5": "b",
+    "b6": "a",
+    "b7": "b",
+    "b8": "b"
+   },
+   "lines": {
+    "greet": [
+     "…네. 부킹이요? 1분 드릴게요. 설득해 보세요.",
+     "흥미롭네요. 보통은 저한테 말 안 거는데."
+    ],
+    "like": [
+     "{topic}요? …좋아요, 그 얘기라면 5분 더 드리죠.",
+     "{topic} 아는 사람 오랜만이네요. 계속해 보세요."
+    ],
+    "compliment": [
+     "외모 칭찬은 근거가 약하네요. 다른 거 없어요?",
+     "…고마워요. 그래도 감점은 없어요."
+    ],
+    "ask": [
+     "그래서 당신은 오늘 여기 왜 왔어요? 솔직하게.",
+     "제일 최근에 읽은 책은요?",
+     "본인을 한 단어로 정의해 보세요."
+    ]
+   },
+   "tint": {
+    "hair": "#2a2230",
+    "top": "#3a3f6a",
+    "bottom": "#2a2a3a"
+   },
+   "vrmModel": "models/sample_girl.vrm",
+   "photo": "real/f_10.jpg"
+  },
+  {
+   "id": "jiho",
+   "name": "지호",
+   "gender": "m",
+   "age": 28,
+   "job": "댄스 강사",
+   "mbti": "ESFP",
+   "trait": "playful",
+   "tag": "😜 흥부자",
+   "tagline": "스테이지가 비면 일단 올라가는 사람, 박자 놓치면 손뼉으로 다시 맞춰 주는 사람",
+   "appearance": "투블럭 다크 브라운 헤어, 옐로 오버핏 티셔츠, 탄탄한 체격, 웃을 때 눈이 사라지는 눈웃음",
+   "personality": "즉흥적이고 장난기 많다. 분위기 메이커지만 상대가 불편해하면 바로 알아챈다. 같이 노는 걸 좋아한다.",
+   "speech": "반말 섞인 친근한 말투, 'ㅋㅋ', 의성어·의태어, 큰 리액션. 존댓말을 쓰다가 금방 말을 놓자고 한다.",
+   "catchphrases": [
+    "가즈아~",
+    "리듬 타 리듬!",
+    "ㅋㅋㅋ 인정"
+   ],
+   "likes": [
+    {
+     "topic": "춤",
+     "kw": [
+      "춤",
+      "댄스",
+      "스테이지",
+      "무대",
+      "안무",
+      "추자",
+      "출래"
+     ]
+    },
+    {
+     "topic": "운동",
+     "kw": [
+      "운동",
+      "헬스",
+      "축구",
+      "농구",
+      "러닝",
+      "등산"
+     ]
+    },
+    {
+     "topic": "음악",
+     "kw": [
+      "노래",
+      "음악",
+      "힙합",
+      "비트",
+      "dj",
+      "디제이"
+     ]
+    },
+    {
+     "topic": "장난·드립",
+     "kw": [
+      "ㅋㅋ",
+      "농담",
+      "장난",
+      "드립",
+      "웃기"
+     ]
+    },
+    {
+     "topic": "고기 맛집",
+     "kw": [
+      "고기",
+      "삼겹살",
+      "치킨",
+      "곱창"
+     ]
+    }
+   ],
+   "dislikes": [
+    {
+     "topic": "지루함",
+     "kw": [
+      "피곤",
+      "재미없",
+      "지루",
+      "집에 갈"
+     ]
+    },
+    {
+     "topic": "잘난 척",
+     "kw": [
+      "연봉",
+      "외제차",
+      "내가 좀"
+     ]
+    }
+   ],
+   "pullPush": 0.25,
+   "baseAffinity": 45,
+   "voice": {
+    "pitch": 0.8,
+    "rate": 1.15,
+    "index": 2
+   },
+   "look": {
+    "gender": "m",
+    "height": 1.79,
+    "build": 1.08,
+    "skin": "#ecc0a0",
+    "hairStyle": "spiky",
+    "hairColor": "#3d8bff",
+    "top": "overshirt",
+    "topColor": "#ffcf2e",
+    "bottom": "shorts",
+    "bottomColor": "#2a2f45",
+    "face": {
+     "eyeColor": "#3a2416",
+     "eyeSize": 1.0,
+     "eyeTilt": -0.02,
+     "eyeGap": 0.005,
+     "lid": 0,
+     "browThick": 1.25,
+     "browTilt": 0.05,
+     "browArch": 0.4,
+     "lipColor": "#c08a80",
+     "lipW": 1.08,
+     "lipFull": 1.0,
+     "nose": 1.05,
+     "faceW": 1.0,
+     "jaw": 1.05,
+     "blush": 0.08,
+     "liner": 0,
+     "beard": null,
+     "glasses": false
+    },
+    "pattern": "stripe",
+    "innerColor": "#ffffff",
+    "shoeColor": "#ff5a3d",
+    "hat": "cap",
+    "hatColor": "#1a1a1a"
+   },
+   "secrets": [
+    {
+     "at": 60,
+     "text": "사실 무대 공포증을 극복하려고 춤을 시작했다"
+    },
+    {
+     "at": 80,
+     "text": "언젠가 내 댄스 스튜디오를 차리는 게 목표"
+    }
+   ],
+   "truths": {
+    "첫인상": "ㅋㅋ 솔직히 처음엔 박치일 줄 알았는데 리듬감 좀 있던데?",
+    "연애관": "같이 땀 흘리고 같이 웃는 거! 운동 데이트 최고",
+    "취향": "베이스 빵빵한 음악, 삼겹살, 새벽 한강 러닝",
+    "흑역사": "공연 중에 바지 터진 적 있어요… 그날 관객 반응 역대급",
+    "이상형": "춤 못 춰도 같이 추자 하면 웃으면서 나와 주는 사람",
+    "최근 고민": "수강생들이 저보다 잘 춰요 ㅋㅋ 위기의식 느낌"
+   },
+   "balance": {
+    "b1": "a",
+    "b2": "a",
+    "b3": "a",
+    "b4": "a",
+    "b5": "a",
+    "b6": "b",
+    "b7": "a",
+    "b8": "a"
+   },
+   "lines": {
+    "greet": [
+     "오 왔다 왔다~ 아까부터 리듬 타는 거 봤어요 ㅋㅋ",
+     "가즈아~ 부킹이에요? 좋아요 일단 짠부터!"
+    ],
+    "like": [
+     "{topic}? 아 이거 통했다 ㅋㅋ 완전 내 얘기",
+     "오오 {topic} 좋아해요? 말 놓을까요 우리?"
+    ],
+    "compliment": [
+     "ㅋㅋㅋ 아 진짜? 오늘 머리 좀 신경 썼는데 티 났나",
+     "에이~ 칭찬 받으면 춤으로 갚아야 되는데"
+    ],
+    "ask": [
+     "춤 좀 춰요? 아니면 오늘 배워 갈래요?",
+     "제일 신나는 노래 하나만 말해 봐요!",
+     "고기파예요 회파예요? 이거 중요함"
+    ]
+   },
+   "photo": "real/m_09.jpg"
+  },
+  {
+   "id": "sua",
+   "name": "수아",
+   "gender": "f",
+   "age": 25,
+   "job": "플로리스트",
+   "mbti": "ISFJ",
+   "trait": "shy",
+   "tag": "🙈 수줍",
+   "tagline": "친구 손에 끌려온 첫 나이트, 손끝에서 은은한 프리지어 향",
+   "appearance": "긴 흑갈색 생머리, 순한 처진 눈매와 주근깨, 파스텔 블루 블라우스에 라벤더 스커트, 수줍은 볼터치",
+   "personality": "다정하고 배려심이 깊다. 처음엔 말수가 적지만 편해지면 소소한 얘기를 오래 나눈다. 큰소리와 강요에 움츠러든다.",
+   "speech": "조용하고 조심스러운 존댓말, 말끝을 흐린다(…). 칭찬을 들으면 당황해서 웃는다(헤헤).",
+   "catchphrases": [
+    "아… 그래요?",
+    "헤헤…",
+    "저 이런 데 처음이라…"
+   ],
+   "likes": [
+    {
+     "topic": "꽃·식물",
+     "kw": [
+      "꽃",
+      "식물",
+      "장미",
+      "튤립",
+      "프리지어",
+      "화분",
+      "정원"
+     ]
+    },
+    {
+     "topic": "카페·디저트",
+     "kw": [
+      "카페",
+      "커피",
+      "디저트",
+      "케이크",
+      "빵",
+      "마카롱"
+     ]
+    },
+    {
+     "topic": "고양이",
+     "kw": [
+      "고양이",
+      "냥이"
+     ]
+    },
+    {
+     "topic": "전시·그림",
+     "kw": [
+      "전시",
+      "그림",
+      "미술",
+      "사진",
+      "갤러리"
+     ]
+    },
+    {
+     "topic": "잔잔한 노래",
+     "kw": [
+      "잔잔",
+      "발라드",
+      "인디",
+      "어쿠스틱"
+     ]
+    }
+   ],
+   "dislikes": [
+    {
+     "topic": "술 강요",
+     "kw": [
+      "원샷",
+      "마셔",
+      "더 마",
+      "취하"
+     ]
+    },
+    {
+     "topic": "큰소리",
+     "kw": [
+      "!!!",
+      "소리 질",
+      "시끄"
+     ]
+    }
+   ],
+   "pullPush": 0.3,
+   "baseAffinity": 35,
+   "voice": {
+    "pitch": 1.35,
+    "rate": 0.95,
+    "index": 0
+   },
+   "look": {
+    "gender": "f",
+    "height": 1.61,
+    "build": 0.92,
+    "skin": "#fae3d3",
+    "hairStyle": "bun",
+    "hairColor": "#6e4425",
+    "top": "shirt",
+    "topColor": "#bfe3ff",
+    "bottom": "skirt",
+    "bottomColor": "#c9b6ea",
+    "face": {
+     "eyeColor": "#4a2e1a",
+     "eyeSize": 1.2,
+     "eyeTilt": -0.09,
+     "eyeGap": -0.005,
+     "lid": 1,
+     "browThick": 0.6,
+     "browTilt": -0.08,
+     "browArch": 0.6,
+     "lipColor": "#e0857c",
+     "lipW": 0.88,
+     "lipFull": 1.1,
+     "nose": 0.82,
+     "faceW": 0.93,
+     "jaw": 0.94,
+     "blush": 0.55,
+     "liner": 0.3,
+     "shadow": "#d07a8a",
+     "freckles": true,
+     "glasses": true
+    },
+    "pattern": "solid",
+    "shoeColor": "#f4f4f6",
+    "hat": "beanie",
+    "hatColor": "#f2e8d8"
+   },
+   "secrets": [
+    {
+     "at": 60,
+     "text": "친구가 억지로 데려왔는데 지금은 조금 재밌다"
+    },
+    {
+     "at": 80,
+     "text": "가게에서 남은 꽃으로 작은 꽃다발을 만들어 왔다. 마음에 드는 사람에게 주고 싶다"
+    }
+   ],
+   "truths": {
+    "첫인상": "아… 친절해 보였어요. 그래서 대답했어요… 헤헤",
+    "연애관": "작은 거 기억해 주는 사람이 좋아요. 제가 좋아하는 꽃 같은 거…",
+    "취향": "비 오는 날 카페 창가, 프리지어, 따뜻한 라떼요",
+    "흑역사": "손님 꽃다발에 '축 개업'을… 결혼식 꽃에 꽂았어요…",
+    "이상형": "목소리가 다정한 사람이요…",
+    "최근 고민": "가게 고양이가 꽃을 자꾸 먹어요… 진짜 고민이에요"
+   },
+   "balance": {
+    "b1": "b",
+    "b2": "b",
+    "b3": "b",
+    "b4": "b",
+    "b5": "b",
+    "b6": "a",
+    "b7": "b",
+    "b8": "b"
+   },
+   "lines": {
+    "greet": [
+     "아… 저요? 아, 안녕하세요… 헤헤",
+     "저 이런 데 처음이라… 말 걸어 주셔서 다행이에요"
+    ],
+    "like": [
+     "{topic}… 저도 좋아해요. 아, 갑자기 말이 많아지네요 헤헤",
+     "아 {topic} 얘기 좋아요… 조금만 더 해 주세요"
+    ],
+    "compliment": [
+     "어… 아, 아니에요… (얼굴 빨개짐)",
+     "헤헤… 그런 말 처음 들어 봐요…"
+    ],
+    "ask": [
+     "혹시 좋아하는 꽃 있어요…?",
+     "여기 자주 오세요?",
+     "커피 좋아하세요? 저는 라떼파예요…"
+    ]
+   },
+   "tint": {
+    "hair": "#9a6a48",
+    "top": "#bfe3ff",
+    "bottom": "#c9b6ea"
+   },
+   "vrmModel": "models/sample_girl.vrm",
+   "photo": "real/f_09.jpg"
+  },
+  {
+   "id": "minhyuk",
+   "name": "민혁",
+   "gender": "m",
+   "age": 32,
+   "job": "광고 카피라이터",
+   "mbti": "ENTP",
+   "trait": "playful",
+   "tag": "🎤 드립왕",
+   "tagline": "모든 대화를 한 줄 카피로 요약하는 남자, 오늘 시안 다 까이고 기분 전환 중",
+   "appearance": "올백 슬릭 헤어, 검은 뿔테 안경, 옅은 수염, 버건디 벨벳 재킷에 블랙 팬츠",
+   "personality": "능청스럽고 논쟁을 즐긴다. 말장난 핑퐁이 되면 신나서 텐션이 오른다. 노잼 반응과 진부함을 싫어한다.",
+   "speech": "능청스러운 존댓말과 말장난, 상대 말을 광고 카피처럼 받아친다. 가끔 '1점 인정' 하며 점수를 매긴다.",
+   "catchphrases": [
+    "이거 카피로 써도 되겠는데요?",
+    "논리적으로 반박해 보세요 ㅎ",
+    "오케이, 1점 인정."
+   ],
+   "likes": [
+    {
+     "topic": "말장난",
+     "kw": [
+      "ㅋㅋ",
+      "드립",
+      "농담",
+      "말장난",
+      "개그",
+      "웃기"
+     ]
+    },
+    {
+     "topic": "영화",
+     "kw": [
+      "영화",
+      "감독",
+      "넷플",
+      "시리즈",
+      "드라마"
+     ]
+    },
+    {
+     "topic": "광고·마케팅",
+     "kw": [
+      "광고",
+      "카피",
+      "마케팅",
+      "브랜드",
+      "cf"
+     ]
+    },
+    {
+     "topic": "토론",
+     "kw": [
+      "왜",
+      "반박",
+      "논리",
+      "근거",
+      "생각해"
+     ]
+    },
+    {
+     "topic": "레트로 음악",
+     "kw": [
+      "레트로",
+      "90년대",
+      "옛날 노래",
+      "신스",
+      "디스코"
+     ]
+    }
+   ],
+   "dislikes": [
+    {
+     "topic": "노잼 반응",
+     "kw": [
+      "ㅇㅇ",
+      "ㅇㅋ",
+      "그냥",
+      "몰라"
+     ]
+    },
+    {
+     "topic": "진부한 멘트",
+     "kw": [
+      "천사",
+      "운명",
+      "여기 자주 와요",
+      "첫눈에"
+     ]
+    }
+   ],
+   "pullPush": 0.55,
+   "baseAffinity": 38,
+   "voice": {
+    "pitch": 0.95,
+    "rate": 1.1,
+    "index": 1
+   },
+   "look": {
+    "gender": "m",
+    "height": 1.77,
+    "build": 0.98,
+    "skin": "#f1c9a5",
+    "hairStyle": "slick",
+    "hairColor": "#d8d8e0",
+    "top": "jacket",
+    "topColor": "#7a1f3d",
+    "bottom": "pants",
+    "bottomColor": "#7a1f3d",
+    "face": {
+     "eyeColor": "#30251c",
+     "eyeSize": 0.95,
+     "eyeTilt": 0.03,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1.1,
+     "browTilt": 0.08,
+     "browArch": 0.5,
+     "lipColor": "#b87a72",
+     "lipW": 1.0,
+     "lipFull": 0.9,
+     "nose": 1.1,
+     "faceW": 0.96,
+     "jaw": 1.1,
+     "blush": 0.05,
+     "liner": 0,
+     "beard": "stubble",
+     "glasses": true,
+     "sunglasses": false
+    },
+    "setup": true,
+    "pattern": "solid",
+    "shoeColor": "#141018",
+    "hat": "fedora",
+    "hatColor": "#151217"
+   },
+   "secrets": [
+    {
+     "at": 60,
+     "text": "오늘 낸 시안이 전부 까여서 기분 전환하러 왔다"
+    },
+    {
+     "at": 80,
+     "text": "재밌는 사람을 만나면 그 사람으로 카피를 하나 쓴다. 상대 것은 벌써 생각해 뒀다"
+    }
+   ],
+   "truths": {
+    "첫인상": "'첫마디에 합격, 둘째 마디에 보류.' 지금은 합격 쪽으로 기울었어요.",
+    "연애관": "티키타카가 되면 반은 먹고 들어가죠.",
+    "취향": "새벽 2시 영화관, 산미 있는 커피, 신스팝.",
+    "흑역사": "클라이언트 앞에서 경쟁사 슬로건을 읽었어요. 두 번.",
+    "이상형": "제 드립에 더 센 드립으로 받아치는 사람.",
+    "최근 고민": "아이디어는 많은데 마감이 더 많아요."
+   },
+   "balance": {
+    "b1": "a",
+    "b2": "b",
+    "b3": "a",
+    "b4": "a",
+    "b5": "b",
+    "b6": "a",
+    "b7": "a",
+    "b8": "b"
+   },
+   "lines": {
+    "greet": [
+     "오, 용기 있는 첫마디네요. 카피로 치면… 일단 클릭은 했습니다.",
+     "부킹이요? 좋아요. 대신 재밌어야 돼요. 노잼이면 바로 광고 스킵."
+    ],
+    "like": [
+     "{topic} 얘기면 저 1시간짜리 PT 가능합니다.",
+     "오케이, {topic}에서 1점 인정. 계속 가 보죠."
+    ],
+    "compliment": [
+     "칭찬은 감사히 받고, 영수증은 안 드릴게요.",
+     "그 멘트 카피로 써도 되겠는데요? 저작권은 반반."
+    ],
+    "ask": [
+     "인생 영화 하나만 대 보세요. 그걸로 성격 맞혀 볼게요.",
+     "본인을 광고한다면 슬로건이 뭐예요?",
+     "짜장 vs 짬뽕, 근거와 함께."
+    ]
+   },
+   "photo": "real/m_10.jpg"
+  }
+ ],
+ "npcs": [
+  {
+   "id": "jihyun",
+   "name": "지현",
+   "gender": "f",
+   "age": 27,
+   "tag": "🎉 활발",
+   "trait": "outgoing",
+   "color": "#ff5c8a",
+   "hair": "#3b2417",
+   "job": "27 · 마케터",
+   "look": {
+    "gender": "f",
+    "height": 1.65,
+    "build": 0.95,
+    "skin": "#f3d2bc",
+    "hairStyle": "wavy",
+    "hairColor": "#6e4425",
+    "top": "shirt",
+    "topColor": "#f2e6d8",
+    "bottom": "skirt",
+    "bottomColor": "#b89470",
+    "shoes": "boots",
+    "shoeColor": "#4a3022",
+    "necklace": true,
+    "pattern": "solid",
+    "hat": null,
+    "realWear": true,
+    "face": {
+     "eyeColor": "#3a2416",
+     "eyeSize": 1.02,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#d0645e",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.3,
+     "liner": 0.55,
+     "shadow": "#b88a74",
+     "freckles": false,
+     "mole": [
+      0.32,
+      0.38
+     ],
+     "glasses": false,
+     "sunglasses": false,
+     "earring": true
+    }
+   },
+   "origin": "korean",
+   "photo": "real/f_19.jpg"
+  },
+  {
+   "id": "subin",
+   "name": "수빈",
+   "gender": "f",
+   "age": 25,
+   "tag": "🙈 수줍",
+   "trait": "shy",
+   "color": "#7fd1ff",
+   "hair": "#1c1410",
+   "job": "25 · 디자이너",
+   "look": {
+    "gender": "f",
+    "height": 1.6,
+    "build": 0.92,
+    "skin": "#f7e0d0",
+    "hairStyle": "bob",
+    "hairColor": "#17110f",
+    "top": "tee",
+    "topColor": "#9a9ca2",
+    "oversize": true,
+    "bottom": "pants",
+    "fit": "wide",
+    "bottomColor": "#3a5070",
+    "shoes": "sneakers",
+    "shoeColor": "#f4f4f2",
+    "hat": "beret",
+    "hatColor": "#c8b49a",
+    "pattern": "solid",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#3a2416",
+     "eyeSize": 0.98,
+     "eyeTilt": -0.06,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#c87a7e",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.32,
+     "liner": 0.3,
+     "shadow": "#b88a74",
+     "freckles": true,
+     "mole": null,
+     "glasses": true,
+     "sunglasses": false,
+     "earring": false
+    }
+   },
+   "origin": "korean",
+   "photo": "real/f_07.jpg"
+  },
+  {
+   "id": "minjae",
+   "name": "민재",
+   "gender": "m",
+   "age": 30,
+   "tag": "😎 시크",
+   "trait": "cool",
+   "color": "#6a5acd",
+   "hair": "#111111",
+   "job": "30 · 건축사",
+   "look": {
+    "gender": "m",
+    "height": 1.8,
+    "build": 1.0,
+    "skin": "#efc8a8",
+    "hairStyle": "slick",
+    "hairColor": "#111111",
+    "top": "jacket",
+    "topColor": "#2b2d33",
+    "inner": "turtle",
+    "innerColor": "#141416",
+    "bottom": "pants",
+    "fit": "skinny",
+    "bottomColor": "#141418",
+    "shoes": "sneakers",
+    "shoeColor": "#1a1412",
+    "pattern": "solid",
+    "realWear": true,
+    "hat": null,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.95,
+     "eyeTilt": 0.08,
+     "eyeGap": 0,
+     "lid": 0,
+     "browThick": 1.15,
+     "browTilt": 0.05,
+     "browArch": 0.4,
+     "lipColor": "#b07a70",
+     "lipW": 1,
+     "lipFull": 0.95,
+     "nose": 0.95,
+     "faceW": 0.95,
+     "jaw": 1.06,
+     "blush": 0,
+     "liner": 0,
+     "shadow": null,
+     "beard": null,
+     "glasses": true,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": true
+    }
+   },
+   "origin": "korean",
+   "photo": "real/m_20.jpg"
+  },
+  {
+   "id": "haneul",
+   "name": "하늘",
+   "gender": "f",
+   "age": 26,
+   "tag": "😜 장난꾸러기",
+   "trait": "playful",
+   "color": "#ffd23d",
+   "hair": "#7a3b12",
+   "job": "26 · 뮤지션",
+   "look": {
+    "gender": "f",
+    "height": 1.63,
+    "build": 0.95,
+    "skin": "#efc6a8",
+    "hairStyle": "highPony",
+    "hairColor": "#8a3e1a",
+    "top": "tee",
+    "topColor": "#26262c",
+    "pattern": "graphic",
+    "bottom": "shorts",
+    "bottomColor": "#3b4f6e",
+    "fit": "ripped",
+    "shoes": "boots",
+    "shoeColor": "#141214",
+    "choker": true,
+    "chain": true,
+    "hat": null,
+    "realWear": true,
+    "face": {
+     "eyeColor": "#3a2416",
+     "eyeSize": 1.0,
+     "eyeTilt": 0.1,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#a8485a",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.2,
+     "liner": 0.8,
+     "shadow": "#7a5a8a",
+     "freckles": false,
+     "mole": [
+      -0.3,
+      0.2
+     ],
+     "glasses": false,
+     "sunglasses": false,
+     "earring": true
+    }
+   },
+   "origin": "korean",
+   "photo": "real/f_27.jpg"
+  },
+  {
+   "id": "yerin",
+   "name": "예린",
+   "gender": "f",
+   "age": 24,
+   "tag": "🙈 수줍",
+   "trait": "shy",
+   "color": "#c9a0ff",
+   "hair": "#2a1a12",
+   "job": "24 · 국제병원 간호사",
+   "look": {
+    "gender": "f",
+    "height": 1.62,
+    "build": 0.93,
+    "skin": "#fae3d3",
+    "hairStyle": "long",
+    "hairColor": "#3b2417",
+    "top": "tee",
+    "topColor": "#f0c8cc",
+    "oversize": true,
+    "bottom": "skirt",
+    "bottomColor": "#f4f2ee",
+    "shoes": "sneakers",
+    "shoeColor": "#f4f4f2",
+    "pattern": "solid",
+    "hat": null,
+    "realWear": true,
+    "face": {
+     "eyeColor": "#3a2416",
+     "eyeSize": 1.04,
+     "eyeTilt": -0.1,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#e08a90",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.38,
+     "liner": 0.25,
+     "shadow": "#b88a74",
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false
+    }
+   },
+   "origin": "korean",
+   "photo": "real/f_24.jpg"
+  },
+  {
+   "id": "dohyun",
+   "name": "도현",
+   "gender": "m",
+   "age": 29,
+   "tag": "🎉 활발",
+   "trait": "outgoing",
+   "color": "#2ecc71",
+   "hair": "#222222",
+   "job": "29 · 영업",
+   "look": {
+    "gender": "m",
+    "height": 1.76,
+    "build": 1.06,
+    "skin": "#e9bf9a",
+    "hairStyle": "twoblock",
+    "hairColor": "#1a1410",
+    "top": "jacket",
+    "topColor": "#1f2a44",
+    "inner": "tee",
+    "innerColor": "#f4f2ee",
+    "bottom": "pants",
+    "bottomColor": "#c2b29a",
+    "shoes": "sneakers",
+    "shoeColor": "#5a3a22",
+    "pattern": "solid",
+    "realWear": true,
+    "muscle": 0.35,
+    "hat": null,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 1.0,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 0,
+     "browThick": 1.15,
+     "browTilt": 0.05,
+     "browArch": 0.4,
+     "lipColor": "#b07a70",
+     "lipW": 1,
+     "lipFull": 1.0,
+     "nose": 0.95,
+     "faceW": 0.95,
+     "jaw": 1.0,
+     "blush": 0,
+     "liner": 0,
+     "shadow": null,
+     "beard": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": true
+    }
+   },
+   "origin": "korean",
+   "photo": "real/m_19.jpg"
+  },
+  {
+   "id": "seoyeon",
+   "name": "서연",
+   "gender": "f",
+   "age": 28,
+   "tag": "😎 시크",
+   "trait": "cool",
+   "color": "#e84a5f",
+   "hair": "#0f0f0f",
+   "job": "28 · 변호사",
+   "look": {
+    "gender": "f",
+    "height": 1.69,
+    "build": 0.94,
+    "skin": "#f6dccb",
+    "hairStyle": "highPony",
+    "hairColor": "#0f0d0e",
+    "top": "dress",
+    "topColor": "#5a1f2c",
+    "bottom": "skirt",
+    "bottomColor": "#5a1f2c",
+    "shoes": "boots",
+    "shoeColor": "#141214",
+    "pattern": "solid",
+    "hat": null,
+    "realWear": true,
+    "face": {
+     "eyeColor": "#3a2416",
+     "eyeSize": 0.94,
+     "eyeTilt": 0.16,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0.08,
+     "browArch": 0.5,
+     "lipColor": "#9a2a3a",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.12,
+     "liner": 0.9,
+     "shadow": "#8a5a5a",
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": true
+    }
+   },
+   "origin": "korean",
+   "photo": "real/f_05.jpg"
+  },
+  {
+   "id": "jiwoo",
+   "name": "지우",
+   "gender": "m",
+   "age": 26,
+   "tag": "😜 장난꾸러기",
+   "trait": "playful",
+   "color": "#ff9f43",
+   "hair": "#4a2a14",
+   "job": "26 · 요리사",
+   "look": {
+    "gender": "m",
+    "height": 1.74,
+    "build": 1.0,
+    "skin": "#f0c9a8",
+    "hairStyle": "curly",
+    "hairColor": "#4a2a14",
+    "top": "overshirt",
+    "topColor": "#4a5a3a",
+    "inner": "tee",
+    "innerColor": "#f2f0ea",
+    "bottom": "pants",
+    "bottomColor": "#1d2533",
+    "fit": "skinny",
+    "shoes": "sneakers",
+    "shoeColor": "#f2f2f2",
+    "hat": "cap",
+    "hatColor": "#1a1a1d",
+    "pattern": "solid",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.9,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 0,
+     "browThick": 1.3,
+     "browTilt": -0.05,
+     "browArch": 0.4,
+     "lipColor": "#b07a70",
+     "lipW": 1,
+     "lipFull": 0.95,
+     "nose": 1.05,
+     "faceW": 0.95,
+     "jaw": 1.03,
+     "blush": 0,
+     "liner": 0,
+     "shadow": null,
+     "beard": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": false,
+     "mole": [
+      0.25,
+      0.45
+     ]
+    }
+   },
+   "origin": "korean",
+   "photo": "real/m_29.jpg"
+  },
+  {
+   "id": "jaesuk",
+   "name": "마거릿",
+   "gender": "f",
+   "age": 52,
+   "tag": "🎉 활발",
+   "trait": "outgoing",
+   "color": "#ff6b9d",
+   "hair": "#3b2417",
+   "job": "52 · 와인바 사장",
+   "look": {
+    "gender": "f",
+    "height": 1.6,
+    "build": 0.98,
+    "skin": "#efcdb4",
+    "hairStyle": "bob",
+    "hairColor": "#6b5440",
+    "top": "jacket",
+    "topColor": "#1f2a4a",
+    "sailor": {
+     "trim": "#e8a6c4"
+    },
+    "bottom": "skirt",
+    "bottomColor": "#1f2a4a",
+    "shoes": "flats",
+    "shoeColor": "#1f2a4a",
+    "bag": {
+     "color": "#8a5a2e"
+    },
+    "pattern": "solid",
+    "hat": null,
+    "realWear": true,
+    "setup": false,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.9,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#c06a6e",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.99,
+     "jaw": 1.0,
+     "blush": 0.18,
+     "liner": 0.3,
+     "shadow": "#b88a74",
+     "freckles": false,
+     "mole": null,
+     "glasses": true,
+     "sunglasses": false,
+     "earring": false,
+     "glassesColor": "#e8a2b6"
+    }
+   },
+   "always": true,
+   "pose": "dance",
+   "origin": "western",
+   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
+   "photo": "real/f_18.jpg"
+  },
+  {
+   "id": "jo",
+   "name": "캐서린",
+   "gender": "f",
+   "age": 50,
+   "tag": "😎 시크",
+   "trait": "cool",
+   "color": "#8e7cff",
+   "hair": "#1c1410",
+   "job": "50 · 외국계 부동산 중개사",
+   "look": {
+    "gender": "f",
+    "height": 1.6,
+    "build": 0.98,
+    "skin": "#efc6a6",
+    "hairStyle": "bob",
+    "hairColor": "#2a1e18",
+    "top": "tee",
+    "longSleeve": true,
+    "topColor": "#1f2a4a",
+    "bottom": "shorts",
+    "bottomColor": "#1f2a4a",
+    "shoes": "sneakers",
+    "shoeColor": "#2c3e8a",
+    "hat": "visor",
+    "hatColor": "#1f2a4a",
+    "bandana": {
+     "color": "#1f2a44",
+     "pattern": "paisley"
+    },
+    "pattern": "solid",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.92,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#c47870",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 1.0,
+     "jaw": 1.0,
+     "blush": 0.24,
+     "liner": 0.25,
+     "shadow": "#b88a74",
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false
+    }
+   },
+   "always": true,
+   "pose": "dance",
+   "origin": "western",
+   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
+   "photo": "real/f_02.jpg"
+  },
+  {
+   "id": "sophia",
+   "name": "소피아",
+   "gender": "f",
+   "age": 26,
+   "tag": "💃 댄서",
+   "trait": "playful",
+   "color": "#ff2d78",
+   "hair": "#e8c35a",
+   "job": "26 · 모델",
+   "look": {
+    "gender": "f",
+    "skin": "#f6dccb",
+    "hairColor": "#e8c35a",
+    "hairStyle": "wavy",
+    "top": "dress",
+    "mini": true,
+    "strapless": true,
+    "topColor": "#ff2d78",
+    "bottom": "skirt",
+    "bottomColor": "#ff2d78"
+   },
+   "dance": "vogue",
+   "walk": "model",
+   "origin": "western",
+   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
+   "photo": "real/f_15.jpg"
+  },
+  {
+   "id": "naomi",
+   "name": "나오미",
+   "gender": "f",
+   "age": 28,
+   "tag": "🔥 비보이걸",
+   "trait": "outgoing",
+   "color": "#ffd23d",
+   "hair": "#120c0a",
+   "job": "28 · 댄서",
+   "look": {
+    "gender": "f",
+    "skin": "#6b4026",
+    "hairColor": "#120c0a",
+    "hairStyle": "braids",
+    "top": "crop",
+    "strapless": true,
+    "topColor": "#ffd23d",
+    "bottom": "shorts",
+    "mini": true,
+    "bottomColor": "#141418"
+   },
+   "dance": "breaking",
+   "walk": "swagger",
+   "origin": "western",
+   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
+   "photo": "real/f_17.jpg"
+  },
+  {
+   "id": "yuna",
+   "name": "유나",
+   "gender": "f",
+   "age": 24,
+   "tag": "🍸 술고래",
+   "trait": "playful",
+   "color": "#9b5cff",
+   "hair": "#241812",
+   "job": "24 · 교환 대학원생",
+   "look": {
+    "gender": "f",
+    "skin": "#f7dcc8",
+    "hairStyle": "bob",
+    "top": "crop",
+    "strapless": false,
+    "topColor": "#9b5cff",
+    "bottom": "skirt",
+    "mini": true,
+    "bottomColor": "#141418"
+   },
+   "dance": "hipSway",
+   "walk": "bouncy",
+   "habit": "drinker",
+   "origin": "korean",
+   "photo": "real/f_30.jpg"
+  },
+  {
+   "id": "chloe",
+   "name": "클로이",
+   "gender": "f",
+   "age": 29,
+   "tag": "😎 시크",
+   "trait": "cool",
+   "color": "#c0c0d0",
+   "hair": "#a8743a",
+   "job": "29 · 포토그래퍼",
+   "look": {
+    "gender": "f",
+    "skin": "#f2d0bc",
+    "hairColor": "#a8743a",
+    "hairStyle": "long",
+    "top": "dress",
+    "mini": true,
+    "strapless": true,
+    "topColor": "#c0c0d0",
+    "bottom": "skirt",
+    "bottomColor": "#c0c0d0"
+   },
+   "dance": "bodyRoll",
+   "walk": "model",
+   "origin": "western",
+   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
+   "photo": "real/f_04.jpg"
+  },
+  {
+   "id": "amina",
+   "name": "아미나",
+   "gender": "f",
+   "age": 25,
+   "tag": "🎉 흥부자",
+   "trait": "outgoing",
+   "color": "#3de6ff",
+   "hair": "#1c1410",
+   "job": "25 · 승무원",
+   "look": {
+    "gender": "f",
+    "skin": "#8d5a3b",
+    "hairColor": "#1c1410",
+    "hairStyle": "ponytail",
+    "top": "crop",
+    "strapless": true,
+    "topColor": "#3de6ff",
+    "bottom": "skirt",
+    "mini": true,
+    "bottomColor": "#ffffff"
+   },
+   "dance": "hipCircle",
+   "walk": "bouncy",
+   "origin": "western",
+   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
+   "photo": "real/f_16.jpg"
+  },
+  {
+   "id": "jake",
+   "name": "제이크",
+   "gender": "m",
+   "age": 30,
+   "tag": "💪 헬창",
+   "trait": "outgoing",
+   "color": "#141418",
+   "hair": "#c9a060",
+   "job": "30 · 트레이너",
+   "look": {
+    "gender": "m",
+    "skin": "#f2d0bc",
+    "hairColor": "#c9a060",
+    "hairStyle": "short",
+    "top": "tee",
+    "topColor": "#141418",
+    "muscle": 1,
+    "face": {
+     "attractive": true
+    }
+   },
+   "dance": "pump",
+   "walk": "swagger",
+   "origin": "western",
+   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
+   "photo": "real/m_15.jpg"
+  },
+  {
+   "id": "marcus",
+   "name": "마커스",
+   "gender": "m",
+   "age": 27,
+   "tag": "🎤 래퍼",
+   "trait": "playful",
+   "color": "#c8102e",
+   "hair": "#120c0a",
+   "job": "27 · 래퍼",
+   "look": {
+    "gender": "m",
+    "skin": "#5a3420",
+    "hairColor": "#120c0a",
+    "hairStyle": "buzz",
+    "top": "tee",
+    "oversize": true,
+    "topColor": "#c8102e",
+    "necklace": true,
+    "muscle": 0.5
+   },
+   "dance": "breaking",
+   "walk": "swagger",
+   "origin": "western",
+   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
+   "photo": "real/m_17.jpg"
+  },
+  {
+   "id": "taejun",
+   "name": "태준",
+   "gender": "m",
+   "age": 33,
+   "tag": "🤓 아재",
+   "trait": "shy",
+   "color": "#7a6a50",
+   "hair": "#241812",
+   "job": "33 · 회계사",
+   "look": {
+    "gender": "m",
+    "hairStyle": "side",
+    "top": "shirt",
+    "topColor": "#7a6a50",
+    "face": {
+     "glasses": true,
+     "attractive": false
+    }
+   },
+   "dance": "robot",
+   "walk": "shy",
+   "habit": "drinker",
+   "origin": "korean",
+   "photo": "real/m_28.jpg"
+  },
+  {
+   "id": "doyun",
+   "name": "도윤",
+   "gender": "m",
+   "age": 26,
+   "tag": "✨ 꽃미남",
+   "trait": "cool",
+   "color": "#1d2742",
+   "hair": "#17110f",
+   "job": "26 · 배우 지망생",
+   "look": {
+    "gender": "m",
+    "hairStyle": "slick",
+    "top": "jacket",
+    "setup": true,
+    "topColor": "#1d2742",
+    "face": {
+     "attractive": true
+    }
+   },
+   "dance": "disco",
+   "walk": "model",
+   "origin": "korean",
+   "photo": "real/m_32.jpg"
+  },
+  {
+   "id": "leo",
+   "name": "레오",
+   "gender": "m",
+   "age": 31,
+   "tag": "🍺 주정뱅이",
+   "trait": "playful",
+   "color": "#e8b84a",
+   "hair": "#8a5a30",
+   "job": "31 · 바텐더",
+   "look": {
+    "gender": "m",
+    "skin": "#f6dccb",
+    "hairColor": "#8a5a30",
+    "hairStyle": "curly",
+    "top": "shirt",
+    "pattern": "graphic",
+    "topColor": "#e8b84a",
+    "face": {
+     "attractive": false,
+     "beard": "stubble"
+    }
+   },
+   "dance": "techno",
+   "walk": "bouncy",
+   "habit": "drinker",
+   "origin": "western",
+   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
+   "photo": "real/m_06.jpg"
+  },
+  {
+   "id": "lena",
+   "name": "Lena",
+   "gender": "f",
+   "age": 24,
+   "tag": "😎 시크",
+   "trait": "cool",
+   "color": "#efebe3",
+   "hair": "#151012",
+   "job": "24 · 일러스트레이터",
+   "look": {
+    "gender": "f",
+    "height": 1.62,
+    "build": 0.93,
+    "skin": "#efd2bd",
+    "hairStyle": "wavy",
+    "hairColor": "#151012",
+    "top": "tee",
+    "longSleeve": true,
+    "oversize": true,
+    "topColor": "#eeeae2",
+    "pattern": "knit",
+    "bottom": "pants",
+    "fit": "wide",
+    "bottomColor": "#8a9e7c",
+    "bottomPattern": "cord",
+    "shoes": "sneakers",
+    "shoeColor": "#e6dccb",
+    "hat": "bucket",
+    "hatColor": "#cdbb98",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 1.0,
+     "eyeTilt": 0.1,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.85,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#c48a80",
+     "lipW": 1,
+     "lipFull": 1.2,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.15,
+     "liner": 0.95,
+     "shadow": "#8a6a5a",
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false
+    }
+   },
+   "photo": "real/f_21.jpg",
+   "always": true,
+   "pose": "dance",
+   "origin": "western",
+   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다"
+  },
+  {
+   "id": "hyejung",
+   "name": "혜정",
+   "gender": "f",
+   "age": 42,
+   "tag": "🎉 활발",
+   "trait": "outgoing",
+   "color": "#141a2e",
+   "hair": "#121014",
+   "job": "42 · 피아노 강사",
+   "look": {
+    "gender": "f",
+    "height": 1.64,
+    "build": 0.95,
+    "skin": "#f1d3c0",
+    "hairStyle": "wavy",
+    "hairColor": "#121014",
+    "top": "dress",
+    "pattern": "floral",
+    "topColor": "#151a2e",
+    "bottom": "skirt",
+    "bottomColor": "#151a2e",
+    "maxi": true,
+    "shoes": "sandals",
+    "shoeColor": "#d8b35a",
+    "hat": null,
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.95,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 0.7,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#d06a78",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.92,
+     "faceW": 0.95,
+     "jaw": 0.98,
+     "blush": 0.28,
+     "liner": 0.35,
+     "shadow": "#b88a74",
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false
+    }
+   },
+   "photo": "real/f_22.jpg",
+   "always": true,
+   "pose": "dance",
+   "origin": "korean"
+  },
+  {
+   "id": "mikyung",
+   "name": "미경",
+   "gender": "f",
+   "age": 24,
+   "tag": "💃 댄스퀸",
+   "trait": "outgoing",
+   "color": "#c8ccd4",
+   "job": "24 · 화장품 브랜드 매니저",
+   "pose": "dance",
+   "dance": "hipSway",
+   "walk": "model",
+   "look": {
+    "gender": "f",
+    "body": "slim",
+    "height": 1.69,
+    "skin": "#f0cfb6",
+    "hairStyle": "long",
+    "hairColor": "#1a1210",
+    "top": "halter",
+    "topColor": "#c9ccd6",
+    "metallic": true,
+    "bottom": "skirt",
+    "mini": true,
+    "bottomColor": "#121014",
+    "shoes": "platform",
+    "shoeColor": "#121014",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.96,
+     "eyeTilt": 0.06,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#a8494f",
+     "lipW": 1,
+     "lipFull": 1.05,
+     "nose": 0.95,
+     "faceW": 0.94,
+     "jaw": 0.97,
+     "blush": 0.12,
+     "liner": 0.55,
+     "shadow": null,
+     "freckles": false,
+     "mole": [
+      0.22,
+      0.18
+     ],
+     "glasses": false,
+     "sunglasses": false,
+     "earring": true
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null
+   },
+   "v32": true,
+   "hair": "#1a1210",
+   "origin": "korean",
+   "photo": "real/f_26.jpg"
+  },
+  {
+   "id": "yuka",
+   "name": "유카",
+   "gender": "f",
+   "age": 22,
+   "tag": "🌸 시부야걸",
+   "trait": "playful",
+   "color": "#f2f0ea",
+   "job": "22 · 서울 어학연수생",
+   "pose": "talk",
+   "dance": "shimmy",
+   "walk": "bouncy",
+   "look": {
+    "gender": "f",
+    "body": "average",
+    "height": 1.55,
+    "build": 0.96,
+    "skin": "#e3b48f",
+    "hairStyle": "long",
+    "hairColor": "#8a5a34",
+    "top": "crop",
+    "topColor": "#f3f1ea",
+    "bottom": "skirt",
+    "mini": true,
+    "bottomColor": "#5a7aa6",
+    "shoes": "platform",
+    "shoeColor": "#f0ece4",
+    "soleColor": "#f0ece4",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.98,
+     "eyeTilt": -0.03,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#c99088",
+     "lipW": 1,
+     "lipFull": 1.1,
+     "nose": 0.9,
+     "faceW": 1.0,
+     "jaw": 0.96,
+     "blush": 0.3,
+     "liner": 0.35,
+     "shadow": "#a07a5a",
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": true
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null,
+    "ethnic": "jp"
+   },
+   "v32": true,
+   "hair": "#8a5a34",
+   "origin": "japanese",
+   "photo": "real/f_31.jpg"
+  },
+  {
+   "id": "eunsook",
+   "name": "은숙",
+   "gender": "f",
+   "age": 31,
+   "tag": "🍸 단골",
+   "trait": "cool",
+   "color": "#7b2a3a",
+   "job": "31 · 외국계 보험사 대리",
+   "pose": "drink",
+   "dance": "disco",
+   "look": {
+    "gender": "f",
+    "body": "soft",
+    "height": 1.6,
+    "skin": "#f2d0b8",
+    "hairStyle": "bob",
+    "hairColor": "#2a1810",
+    "top": "shirt",
+    "oversize": true,
+    "topColor": "#7b2a3a",
+    "bottom": "pants",
+    "bottomColor": "#3a4d6e",
+    "shoes": "flats",
+    "shoeColor": "#1a1416",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.9,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#9c3f4a",
+     "lipW": 1,
+     "lipFull": 1.15,
+     "nose": 1.04,
+     "faceW": 1.08,
+     "jaw": 1.04,
+     "blush": 0.18,
+     "liner": 0.25,
+     "shadow": null,
+     "freckles": false,
+     "mole": [
+      -0.3,
+      0.36
+     ],
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null
+   },
+   "v32": true,
+   "hair": "#2a1810",
+   "origin": "korean",
+   "photo": "real/f_23.jpg"
+  },
+  {
+   "id": "nicole",
+   "name": "니콜",
+   "gender": "f",
+   "age": 27,
+   "tag": "🗽 뉴요커",
+   "trait": "cool",
+   "color": "#141218",
+   "job": "27 · 미군기지 영어강사",
+   "pose": "lean",
+   "dance": "vogue",
+   "walk": "model",
+   "look": {
+    "gender": "f",
+    "body": "athletic",
+    "height": 1.75,
+    "skin": "#f3d6c4",
+    "hairStyle": "wavy",
+    "hairColor": "#b08a52",
+    "top": "dress",
+    "strapless": false,
+    "topColor": "#16141a",
+    "sequin": true,
+    "bottom": "skirt",
+    "mini": true,
+    "bottomColor": "#16141a",
+    "shoes": "platform",
+    "shoeColor": "#16141a",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#4a6a7a",
+     "eyeSize": 0.95,
+     "eyeTilt": 0.02,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#a04a50",
+     "lipW": 1.08,
+     "lipFull": 1.0,
+     "nose": 1.06,
+     "faceW": 0.96,
+     "jaw": 1.02,
+     "blush": 0.15,
+     "liner": 0.4,
+     "shadow": null,
+     "freckles": true,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null,
+    "ethnic": "west"
+   },
+   "v32": true,
+   "hair": "#b08a52",
+   "origin": "western",
+   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
+   "photo": "real/f_01.jpg"
+  },
+  {
+   "id": "dongsu",
+   "name": "동수",
+   "gender": "m",
+   "age": 29,
+   "tag": "🍺 영업맨",
+   "trait": "playful",
+   "color": "#25304a",
+   "job": "29 · 외국계 건설사 영업",
+   "pose": "drink",
+   "dance": "stepTouch",
+   "walk": "swagger",
+   "habit": "drinker",
+   "look": {
+    "gender": "m",
+    "body": "soft",
+    "height": 1.72,
+    "belly": 0.75,
+    "skin": "#e8c2a2",
+    "hairStyle": "side",
+    "hairColor": "#141010",
+    "top": "polo",
+    "topColor": "#25304a",
+    "bottom": "pants",
+    "fit": "wide",
+    "bottomColor": "#a39a84",
+    "shoeColor": "#2a1a12",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.82,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1.3,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#a87068",
+     "lipW": 1,
+     "lipFull": 1,
+     "nose": 1.12,
+     "faceW": 1.08,
+     "jaw": 1.12,
+     "blush": 0.1,
+     "liner": 0.2,
+     "shadow": null,
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": false,
+     "beard": "stubble"
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null
+   },
+   "v32": true,
+   "hair": "#141010",
+   "origin": "korean",
+   "photo": "real/m_31.jpg"
+  },
+  {
+   "id": "junho",
+   "name": "준호",
+   "gender": "m",
+   "age": 23,
+   "tag": "🎧 힙합키드",
+   "trait": "playful",
+   "color": "#2f5a3a",
+   "job": "23 · 교환학생",
+   "pose": "dance",
+   "dance": "runMan",
+   "walk": "bouncy",
+   "look": {
+    "gender": "m",
+    "body": "slim",
+    "height": 1.81,
+    "skin": "#f0d0b4",
+    "hairStyle": "comma",
+    "hairColor": "#18110e",
+    "top": "overshirt",
+    "oversize": true,
+    "pattern": "plaid",
+    "topColor": "#2f5a3a",
+    "innerColor": "#f2f0ea",
+    "bottom": "pants",
+    "fit": "wide",
+    "bottomColor": "#4a6488",
+    "shoes": "sneakers",
+    "shoeColor": "#f2f2f0",
+    "hat": "bucket",
+    "hatColor": "#1c1c20",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.95,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#b98278",
+     "lipW": 1,
+     "lipFull": 1,
+     "nose": 0.98,
+     "faceW": 0.95,
+     "jaw": 0.97,
+     "blush": 0.1,
+     "liner": 0.2,
+     "shadow": null,
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": true
+    },
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null
+   },
+   "v32": true,
+   "hair": "#18110e",
+   "origin": "korean",
+   "photo": "real/m_36.jpg"
+  },
+  {
+   "id": "marco",
+   "name": "마르코",
+   "gender": "m",
+   "age": 34,
+   "tag": "🏍 바이커",
+   "trait": "cool",
+   "color": "#18151a",
+   "job": "34 · 이탈리안 레스토랑 셰프",
+   "pose": "lean",
+   "dance": "bounceRock",
+   "walk": "swagger",
+   "look": {
+    "gender": "m",
+    "body": "stocky",
+    "height": 1.77,
+    "skin": "#dcb08c",
+    "hairStyle": "slick",
+    "hairColor": "#1c140e",
+    "top": "jacket",
+    "leather": true,
+    "topColor": "#141216",
+    "bottom": "pants",
+    "bottomColor": "#2c3a52",
+    "shoes": "boots",
+    "realWear": true,
+    "face": {
+     "eyeColor": "#3a2a1a",
+     "eyeSize": 0.88,
+     "eyeTilt": 0,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1.45,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#a06a60",
+     "lipW": 1,
+     "lipFull": 1,
+     "nose": 1.22,
+     "faceW": 1.04,
+     "jaw": 1.15,
+     "blush": 0.1,
+     "liner": 0.2,
+     "shadow": null,
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": false,
+     "beard": "stubble"
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "necklace": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null,
+    "ethnic": "west"
+   },
+   "v32": true,
+   "hair": "#1c140e",
+   "origin": "western",
+   "tagline": "한국에서 지내는 외국인 — 한국어가 유창하고 가끔 영어 단어가 섞인다",
+   "photo": "real/m_24.jpg"
+  },
+  {
+   "id": "kenji",
+   "name": "켄지",
+   "gender": "m",
+   "age": 26,
+   "tag": "🕺 디스코",
+   "trait": "outgoing",
+   "color": "#121014",
+   "job": "26 · 이태원 음반가게 점원",
+   "pose": "talk",
+   "dance": "disco",
+   "walk": "swagger",
+   "look": {
+    "gender": "m",
+    "body": "athletic",
+    "height": 1.68,
+    "skin": "#ecc9aa",
+    "hairStyle": "slick",
+    "hairColor": "#0e0b0a",
+    "top": "shirt",
+    "topColor": "#121014",
+    "bottom": "pants",
+    "fit": "wide",
+    "bottomColor": "#3a3a40",
+    "shoeColor": "#121014",
+    "necklace": true,
+    "realWear": true,
+    "face": {
+     "eyeColor": "#2a1c12",
+     "eyeSize": 0.9,
+     "eyeTilt": 0.05,
+     "eyeGap": 0,
+     "lid": 1,
+     "browThick": 1,
+     "browTilt": 0,
+     "browArch": 0.5,
+     "lipColor": "#b07a70",
+     "lipW": 1,
+     "lipFull": 1,
+     "nose": 0.98,
+     "faceW": 0.97,
+     "jaw": 1.0,
+     "blush": 0.1,
+     "liner": 0.2,
+     "shadow": null,
+     "freckles": false,
+     "mole": null,
+     "glasses": false,
+     "sunglasses": false,
+     "earring": false,
+     "attractive": true
+    },
+    "pattern": "solid",
+    "hat": null,
+    "chain": false,
+    "choker": false,
+    "belt": false,
+    "gloves": false,
+    "wings": false,
+    "bag": false,
+    "bandana": false,
+    "sailor": false,
+    "set": false,
+    "cargoPrint": false,
+    "hair2": null,
+    "ethnic": "jp"
+   },
+   "v32": true,
+   "hair": "#0e0b0a",
+   "origin": "japanese",
+   "photo": "real/m_35.jpg"
+  }
+ ],
+ "crowdModels": [],
+ "crowdModelMax": 6,
+ "vrmAll": false
+}

@@ -1,0 +1,400 @@
+{
+ "_설명": [
+  "부킹 대화 데이터입니다. 문장·점수·반응을 고치거나 추가한 뒤 새로고침하면 반영됩니다.",
+  "open/topics: 선택지 t=말풍선 문구, s=성격별 점수(수줍/활발/장난꾸러기/시크). 점수 합이 booking.threshold 이상이면 합석 성공",
+  "reaction1/reaction2: 성격별 NPC 반응(good≥2점, mid 0~1점, bad<0점) · chats: 합석 후 대화(like=좋아하는 성격, r=좋아할 때 NPC 답변)",
+  "fallback: LLM 미설정/오류 시 로컬 대사 엔진이 쓰는 성격별 반응. {topic}=감지된 관심사, {name}=NPC 이름. 페르소나의 lines 가 있으면 그것을 우선 사용"
+ ],
+ "booking": {
+  "threshold": 3,
+  "cooldownSec": 25,
+  "startAffinity": 40
+ },
+ "open": [
+  {
+   "t": "Hi! Did you come alone? 😊",
+   "s": {
+    "shy": 2,
+    "outgoing": 1,
+    "playful": 0,
+    "cool": 0
+   }
+  },
+  {
+   "t": "Great music, right? Want to dance a song together? 🕺",
+   "s": {
+    "shy": -1,
+    "outgoing": 2,
+    "playful": 2,
+    "cool": 1
+   }
+  },
+  {
+   "t": "Excuse me, want to do a booking? 🍻",
+   "s": {
+    "shy": -2,
+    "outgoing": 1,
+    "playful": 1,
+    "cool": 2
+   }
+  }
+ ],
+ "reaction1": {
+  "shy": {
+   "good": "Uh… yes, hi. (smiles slightly)",
+   "mid": "Oh, yes… hi…",
+   "bad": "(flinches) Oh, um… just a moment…"
+  },
+  "outgoing": {
+   "good": "Oh my, hi~! Nice to meet you!",
+   "mid": "Yes, hi~",
+   "bad": "Uh… what?"
+  },
+  "playful": {
+   "good": "Oh, smooth? This could be fun haha",
+   "mid": "Hmm~ what's this haha",
+   "bad": "Pfft, aren't you rushing it?"
+  },
+  "cool": {
+   "good": "…Not bad.",
+   "mid": "Yes.",
+   "bad": "Well, not really."
+  }
+ },
+ "topics": [
+  {
+   "t": "What songs are you into these days?",
+   "s": {
+    "shy": 1,
+    "outgoing": 2,
+    "playful": 1,
+    "cool": 2
+   }
+  },
+  {
+   "t": "How did you end up here tonight?",
+   "s": {
+    "shy": 2,
+    "outgoing": 1,
+    "playful": 1,
+    "cool": 0
+   }
+  },
+  {
+   "t": "What would you like to drink? I'll buy you one 🥂",
+   "s": {
+    "shy": 0,
+    "outgoing": 2,
+    "playful": 2,
+    "cool": 1
+   }
+  }
+ ],
+ "reaction2": {
+  "shy": {
+   "good": "Actually, I came with a friend… but this kind of talk is comfortable.",
+   "mid": "Hmm… well, I'm not sure.",
+   "bad": "Um… sorry, this is a bit awkward…"
+  },
+  "outgoing": {
+   "good": "I love it! Talking with you is fun~",
+   "mid": "Ah~ right. Of course.",
+   "bad": "Hmm… shall we talk about something else?"
+  },
+  "playful": {
+   "good": "LOL what, that's funny. We really click, huh?",
+   "mid": "Oho~ keep talking.",
+   "bad": "Aw~ that's a bit cliché, isn't it?"
+  },
+  "cool": {
+   "good": "…Nice taste. I'll admit it.",
+   "mid": "I see.",
+   "bad": "Well, I'm not interested."
+  }
+ },
+ "chats": [
+  {
+   "t": "What do you usually do on your days off?",
+   "like": [
+    "shy",
+    "cool"
+   ],
+   "r": [
+    "Watching movies at home is my favorite.",
+    "I just rest. Surprisingly simple, right?"
+   ]
+  },
+  {
+   "t": "What's your favorite old song?",
+   "like": [
+    "outgoing",
+    "playful"
+   ],
+   "r": [
+    "Oh my, I love that song! Let's listen together!",
+    "Wow, our music taste is similar!"
+   ]
+  },
+  {
+   "t": "If you could travel anywhere, where would you go?",
+   "like": [
+    "shy",
+    "outgoing",
+    "playful"
+   ],
+   "r": [
+    "A quiet place with an ocean view.",
+    "Jeju Island, no question! Let's go together~"
+   ]
+  },
+  {
+   "t": "Do you like horror movies?",
+   "like": [
+    "playful"
+   ],
+   "r": [
+    "Haha, if we watch together, I'll hold your hand.",
+    "Oh, I can never watch them!"
+   ]
+  },
+  {
+   "t": "Are you a good cook?",
+   "like": [
+    "cool",
+    "shy"
+   ],
+   "r": [
+    "I make the world's best ramyeon.",
+    "I'm learning. I'll cook for you someday."
+   ]
+  },
+  {
+   "t": "What was the funniest thing today?",
+   "like": [
+    "playful",
+    "outgoing"
+   ],
+   "r": [
+    "When the DJ dropped the mic earlier LOL",
+    "Isn't this situation kind of funny?"
+   ]
+  }
+ ],
+ "fallback": {
+  "outgoing": {
+   "greet": [
+    "Hi~ nice to meet you! Great vibe tonight, right?"
+   ],
+   "like": [
+    "You like {topic}? No way, me too!",
+    "Oh, {topic}! Tell me more~"
+   ],
+   "dislike": [
+    "Hmm… not that topic~ let's talk about something else!",
+    "Aw~ not that kind of talk haha"
+   ],
+   "compliment": [
+    "Oh, come on~ but it's nice to hear haha",
+    "Really? I made an effort tonight!"
+   ],
+   "joke": [
+    "LOL what, that's hilarious!",
+    "Oh that's so funny haha, are you a comedian?"
+   ],
+   "question": [
+    "Hmm~ that's hard to answer in one word! What about you?",
+    "Oh, I was curious about that too. What do you think?"
+   ],
+   "boring": [
+    "Aw~ that's it? Bring more energy!",
+    "Hmm~ your reactions are too short!"
+   ],
+   "rude": [
+    "Wow… that's not okay. I'm disappointed.",
+    "That's not something you say. I'm leaving."
+   ],
+   "pushy": [
+    "Whoa~ that's too fast! Here, only a virtual Instagram instead of contacts haha"
+   ],
+   "tease": [
+    "Huh? Thought I'd fall for you already? Not yet~",
+    "Haha, don't think I'm that easy~"
+   ],
+   "generic": [
+    "Oh really? Tell me more!",
+    "I see~ I totally get it haha",
+    "Wow, that's fun! So what happened?"
+   ],
+   "cheers": [
+    "Cheers~! To tonight 🥂"
+   ],
+   "leave": [
+    "I'm going back to my friends~ That was fun!"
+   ],
+   "ending": [
+    "Tonight was so much fun! Want to swap Instagrams? (virtual) 💌"
+   ]
+  },
+  "shy": {
+   "greet": [
+    "Ah… hi… hehe"
+   ],
+   "like": [
+    "{topic}… I like it too…",
+    "Oh, I like talking about {topic}… please go on"
+   ],
+   "dislike": [
+    "Ah… that topic… I'm not sure…",
+    "Hmm… could we talk about something else…"
+   ],
+   "compliment": [
+    "Uh… no, it's not… (blushes)",
+    "Hehe… thank you…"
+   ],
+   "joke": [
+    "Pfft… that's funny… hehe",
+    "Haha… you're the first person to say that"
+   ],
+   "question": [
+    "Hmm… I'm not sure about that… what about you?",
+    "Oh… I've never thought about it… can I hear yours first?"
+   ],
+   "boring": [
+    "Oh… yes…",
+    "Hmm… I see…"
+   ],
+   "rude": [
+    "…That kind of talk scares me. I'm going.",
+    "…Sorry, I'm going to my friend."
+   ],
+   "pushy": [
+    "Oh… that's… we don't really know each other yet…"
+   ],
+   "tease": [
+    "Uh… getting close too fast… is embarrassing…"
+   ],
+   "generic": [
+    "Oh… I see… interesting",
+    "Hmm… I like that story. Tell me a little more",
+    "Hehe… I'm listening"
+   ],
+   "cheers": [
+    "Oh, cheers… hehe 🥂"
+   ],
+   "leave": [
+    "Um… I'll get going now… it was fun"
+   ],
+   "ending": [
+    "Um… tonight was really fun… want to swap… Instagrams? (virtual) 💌"
+   ]
+  },
+  "playful": {
+   "greet": [
+    "Oh, a booking? haha Sure, let's make it fun"
+   ],
+   "like": [
+    "{topic}? haha We click!",
+    "Oh, {topic}, I can't resist that"
+   ],
+   "dislike": [
+    "Aw~ that's kind of boring haha",
+    "Whoa, pass on that topic haha"
+   ],
+   "compliment": [
+    "Haha I know~ just kidding, thanks",
+    "Oh, one point for the compliment haha"
+   ],
+   "joke": [
+    "LOL that's insane",
+    "Your jokes are good haha, but I'm funnier"
+   ],
+   "question": [
+    "Haha, that's a hard one to answer. What about you?",
+    "Hmm~ I'll tell you over the next drink haha. What about you?"
+   ],
+   "boring": [
+    "Aw, boring~ haha, try again!",
+    "I'm yawning haha, give me more"
+   ],
+   "rude": [
+    "Wow, that really crossed the line. Bye~",
+    "Even as a joke, that's not okay. I'm out."
+   ],
+   "pushy": [
+    "Haha, no sudden moves~ a virtual Instagram is the best you'll get here"
+   ],
+   "tease": [
+    "Already? haha Not enough levels yet~",
+    "Thought I'd be easy? Nope~"
+   ],
+   "generic": [
+    "Haha, so what's next?",
+    "Oho~ sounds like there's a story there?",
+    "Wait, is that true? haha"
+   ],
+   "cheers": [
+    "Cheers, let's go~ 🥂"
+   ],
+   "leave": [
+    "I'm heading to the stage~ see you later!"
+   ],
+   "ending": [
+    "Tonight was a blast haha, swap Instagrams? (virtual) 💌"
+   ]
+  },
+  "cool": {
+   "greet": [
+    "…Yes. What is it?"
+   ],
+   "like": [
+    "{topic}? …Not bad.",
+    "{topic}… I like it. Go on."
+   ],
+   "dislike": [
+    "Not interested.",
+    "I don't care for that topic."
+   ],
+   "compliment": [
+    "…Thanks. But that's not enough.",
+    "I'll take the compliment."
+   ],
+   "joke": [
+    "…Pfft. I'll give you that one.",
+    "You're funnier than I thought."
+   ],
+   "question": [
+    "Good question. It depends on the situation. What about you?",
+    "…That's not an easy one. You go first."
+   ],
+   "boring": [
+    "…I see.",
+    "Is that all?"
+   ],
+   "rude": [
+    "Manners are basic. That's enough for me.",
+    "…Disappointing. I'll go."
+   ],
+   "pushy": [
+    "Please respect boundaries. All I can give here is a virtual Instagram."
+   ],
+   "tease": [
+    "…You think it's a done deal already? Not yet.",
+    "I'm not the type who falls easily."
+   ],
+   "generic": [
+    "Interesting. Go on.",
+    "I see. So what's the conclusion?",
+    "…Not a bad story."
+   ],
+   "cheers": [
+    "…Cheers. 🥂"
+   ],
+   "leave": [
+    "Time's up. It was nice."
+   ],
+   "ending": [
+    "…Fine, you win. Let's swap Instagrams. Virtually. 💌"
+   ]
+  }
+ }
+}

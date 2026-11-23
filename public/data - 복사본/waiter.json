@@ -1,0 +1,40 @@
+{
+  "_설명": [
+    "웨이터 부킹 데이터. tiers=팁 단계(🪙 가상 재화, 현금 가치 없음), styles=스타일 선택지, tree=대화 노드.",
+    "say 안의 {coins} {style} {room} {name} {gender} 는 실행 시 치환됩니다.",
+    "매칭 점수 = 스타일일치(60/인접20/아무나30) + 페르소나가중치(tier.personaBias×30) + 기분(mood×5) + 단골도(rep×2) + 랜덤(0~15) − 최근거절(40)"
+  ],
+  "waiters": [
+    { "id": "bungae", "name": "번개", "title": "웨이터 '번개'", "station": true,
+      "look": { "gender": "m", "height": 1.76, "skin": "#ecc0a0", "hairStyle": "slick", "hairColor": "#17110f", "top": "vest", "topColor": "#121018", "bottom": "pants", "bottomColor": "#121018", "face": { "eyeSize": 0.95, "browThick": 1.3, "beard": null, "glasses": false, "lipColor": "#b87a72" } } },
+    { "id": "nice", "name": "나이스", "title": "웨이터 '나이스'", "station": false,
+      "look": { "gender": "m", "height": 1.72, "skin": "#f1c9a5", "hairStyle": "twoblock", "hairColor": "#3b2417", "top": "vest", "topColor": "#121018", "bottom": "pants", "bottomColor": "#121018", "face": { "eyeSize": 1.05, "browThick": 1.0, "glasses": true, "lipColor": "#c08a80" } } }
+  ],
+  "tiers": [
+    { "id": "basic", "coin": 10, "label": "🪙10 기본 부킹", "success": 0.6, "personaBias": 0.2, "affBonus": 0 },
+    { "id": "premium", "coin": 30, "label": "🪙30 프리미엄 부킹", "success": 0.85, "personaBias": 0.7, "affBonus": 5 },
+    { "id": "vip", "coin": 50, "label": "🪙50 VIP 확정 + 샴페인", "success": 1.0, "personaBias": 1.0, "affBonus": 10, "champagne": true }
+  ],
+  "styles": [
+    { "id": "outgoing", "label": "🎉 활발한 분" },
+    { "id": "shy", "label": "🙈 수줍은 분" },
+    { "id": "cool", "label": "😎 시크한 분" },
+    { "id": "playful", "label": "😜 유머러스한 분" },
+    { "id": "any", "label": "⚡ 번개 추천 (아무나)" }
+  ],
+  "adjacent": { "outgoing": ["playful"], "playful": ["outgoing"], "shy": ["cool"], "cool": ["shy"] },
+  "tree": {
+    "root": { "say": "어서 오십쇼~! 오늘 밤 책임질 {title}입니다 ⚡ 뭘 도와드릴까요? (보유 🪙{coins})", "motion": "bow",
+      "opts": [ { "t": "💌 부킹 부탁해요", "next": "style" }, { "t": "🚪 VIP 룸 현황 알려 줘요", "next": "rooms" }, { "t": "💰 팁만 드릴게요 (🪙5)", "next": "tipOnly" }, { "t": "괜찮아요", "next": "end" } ] },
+    "style": { "say": "어떤 스타일로 모실까요? 제 눈썰미 믿으셔도 됩니다 😎", "opts": "$styles" },
+    "gender": { "say": "혹시 원하시는 분 성별 있으세요?", "opts": [ { "t": "여성분", "set": { "gender": "f" }, "next": "tier" }, { "t": "남성분", "set": { "gender": "m" }, "next": "tier" }, { "t": "상관없어요", "set": { "gender": "any" }, "next": "tier" } ] },
+    "tier": { "say": "{style} 스타일로요! 팁 주시면 발에 땀나게 뛰어 봅니다~ (보유 🪙{coins})", "opts": "$tiers" },
+    "searching": { "say": "잠시만요~ 한 바퀴 돌고 오겠습니다! 💨", "motion": "lookAround" },
+    "matchOk": { "say": "찾았습니다! {name}님이 VIP {room}번 룸에서 기다리십니다. 이쪽으로 모시겠습니다~ 👉", "motion": "point" },
+    "matchFail": { "say": "아이고… 지금 {style} 손님들이 다 바쁘시네요. 팁 절반은 돌려드릴게요 🙏 다른 스타일 어떠세요?", "opts": [ { "t": "다른 스타일로", "next": "style" }, { "t": "다음에 할게요", "next": "end" } ] },
+    "roomsFull": { "say": "VIP 룸이 지금 만실이에요 😭 팁은 전액 돌려드릴게요. 조금 있다 다시 불러 주세요!", "opts": [ { "t": "알겠어요", "next": "end" } ] },
+    "noMoney": { "say": "앗, 코인이 조금 모자라세요! 스테이지에서 춤추시거나 미니게임으로 모으실 수 있어요 💃", "opts": [ { "t": "알겠어요", "next": "end" } ] },
+    "rooms": { "say": "$rooms", "opts": [ { "t": "부킹 부탁해요", "next": "style" }, { "t": "고마워요", "next": "end" } ] },
+    "tipOnly": { "say": "감사합니다~! 🙇 단골 되시면 다음 부킹 때 더 신경 써 드릴게요!", "motion": "bow", "opts": [ { "t": "👍", "next": "end" } ] }
+  }
+}

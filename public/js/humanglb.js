@@ -225,9 +225,11 @@ const attach0 = async (root, url, opt = {}) => {
   // 재질: 피부에 클럽 조명용 피하산란(SSS) 셰이더 · 그림자
   const skinNames = (opt.skin || []).map(x => x.toLowerCase()), noSkin = (opt.noSkin || []).map(x => x.toLowerCase());
   const matSet = new Set(); model.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m && matSet.add(m)); }); const multi = matSet.size > 1;   // 재질이 하나뿐(옷+피부 한 텍스처)인 모델은 피부 셰이더를 옷에 씌우지 않음
+  u._cloth = [];
   model.traverse(o => { if (!o.isMesh) return; o.frustumCulled = false; if (Q.shadows) o.castShadow = true;
-    (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (!m) return; const n = ((m.name || '') + ' ' + (o.name || '')).toLowerCase();
-      if (NC.Avatar && NC.Avatar.skinCompile && m.isMeshStandardMaterial && !noSkin.some(k => n.includes(k)) && (skinNames.some(k => n.includes(k)) || /skin/.test(n) || (multi && /body|head|face/.test(n))) && !/hair|cloth|shirt|pant|shoe|eye|lash|brow|teeth|tongue/.test(n)) { m.onBeforeCompile = NC.Avatar.skinCompile; m.customProgramCacheKey = () => 'realSkin'; m.needsUpdate = true; }
+    (Array.isArray(o.material) ? o.material : [o.material]).forEach(m0 => { let m = m0; if (!m) return; const n = ((m.name || '') + ' ' + (o.name || '')).toLowerCase();
+      if (NC.Avatar && NC.Avatar.skinCompile && m.isMeshStandardMaterial && !noSkin.some(k => n.includes(k)) && (skinNames.some(k => n.includes(k)) || /skin/.test(n) || (multi && /body|head|face/.test(n))) && !/hair|cloth|shirt|pant|shoe|eye|lash|brow|teeth|tongue/.test(n)) { if (NC.Avatar.realBodyMat && !RH.oldSkin) { m = m.clone(); if (Array.isArray(o.material)) o.material = o.material.map(x => x === m0 ? m : x); else o.material = m; const cu = NC.Avatar.realBodyMat(m); (u._cloth || (u._cloth = [])).push(cu); clothTone(u, cu); }   // v66 피부 마스크 셰이더(인스턴스별 재질 — 옷 색조를 따로 바꿀 수 있게)
+        else { m.onBeforeCompile = NC.Avatar.skinCompile; m.customProgramCacheKey = () => 'realSkin'; m.needsUpdate = true; } }
       if (m.envMapIntensity != null) m.envMapIntensity = Math.min(m.envMapIntensity, 1);
       { const an = Math.min(NC.isMobile ? 4 : 8, (NC.renderer && NC.renderer.capabilities.getMaxAnisotropy()) || 1); for (const k of ['map', 'normalMap']) if (m[k] && m[k].anisotropy !== an) { m[k].anisotropy = an; m[k].needsUpdate = true; } }   // v63 비스듬히 본 얼굴·옷 텍스처가 뭉개지지 않게(이방성 필터링)
       if (/opacity|hair|lash/.test(n) && m.map) { m.transparent = false; m.alphaTest = .42; m.alphaToCoverage = true; m.side = T.DoubleSide; m.depthWrite = true; m.roughness = .48; }   // v46 머리카락·속눈썹 카드: 알파 테스트 + 커버리지(정렬 문제 없이 가는 머리결)
@@ -245,6 +247,10 @@ const attach0 = async (root, url, opt = {}) => {
   RH.list.push(rec); RH.stats.attached = RH.list.length; return rec;
 };
 /* v51 장착 중 오류가 나도 '대기 중' 상태로 멈추지 않게 정리하고, 그 파일은 이 사람에게 다시 쓰지 않음(다른 모델로 대체) */
+/* v66 옷 색조: 같은 모델을 둘 이상이 쓸 수밖에 없을 때(unique.js 변형 번호 _uvar) 옷 색만 다른 계열로 — 피부·머리는 그대로 */
+const CLOTH_TONES = [[0, 1], [.5, 1.05], [.17, .9], [.72, 1.1], [.33, .85], [.88, 1], [.6, .7], [.08, 1.15]];
+function clothTone(u, cu) { const v = (u._uvar || 0) % CLOTH_TONES.length, t = u.clothTone || CLOTH_TONES[v]; cu.uClothHue.value = t[0]; cu.uClothSat.value = t[1]; }
+RH.clothTone = (g, hue, sat) => { const u = g && g.userData; if (!u) return; u.clothTone = hue == null ? null : [hue, sat == null ? 1 : sat]; (u._cloth || []).forEach(cu => clothTone(u, cu)); };
 RH.attach = async (root, url, opt = {}) => {
   try { return await attach0(root, url, opt); }
   catch (e) { console.warn('[real] 장착 오류 → 다른 모델로 대체', url, e); const u = root.userData;

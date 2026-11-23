@@ -1,0 +1,229 @@
+{
+ "_설명": [
+  "아이스브레이킹 미니게임 데이터. 문구·확률·보상을 수정하면 새로고침 후 반영됩니다.",
+  "roulette: 진실게임 룰렛 칸(type: truth=질문, penalty=가상 벌칙, pass=패스권). asks=NPC가 플레이어에게 묻는 질문",
+  "balance: 밸런스 게임. trait=성격별 기본 선택(a/b). 페르소나는 npcs.json 의 balance 값을 우선 사용",
+  "dance: 커플 댄스 챌린지(리듬). 판정 창(ms)·파트너 성격별 정확도·보상"
+ ],
+ "rewards": {
+  "roulette": {
+   "coins": 15,
+   "aff": 6
+  },
+  "balance": {
+   "coinsPerMatch": 4,
+   "affPerMatch": 3,
+   "affPerMiss": -1
+  },
+  "dance": {
+   "coinsMax": 40,
+   "affMax": 14
+  }
+ },
+ "roulette": {
+  "rounds": 4,
+  "sectors": [
+   {
+    "label": "First impression",
+    "type": "truth",
+    "color": "#ff5ca8"
+   },
+   {
+    "label": "Views on dating",
+    "type": "truth",
+    "color": "#9b5cff"
+   },
+   {
+    "label": "Penalty: bottoms up (virtual)",
+    "type": "penalty",
+    "motion": "drink",
+    "color": "#ffb340"
+   },
+   {
+    "label": "Tastes",
+    "type": "truth",
+    "color": "#3de6ff"
+   },
+   {
+    "label": "Embarrassing past",
+    "type": "truth",
+    "color": "#ff7a5c"
+   },
+   {
+    "label": "Pass",
+    "type": "pass",
+    "color": "#6dff8a"
+   },
+   {
+    "label": "Ideal type",
+    "type": "truth",
+    "color": "#ff3d9a"
+   },
+   {
+    "label": "Recent worries",
+    "type": "truth",
+    "color": "#5c8aff"
+   },
+   {
+    "label": "Penalty: 3 seconds of aegyo",
+    "type": "penalty",
+    "motion": "shy",
+    "color": "#ffd23d"
+   }
+  ],
+  "asks": {
+   "First impression": [
+    "Honestly, what did you think when you first saw me?",
+    "Describe my first impression in one word!"
+   ],
+   "Views on dating": [
+    "What's the single most important thing in dating?",
+    "How often should you text when you're getting to know someone?"
+   ],
+   "Tastes": [
+    "Tell me one thing you're hooked on lately.",
+    "Describe your perfect weekend."
+   ],
+   "Embarrassing past": [
+    "Share your biggest embarrassing moment. I did mine!",
+    "Any legendary drinking mishaps?"
+   ],
+   "Ideal type": [
+    "Name your ideal type in 3 seconds! One, two…",
+    "What type could you never date?"
+   ],
+   "Recent worries": [
+    "What's been giving you the biggest headache lately?",
+    "Anything keeping you up at night lately?"
+   ]
+  },
+  "penaltyLines": {
+   "drink": "🍸 (empties a virtual glass) …Ahh~ next round!",
+   "shy": "(cupping cheeks with both hands) …Bbuing? Ugh, so embarrassing!"
+  }
+ },
+ "balance": {
+  "rounds": 5,
+  "questions": [
+   {
+    "id": "b1",
+    "a": "Summer forever",
+    "b": "Winter forever",
+    "trait": {
+     "outgoing": "a",
+     "shy": "b",
+     "playful": "a",
+     "cool": "b"
+    }
+   },
+   {
+    "id": "b2",
+    "a": "Surprise events",
+    "b": "Planned dates",
+    "trait": {
+     "outgoing": "a",
+     "shy": "b",
+     "playful": "a",
+     "cool": "b"
+    }
+   },
+   {
+    "id": "b3",
+    "a": "A partner who texts often",
+    "b": "Respecting each other's time",
+    "trait": {
+     "outgoing": "a",
+     "shy": "a",
+     "playful": "a",
+     "cool": "b"
+    }
+   },
+   {
+    "id": "b4",
+    "a": "Karaoke for round two",
+    "b": "A quiet bar for round two",
+    "trait": {
+     "outgoing": "a",
+     "shy": "b",
+     "playful": "a",
+     "cool": "b"
+    }
+   },
+   {
+    "id": "b5",
+    "a": "First date at an amusement park",
+    "b": "First date at an art museum",
+    "trait": {
+     "outgoing": "a",
+     "shy": "b",
+     "playful": "a",
+     "cool": "b"
+    }
+   },
+   {
+    "id": "b6",
+    "a": "Jjajangmyeon",
+    "b": "Jjamppong",
+    "trait": {
+     "outgoing": "b",
+     "shy": "a",
+     "playful": "b",
+     "cool": "a"
+    }
+   },
+   {
+    "id": "b7",
+    "a": "A friend who chats all night",
+    "b": "A friend who's comfortable in silence",
+    "trait": {
+     "outgoing": "a",
+     "shy": "b",
+     "playful": "a",
+     "cool": "b"
+    }
+   },
+   {
+    "id": "b8",
+    "a": "Dance every day",
+    "b": "Sing every day",
+    "trait": {
+     "outgoing": "a",
+     "shy": "b",
+     "playful": "a",
+     "cool": "b"
+    }
+   }
+  ],
+  "same": [
+   "We clicked! 🙌",
+   "Oh? We kind of match!",
+   "Jinx!"
+  ],
+  "diff": [
+   "Aw~ that's where we split",
+   "Hmm… you'll have to convince me on that",
+   "That's unexpected!"
+  ]
+ },
+ "dance": {
+  "beats": 32,
+  "leadIn": 4,
+  "window": {
+   "perfect": 90,
+   "good": 170
+  },
+  "partnerSkill": {
+   "playful": 0.93,
+   "outgoing": 0.86,
+   "cool": 0.78,
+   "shy": 0.62
+  },
+  "patterns": [
+   "x.x.x.x.",
+   "x.xxx.x.",
+   "xx.xx.x.",
+   "x..xx..x",
+   "x.x.xx.x"
+  ]
+ }
+}

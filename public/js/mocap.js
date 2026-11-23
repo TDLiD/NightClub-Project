@@ -48,7 +48,7 @@ const LIB = {
     talk: ['f_gestic_talk_neutral_01', 'f_gestic_talk_neutral_02', 'f_gestic_talk_relaxed_01'], listen: ['f_gestic_listen_neutral_01'],
     dance: ['f_dancing_neutral', 'f_dancing_cool', 'f_dancing_affective', 'f_dancing_silly', 'f_dancing_aggressive'],
     stage: ['f_dancing_cool', 'f_dancing_aggressive', 'f_dancing_affective'],
-    clap: 'f_claphands_01', cheer: ['f_cheer_01', 'f_cheer_02'], wave: 'f_wave_01' },
+    clap: 'f_claphands_01', cheer: ['f_cheer_01', 'f_cheer_02'], wave: 'f_wave_01', hair: 'f_idle_touch_hair_01', look: ['f_idle_look_around_01'] },
   m: { idle: ['m_idle_neutral_01', 'm_idle_neutral_02', 'm_idle_neutral_03', 'm_idle_neutral_04', 'm_idle_neutral_05', 'm_idle_breathe_01', 'm_idle_waiting_01', 'm_idle_look_around_01'],
     walk: { def: ['m_walk_neutral_01', 'm_walk_neutral_02', 'm_walk_stroll_01'], model: ['m_walk_cool_01'], swagger: ['m_walk_cool_01'], shy: ['m_walk_slow_01'], bouncy: ['m_walk_neutral_02'] },
     walkAll: ['m_walk_stroll_01', 'm_walk_slow_01', 'm_walk_neutral_01', 'm_walk_cool_01', 'm_walk_neutral_02', 'm_walk_fast_01', 'm_walk_fast_02', 'm_run_slow_01'],
@@ -56,14 +56,15 @@ const LIB = {
     sit: ['m_sit_chair_idle_neutral_01', 'm_sit_chair_idle_neutral_02', 'm_sit_chair_idle_relaxed_01', 'm_sit_chair_breathe_01', 'm_sit_chair_idle_look_around', 'm_sit_chair_idle_touch_hair', 'm_sit_chair_idle_waiting_01'],
     sitTalk: ['m_sit_chair_gestic_shrug_01', 'm_sit_chair_gestic_thoughtful', 'm_sit_chair_idle_neutral_02'],
     sitDown: 'm_sit_down_chair_01', standUp: 'm_sit_stand_up_chair_01',
-    talk: ['m_gestic_talk_neutral_01', 'm_gestic_talk_neutral_02', 'm_gestic_talk_relaxed_01'], listen: ['m_gestic_talk_relaxed_01'],
+    talk: ['m_gestic_talk_neutral_01', 'm_gestic_talk_neutral_02', 'm_gestic_talk_relaxed_01'], listen: ['m_idle_breathe_01', 'm_idle_neutral_02'],   // v66 남자 듣기 클립이 없어 '말하는' 손짓 클립을 쓰던 것 → 조용한 대기 + 끄덕임(social.js)
+   
     dance: ['m_dancing_neutral', 'm_dancing_cool', 'm_dancing_silly', 'm_dancing_aggressive'],
     stage: ['m_dancing_cool', 'm_dancing_aggressive', 'm_dancing_neutral'],
-    clap: 'm_claphands_01', cheer: ['m_cheer_01', 'm_cheer_03'], wave: 'm_wave_01' }
+    clap: 'm_claphands_01', cheer: ['m_cheer_01', 'm_cheer_03'], wave: 'm_wave_01', look: ['m_idle_look_around_01'] }
 };
 MC.LIB = LIB;
 /* 기존 절차 제스처 → 모션캡처 대체(없는 것은 상체만 기존 제스처를 그대로 보여 줌) */
-const GEST_CLIP = { clap: 'clap', cheer: 'cheer', wave: 'wave', cheers: 'cheer', drink: 'sip' };
+const GEST_CLIP = { clap: 'clap', cheer: 'cheer', wave: 'wave', cheers: 'cheer', drink: 'sip', hairTouch: 'hair', lookAround: 'look' };   // v66 머리 넘기기·둘러보기도 실제 모션캡처(없는 성별은 절차 제스처)
 /* 모션캡처를 끄고 기존 IK/절차 자세에 맡기는 상태(커플·특수 동작) */
 const OFF_BASE = new Set(['blues', 'pole', 'sing', 'djMix', 'djHype', 'crouch']);
 
@@ -105,7 +106,11 @@ function decide(r, u, mc, g) {
   if (base === 'drunkIdle') return { name: L.drunkIdle };
   if (base !== 'idle') return null;   // 알 수 없는 특수 자세는 기존 방식
   if (u.holdGlass) return { name: L.drink, armsOff: true };
-  if (u.idlePose === 'talk' || (u.talkUntil && performance.now() < u.talkUntil)) { if (!mc.talkPick || now > mc.talkPick.until) mc.talkPick = { name: pick(L.talk, H(u, 31 + Math.floor(now / 20))), until: now + 12 + 10 * H(u, 9) }; return { name: mc.talkPick.name }; }
+  if (L.look && u.lookClipUntil && performance.now() < u.lookClipUntil) return { name: pick(L.look, H(u, 71)), once: true };   // v66 둘러보기(실제 모션: 고개·상체·체중이 함께)
+  /* v66 대화 차례: 말하는 동안만 말하기 손짓, 상대가 말할 땐 듣기(혼자 서서 허공에 말하던 'talk' 대기 포즈는 social.js 가 짝을 지어 줄 때만) */
+  const tk = u.talkUntil && performance.now() < u.talkUntil;
+  if (!tk && u.listenTo) { if (!mc.lisPick || now > mc.lisPick.until) mc.lisPick = { name: pick(L.listen, H(u, 33 + Math.floor(now / 25))), until: now + 15 + 10 * H(u, 8) }; return { name: mc.lisPick.name }; }
+  if (tk || (u.idlePose === 'talk' && !NC.Social)) { if (!mc.talkPick || now > mc.talkPick.until) mc.talkPick = { name: pick(L.talk, H(u, 31 + Math.floor(now / 20))), until: now + 12 + 10 * H(u, 9) }; return { name: mc.talkPick.name }; }
   if (!mc.idlePick || now > mc.idlePick.until) mc.idlePick = { name: pick(L.idle, (H(u, 41) + now * .013 * (1 + H(u, 2))) % 1), until: now + 14 + 18 * H(u, 12 + Math.floor(now / 30)) };
   return { name: mc.idlePick.name };
 }

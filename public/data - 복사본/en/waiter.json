@@ -1,0 +1,239 @@
+{
+ "_설명": [
+  "웨이터 부킹 데이터. tiers=팁 단계(🪙 가상 재화, 현금 가치 없음), styles=스타일 선택지, tree=대화 노드.",
+  "say 안의 {coins} {style} {room} {name} {gender} 는 실행 시 치환됩니다.",
+  "매칭 점수 = 스타일일치(60/인접20/아무나30) + 페르소나가중치(tier.personaBias×30) + 기분(mood×5) + 단골도(rep×2) + 랜덤(0~15) − 최근거절(40)"
+ ],
+ "waiters": [
+  {
+   "id": "bungae",
+   "name": "번개",
+   "title": "Waiter \"Lightning\"",
+   "station": true,
+   "look": {
+    "gender": "m",
+    "height": 1.76,
+    "skin": "#ecc0a0",
+    "hairStyle": "slick",
+    "hairColor": "#17110f",
+    "top": "vest",
+    "topColor": "#121018",
+    "bottom": "pants",
+    "bottomColor": "#121018",
+    "face": {
+     "eyeSize": 0.95,
+     "browThick": 1.3,
+     "beard": null,
+     "glasses": false,
+     "lipColor": "#b87a72"
+    }
+   }
+  },
+  {
+   "id": "nice",
+   "name": "나이스",
+   "title": "Waiter \"Nice\"",
+   "station": false,
+   "look": {
+    "gender": "m",
+    "height": 1.72,
+    "skin": "#f1c9a5",
+    "hairStyle": "twoblock",
+    "hairColor": "#3b2417",
+    "top": "vest",
+    "topColor": "#121018",
+    "bottom": "pants",
+    "bottomColor": "#121018",
+    "face": {
+     "eyeSize": 1.05,
+     "browThick": 1.0,
+     "glasses": true,
+     "lipColor": "#c08a80"
+    }
+   }
+  }
+ ],
+ "tiers": [
+  {
+   "id": "basic",
+   "coin": 10,
+   "label": "🪙10 Basic booking",
+   "success": 0.6,
+   "personaBias": 0.2,
+   "affBonus": 0
+  },
+  {
+   "id": "premium",
+   "coin": 30,
+   "label": "🪙30 Premium booking",
+   "success": 0.85,
+   "personaBias": 0.7,
+   "affBonus": 5
+  },
+  {
+   "id": "vip",
+   "coin": 50,
+   "label": "🪙50 Guaranteed VIP + champagne",
+   "success": 1.0,
+   "personaBias": 1.0,
+   "affBonus": 10,
+   "champagne": true
+  }
+ ],
+ "styles": [
+  {
+   "id": "outgoing",
+   "label": "🎉 Someone outgoing"
+  },
+  {
+   "id": "shy",
+   "label": "🙈 Someone shy"
+  },
+  {
+   "id": "cool",
+   "label": "😎 Someone cool"
+  },
+  {
+   "id": "playful",
+   "label": "😜 Someone funny"
+  },
+  {
+   "id": "any",
+   "label": "⚡ Lightning's pick (anyone)"
+  }
+ ],
+ "adjacent": {
+  "outgoing": [
+   "playful"
+  ],
+  "playful": [
+   "outgoing"
+  ],
+  "shy": [
+   "cool"
+  ],
+  "cool": [
+   "shy"
+  ]
+ },
+ "tree": {
+  "root": {
+   "say": "Welcome~! I'm {title}, here to take care of your night ⚡ How can I help? (you have 🪙{coins})",
+   "motion": "bow",
+   "opts": [
+    {
+     "t": "💌 Please set up a booking",
+     "next": "style"
+    },
+    {
+     "t": "🚪 Tell me about VIP room availability",
+     "next": "rooms"
+    },
+    {
+     "t": "💰 Just a tip (🪙5)",
+     "next": "tipOnly"
+    },
+    {
+     "t": "I'm fine",
+     "next": "end"
+    }
+   ]
+  },
+  "style": {
+   "say": "What style should I bring you? Trust my eye 😎",
+   "opts": "$styles"
+  },
+  "gender": {
+   "say": "Any gender preference?",
+   "opts": [
+    {
+     "t": "A woman",
+     "set": {
+      "gender": "f"
+     },
+     "next": "tier"
+    },
+    {
+     "t": "A man",
+     "set": {
+      "gender": "m"
+     },
+     "next": "tier"
+    },
+    {
+     "t": "Doesn't matter",
+     "set": {
+      "gender": "any"
+     },
+     "next": "tier"
+    }
+   ]
+  },
+  "tier": {
+   "say": "A {style} type! Tip me and I'll run my feet off~ (you have 🪙{coins})",
+   "opts": "$tiers"
+  },
+  "searching": {
+   "say": "One moment~ I'll make a round! 💨",
+   "motion": "lookAround"
+  },
+  "matchOk": {
+   "say": "Found one! {name} is waiting in VIP room {room}. Right this way~ 👉",
+   "motion": "point"
+  },
+  "matchFail": {
+   "say": "Oh dear… all the {style} guests are busy right now. I'll return half your tip 🙏 How about a different style?",
+   "opts": [
+    {
+     "t": "A different style",
+     "next": "style"
+    },
+    {
+     "t": "Maybe next time",
+     "next": "end"
+    }
+   ]
+  },
+  "roomsFull": {
+   "say": "The VIP rooms are full right now 😭 Full tip refunded. Please call me again in a bit!",
+   "opts": [
+    {
+     "t": "Got it",
+     "next": "end"
+    }
+   ]
+  },
+  "noMoney": {
+   "say": "Oops, you're a little short on coins! You can earn them dancing on stage or playing mini-games 💃",
+   "opts": [
+    {
+     "t": "Got it",
+     "next": "end"
+    }
+   ]
+  },
+  "rooms": {
+   "say": "$rooms",
+   "opts": [
+    {
+     "t": "Please set up a booking",
+     "next": "style"
+    },
+    {
+     "t": "Thanks",
+     "next": "end"
+    }
+   ]
+  },
+  "tipOnly": {
+   "say": "Thank you~! 🙇 Become a regular and I'll take even better care of your next booking!",
+   "motion": "bow",
+   "opts": [
+    {
+     "t": "👍",
+     "next": "end"
+    }
+   ]
+  }
+ }
+}

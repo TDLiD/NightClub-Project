@@ -462,6 +462,29 @@ const SSS_CHUNK = (() => { const c = T.ShaderChunk.lights_physical_pars_fragment
     #endif
     reflectedLight.directDiffuse += (irradiance * 0.78 + sssI) * BRDF_Diffuse_Lambert( material.diffuseColor ); }`) : null; })();
 const skinCompile = sh => { if (SSS_CHUNK) sh.fragmentShader = sh.fragmentShader.replace('#include <lights_physical_pars_fragment>', SSS_CHUNK); rimInject('1.0,0.45,0.35', '0.16')(sh); };
+/* v66 실제 모델(Rocketbox) 재질: 옷이 피부와 같은 텍스처(body)에 구워져 있어 피부 SSS·붉은 림이 옷에도 씌워지던 문제
+ *  → 픽셀 색으로 피부 확률(YCbCr 피부색 범위)을 구해 SSS·림은 피부에만, 옷은 무광 원단 거칠기 + (중복 모델일 때) 옷 색조 변경 */
+const REAL_SSS = (() => { const c = T.ShaderChunk.lights_physical_pars_fragment, a = 'reflectedLight.directDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );';
+  return c && c.includes(a) ? 'float gSkin = 1.0;\n' + c.replace(a, `{ float wNL = clamp((dot(geometry.normal, directLight.direction) + 0.5) / 1.5, 0.0, 1.0); vec3 sssI = directLight.color * (wNL * wNL) * vec3(1.0, 0.42, 0.3) * 0.55 * gSkin;
+    #ifndef PHYSICALLY_CORRECT_LIGHTS
+      sssI *= PI;
+    #endif
+    reflectedLight.directDiffuse += (irradiance * mix(1.0, 0.78, gSkin) + sssI) * BRDF_Diffuse_Lambert( material.diffuseColor ); }`) : null; })();
+function realBodyMat(m) {
+  const cu = m.userData.cu || (m.userData.cu = { uClothHue: { value: 0 }, uClothSat: { value: 1 }, uClothRough: { value: 1.18 } });
+  m.onBeforeCompile = sh => { if (!REAL_SSS) return; Object.assign(sh.uniforms, cu);
+    sh.fragmentShader = 'uniform float uClothHue; uniform float uClothSat; uniform float uClothRough;\n' + sh.fragmentShader
+      .replace('#include <lights_physical_pars_fragment>', REAL_SSS)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+      { vec3 sc = pow(max(diffuseColor.rgb, vec3(1e-4)), vec3(0.4545)); float Y = dot(sc, vec3(.299, .587, .114)), Cb = .5 + dot(sc, vec3(-.1687, -.3313, .5)), Cr = .5 + dot(sc, vec3(.5, -.4187, -.0813));
+        gSkin = smoothstep(.06, .015, abs(Cb - .40)) * smoothstep(.08, .02, abs(Cr - .60)) * smoothstep(.08, .2, Y) * smoothstep(.98, .9, Y);
+        if (uClothHue != 0.0 || uClothSat != 1.0) { float k = 1.0 - gSkin; vec3 lc = diffuseColor.rgb; float L = dot(lc, vec3(.2126, .7152, .0722));
+          float ca = cos(uClothHue * 6.2832), sa = sin(uClothHue * 6.2832); mat3 R = mat3(.299 + .701 * ca + .168 * sa, .587 - .587 * ca + .330 * sa, .114 - .114 * ca - .497 * sa, .299 - .299 * ca - .328 * sa, .587 + .413 * ca + .035 * sa, .114 - .114 * ca + .292 * sa, .299 - .3 * ca + 1.25 * sa, .587 - .588 * ca - 1.05 * sa, .114 + .886 * ca - .203 * sa);
+          vec3 hc = max(R * lc, vec3(0.0)); hc = mix(vec3(L), hc, uClothSat); diffuseColor.rgb = mix(lc, hc, k); } }`)
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+      roughnessFactor = mix(clamp(roughnessFactor * uClothRough, 0.0, 1.0), roughnessFactor, gSkin);`)
+      .replace('#include <tonemapping_fragment>', `{ vec3 vd = normalize(vViewPosition); float rim = pow(1.0 - clamp(dot(normal, vd), 0.0, 1.0), 2.6); gl_FragColor.rgb += vec3(1.0,0.45,0.35) * rim * 0.16 * gSkin * diffuseColor.rgb; }\n#include <tonemapping_fragment>`); };
+  m.customProgramCacheKey = () => 'realBody66'; m.needsUpdate = true; return cu; }
 /* v42 실제 피부 반사율: 팔레트의 아주 밝고 채도 낮은 색(인형·마네킹처럼 보이던 원인)을 실제 피부 알베도 범위로 — 명도 ↓ · 채도 ↑ (어두운 피부는 거의 그대로) */
 function realSkin(hex) { const c = new T.Color(hex), h = {}; c.getHSL(h); const l2 = h.l > .5 ? h.l - (h.l - .5) * .42 : h.l, s2 = Math.min(.62, h.s * (h.l > .5 ? 1.35 : 1.1) + .04); return '#' + c.setHSL(h.h, s2, l2).getHexString(); }
 function skinMat(skin, map) {
@@ -1078,7 +1101,7 @@ const SOLE = .045;
 /* v56 이름표: 예전 1.9m → 1.05m 폭(약 55%), 가까우면 더 작게 · 18m 넘게 먼 사람은 숨김(대화 상대·선택한 사람 제외) — 사람이 몰려도 이름표가 겹쳐 어수선하지 않게 */
 function fitLabel(g, cam) { const l = g.userData.label; if (!l) return; const d = cam.position.distanceTo(g.position), k = U.clamp(d / 10, .3, .9); l.scale.set(1.05 * k, .26 * k, 1);
   const keep = g.userData.talk || (NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.g === g); l.visible = !g.userData.hideLabel && (d < 18 || keep); }
-NC.Avatar = { create, undress, randomLook, mergeLook, drawFace, fitLabel, EXPR, FACE_SIZE: [FW, FH], skinCompile, SKIN_BODY, realSkin,
+NC.Avatar = { create, undress, randomLook, mergeLook, drawFace, fitLabel, EXPR, FACE_SIZE: [FW, FH], skinCompile, realBodyMat, SKIN_BODY, realSkin,
   /* 시작 화면 미리보기용: 얼굴 정면만 잘라서 작은 캔버스에 그림 */
   preview(cv, look, expr = 'smile') { const big = document.createElement('canvas'); big.width = FW; big.height = FH; drawFace(big, look, expr); const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); g.save(); g.beginPath(); g.ellipse(cv.width / 2, cv.height / 2, cv.width * .42, cv.height * .48, 0, 0, 7); g.clip(); g.drawImage(big, FW * .25 - 200, FH * .5 - 230, 400, 460, 0, 0, cv.width, cv.height); g.restore(); },
 };

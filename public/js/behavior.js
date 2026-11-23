@@ -33,7 +33,7 @@ function phoneProp(n, on) { const u = n.g.userData, r = u.real, hand = r && !r.p
   const g = new T.Group(), b = new T.Mesh(PHONE.geo, PHONE.body), s = new T.Mesh(new T.PlaneGeometry(.06, .12), PHONE.scr); s.position.z = .0052; g.add(b, s);
   const ws = hand.getWorldScale(new T.Vector3()).x || 1; g.scale.setScalar(1 / ws); g.position.set(0, .06 / ws, .03 / ws); g.rotation.set(-1.2, 0, 0); hand.add(g); n._phone = g; }
 const ACTS = {
-  lookAround: { s: (n, c) => .9 + (c.zone === 'floor' ? .3 : 0), run: (n, c) => { const a = n.g.rotation.y + (Math.random() - .5) * 2.4, d = 3 + Math.random() * 5; return lookFor(n, { x: n.x + Math.sin(a) * d, z: n.z + Math.cos(a) * d }, 1.6 + Math.random() * 1.6, 'around'); } },
+  lookAround: { s: (n, c) => .9 + (c.zone === 'floor' ? .3 : 0), run: (n, c) => { const u = n.g.userData, r = u.real; if (r && r.mc && !r.mc.dead && !c.seated && !u.holdGlass && !u.lookAt) { u.lookClipUntil = performance.now() + 4300; return true; } const a = n.g.rotation.y + (Math.random() - .5) * 2.4, d = 3 + Math.random() * 5; return lookFor(n, { x: n.x + Math.sin(a) * d, z: n.z + Math.cos(a) * d }, 1.6 + Math.random() * 1.6, 'around'); } },
   glance: { s: (n, c, p) => c.near.length ? 1.3 * p.glance : 0, run: (n, c) => { const t = c.near[Math.random() * c.near.length | 0]; if (!lookFor(n, t, 1.4 + Math.random() * 2, 'glance')) return false;
       const u = n.g.userData; if (u.setExpr && !u.exprUntil && Math.random() < .55) setTimeout(() => u.setExpr(n.trait === 'shy' ? 'shy' : 'smile', 1.6), 450); return true; } },
   hair: { s: (n, c, p) => .55 * p.hair * p.fidget, g: 'hairTouch' },
@@ -46,7 +46,7 @@ const ACTS = {
   tap: { s: (n, c, p) => c.beat ? .7 * p.fidget : 0, run: n => { n._tap = { until: now() + 3 + Math.random() * 3, leg: Math.random() < .5 ? 'L' : 'R' }; return true; } },
 };
 function idleOK(n) { const u = n.g.userData, BL = NC.Karaoke && NC.Karaoke.BL;
-  return n.g.visible && u.rig && !u.moving && !u.dance && n.state !== 'talk' && n.state !== 'off' && n.state !== 'lying' && n.state !== 'motel' && n.state !== 'escort' && !(BL && n === BL.n) && !n.party && !u.bAct && !(u.motion && u.motion.g) && !(NC.Motel && NC.Motel.on && NC.Motel.n === n); }
+  return n.g.visible && u.rig && !u.moving && !u.dance && n.state !== 'talk' && n.state !== 'off' && n.state !== 'lying' && n.state !== 'motel' && n.state !== 'escort' && !(BL && n === BL.n) && !n.party && !n._pairS && !u.bAct && !(u.motion && u.motion.g) && !(NC.Motel && NC.Motel.on && NC.Motel.n === n); }
 function decide(n, p) {
   const u = n.g.userData, b = NC.Audio && NC.Audio.beat ? NC.Audio.beat() : null, c = { near: nearOf(n, 4), zone: zoneOf(n), seated: !!u.seated, glass: !!u.holdGlass, beat: !!b };
   const cand = []; for (const k in ACTS) { let s = ACTS[k].s(n, c, p); if (!s) continue; const i = p.hist.lastIndexOf(k); if (i >= 0) s *= i === p.hist.length - 1 ? .05 : .35; cand.push([k, s * (.7 + Math.random() * .6)]); }   // 반복 억제 + 무작위성
