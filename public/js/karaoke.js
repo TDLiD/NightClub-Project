@@ -675,9 +675,9 @@ const REACT = {      // out: accept(받아 줌) · stop(손을 잡아 제지) ·
   chest: n => can(n, 95, true) ? { out: 'accept', d: 0, e: 'shy', line: P_(['(손등을 살며시 덮으며) …여기선 여기까지요. 이따 둘만 있을 때요 💗', '(얼굴이 빨개지며 손목을 잡아 내린다) 진짜 못 말려요… 사람 많잖아요 ㅎㅎ']) }
     : can(n, 85, true) ? { out: 'stop', d: -4, e: 'annoyed', line: '(손목을 탁 잡으며) 거기까지예요. 분위기 깨지 마요.' }
     : { out: 'refuse', d: -15, e: 'annoyed', slap: true, stop: true, line: P_(['미쳤어요?! 동의 없이 만지는 건 진짜 아니에요!', '선 넘었어요. 저 기분 너무 나빠요.']) },
-  panty: n => can(n, 95, true) ? { out: 'stop', d: 0, e: 'shy', priv: true, line: P_(['(손목을 꼭 붙잡으며) 여기서는 절대 안 돼요… 다 보이잖아요. 진짜 원하면 우리 둘만 있는 데로 가요 💗', '(귀까지 빨개지며 손을 내린다) 여기선 안 돼요. …나중에, 둘이 있을 때요.']) }
-    : n.aff >= 80 ? { out: 'stop', d: -6, e: 'annoyed', line: '(손을 탁 쳐내며) 지금 장난해요? 여기 사람 많은 데예요!' }
-    : { out: 'refuse', d: -20, e: 'annoyed', slap: true, stop: true, line: P_(['미쳤어요?! 이건 진짜 선 넘었어요!', '하… 최악이에요. 저 갈게요.']) },
+  panty: n => can(n, 90, true) ? { out: 'accept', d: 2, e: 'shy', line: P_(['(쑥스럽게 웃으며) 허리 흘러내렸어요? …고마워요 ㅎㅎ', '(살짝 몸을 비틀며) 간지러워요 ㅎㅎ 됐어요, 이제 반듯하네요.']) }   // v73 '허리춤 매만지기' — 옷은 항상 입은 채(당겼다 놓으면 제자리)
+    : n.aff >= 80 ? { out: 'stop', d: -4, e: 'annoyed', line: '(손을 살짝 밀어내며) 옷은 제가 알아서 할게요 ㅎㅎ' }
+    : { out: 'refuse', d: -12, e: 'annoyed', stop: true, line: P_(['손 치워요. 그건 아니에요.', '…지금 뭐 하는 거예요? 기분 나빠요.']) },
   undress: n => n.g.userData.undressed ? { out: 'stop', d: -2, e: 'laugh', line: '(손목을 잡으며) 여기까지만이에요 ㅋㅋ 더는 안 돼요~' }
     : can(n, 95, true) && !n.g.userData.vrm ? { out: 'accept', d: 2, e: 'shy', strip: true, line: U.pick(['…진짜 못 말려. (두 팔을 들어 준다) 겉옷만이에요? 💗', '(작게 웃으며 팔을 든다) 다른 사람들 보면 어떡해요… ㅎㅎ']) }
     : can(n, 90, true) ? { out: 'stop', d: -3, e: 'laugh', line: '(두 손으로 손목을 붙잡으며) 여기서요? ㅋㅋㅋ 선 넘지 마요~ 대신 한 곡 더 춰 줄게요' }
@@ -698,7 +698,7 @@ const ACT = {   // v40 실제 사람 타이밍으로 조정(다가가는 시간�
   butt: { dur: 2.8, hit: 1.15, close: .09, desc: '🍑 허리에 있던 손을 등을 따라 엉덩이로 내린다' },
   chest: { dur: 2.8, hit: 1.15, close: 0, desc: '🫳 손을 옆구리를 따라 가슴 쪽으로 올린다' },
   undress: { dur: 3.4, hit: 1.25, close: 0, desc: '👚 옷자락을 잡고 위로 천천히 올린다' },
-  panty: { dur: 3.0, hit: 1.15, close: .04, mk: 'undress', desc: '🩲 허리춤으로 손을 내려 속옷을 내리려 한다' },   // mk: 손 동작은 '옷자락 잡기'와 같은 경로(상대가 손목을 붙잡아 막음)
+  panty: { dur: 3.2, hit: 1.15, close: .04, mk: 'undress', desc: '🩲 두 손으로 상대 허리춤(바지 허리선)을 잡고 살짝 당겨 반듯하게 매만져 준다' },   // v73 옷은 그대로 입은 채 — 허리선만 당겼다 놓음(clothtouch.js)   // mk: 손 동작은 '옷자락 잡기'와 같은 경로(상대가 손목을 붙잡아 막음)
   dress: { dur: 2.4, hit: .9, close: 0, desc: '👕 벗겨진 겉옷을 다시 입혀 준다' },
 };
 /* v69 ActionRegistry — 버튼(칩) → 동작 ID → 고유 자세 설정(서는 위치·몸 방향·간격·루트 이동) · 손 IK 목표는 couple.js plan(k) 이 동작마다 따로 정함
@@ -798,7 +798,7 @@ function premium(kind) {
 }
 const CHIPS = [['👂 귓속말', 'whisper'], ['🤲 허리 끌어당기기', 'waist'], ['💫 한 바퀴 돌리기', 'spin'], ['💃 뒤로 눕히기(딥)', 'dip'], ['💗 이마 맞대기', 'forehead'], ['😚 볼 뽀뽀', 'cheek'],
   ['🤗 꼭 안아 주기', 'hug'], ['🫂 백허그', 'backhug'], ['💋 키스하기', 'kiss']];   // v19: 신체 접촉·탈의 옵션은 제거
-const CHIPS19 = [['🍑 엉덩이 만지기', 'butt'], ['🫳 가슴 주물럭거리기', 'chest'], ['🩲 팬티 내리기', 'panty']];   // v67 성인 확인 후에만
+const CHIPS19 = [['🍑 엉덩이 만지기', 'butt'], ['🫳 가슴 주물럭거리기', 'chest'], ['🩲 허리춤 매만지기', 'panty']];   // v67 성인 확인 후에만
 NC.dialogChipsOverride = (n, CHIP) => {
   if (BL.n !== n) return false;
   if (BL.busy) CHIP('⏹ 지금 동작 멈추기', () => { bluesCancel(); NC.Dialog.chips(); });   // v39 동작 중에도 다른 동작으로 바로 전환 가능

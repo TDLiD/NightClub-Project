@@ -470,9 +470,21 @@ const REAL_SSS = (() => { const c = T.ShaderChunk.lights_physical_pars_fragment,
       sssI *= PI;
     #endif
     reflectedLight.directDiffuse += (irradiance * mix(1.0, 0.78, gSkin) + sssI) * BRDF_Diffuse_Lambert( material.diffuseColor ); }`) : null; })();
+/* v73 손 접촉 국소 변형(옷감 눌림·당김 + 주름 파동) — 접촉 2곳: 스키닝 후 메시 객체 공간의 중심·반경(uCt) / 변위 벡터(uCv). w=0 이면 꺼짐 (clothtouch.js 가 매 프레임 채움) */
+function contactUniforms(cu) { if (!cu.uCt) { cu.uCt = { value: [new T.Vector4(0, 0, 0, 0), new T.Vector4(0, 0, 0, 0)] }; cu.uCv = { value: [new T.Vector3(), new T.Vector3()] }; } return cu; }
+function patchContact(sh, cu) { sh.uniforms.uCt = cu.uCt; sh.uniforms.uCv = cu.uCv;
+  sh.vertexShader = 'uniform vec4 uCt[2]; uniform vec3 uCv[2];\n' + sh.vertexShader.replace('#include <skinning_vertex>', `#include <skinning_vertex>
+    for (int ci = 0; ci < 2; ci++) { vec4 c = uCt[ci]; if (c.w > 0.0) { float d = length(transformed - c.xyz); float f = 1.0 - smoothstep(0.0, c.w, d); f = f * f * (3.0 - 2.0 * f);
+      float a = length(uCv[ci]); transformed += uCv[ci] * f + normalize(objectNormal) * a * 0.35 * sin(d / c.w * 9.4248) * f * (1.0 - f); } }`); }
+/* 옷이 그려진 몸 재질(피부 셰이더를 안 씌우는 _body)에도 접촉 변형만 — 원래 셰이딩은 그대로 */
+function contactMat(m) { const cu = contactUniforms(m.userData.ccu || (m.userData.ccu = {})); const prev = m.onBeforeCompile; m.onBeforeCompile = (sh, r) => { if (prev && prev !== contactMat._noop) prev(sh, r); patchContact(sh, cu); }; m.customProgramCacheKey = () => 'contact73'; m.needsUpdate = true; return cu; }
+contactMat._noop = function () { };
 function realBodyMat(m) {
   const cu = m.userData.cu || (m.userData.cu = { uClothHue: { value: 0 }, uClothSat: { value: 1 }, uClothRough: { value: 1.18 } });
-  m.onBeforeCompile = sh => { if (!REAL_SSS) return; Object.assign(sh.uniforms, cu);
+  /* v73 손 접촉 국소 변형(옷감 눌림·당김 + 주름 파동) — 접촉 2곳, 메시 객체 공간(스키닝 후) 중심·반경 / 변위 벡터. w=0 이면 꺼짐 */
+  contactUniforms(cu);
+  m.onBeforeCompile = sh => { patchContact(sh, cu);
+    if (!REAL_SSS) return; Object.assign(sh.uniforms, cu);
     sh.fragmentShader = 'uniform float uClothHue; uniform float uClothSat; uniform float uClothRough;\n' + sh.fragmentShader
       .replace('#include <lights_physical_pars_fragment>', REAL_SSS)
       .replace('#include <map_fragment>', `#include <map_fragment>
@@ -484,7 +496,7 @@ function realBodyMat(m) {
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
       roughnessFactor = mix(clamp(roughnessFactor * uClothRough, 0.0, 1.0), roughnessFactor, gSkin);`)
       .replace('#include <tonemapping_fragment>', `{ vec3 vd = normalize(vViewPosition); float rim = pow(1.0 - clamp(dot(normal, vd), 0.0, 1.0), 2.6); gl_FragColor.rgb += vec3(1.0,0.45,0.35) * rim * 0.16 * gSkin * diffuseColor.rgb; }\n#include <tonemapping_fragment>`); };
-  m.customProgramCacheKey = () => 'realBody66'; m.needsUpdate = true; return cu; }
+  m.customProgramCacheKey = () => 'realBody73'; m.needsUpdate = true; return cu; }
 /* v42 실제 피부 반사율: 팔레트의 아주 밝고 채도 낮은 색(인형·마네킹처럼 보이던 원인)을 실제 피부 알베도 범위로 — 명도 ↓ · 채도 ↑ (어두운 피부는 거의 그대로) */
 function realSkin(hex) { const c = new T.Color(hex), h = {}; c.getHSL(h); const l2 = h.l > .5 ? h.l - (h.l - .5) * .42 : h.l, s2 = Math.min(.62, h.s * (h.l > .5 ? 1.35 : 1.1) + .04); return '#' + c.setHSL(h.h, s2, l2).getHexString(); }
 function skinMat(skin, map) {
@@ -1101,7 +1113,7 @@ const SOLE = .045;
 /* v56 이름표: 예전 1.9m → 1.05m 폭(약 55%), 가까우면 더 작게 · 18m 넘게 먼 사람은 숨김(대화 상대·선택한 사람 제외) — 사람이 몰려도 이름표가 겹쳐 어수선하지 않게 */
 function fitLabel(g, cam) { const l = g.userData.label; if (!l) return; const d = cam.position.distanceTo(g.position), k = U.clamp(d / 10, .3, .9); l.scale.set(1.05 * k, .26 * k, 1);
   const keep = g.userData.talk || (NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.g === g); l.visible = !g.userData.hideLabel && (d < 18 || keep); }
-NC.Avatar = { create, undress, randomLook, mergeLook, drawFace, fitLabel, EXPR, FACE_SIZE: [FW, FH], skinCompile, realBodyMat, SKIN_BODY, realSkin,
+NC.Avatar = { create, undress, randomLook, mergeLook, drawFace, fitLabel, EXPR, FACE_SIZE: [FW, FH], skinCompile, realBodyMat, contactMat, SKIN_BODY, realSkin,
   /* 시작 화면 미리보기용: 얼굴 정면만 잘라서 작은 캔버스에 그림 */
   preview(cv, look, expr = 'smile') { const big = document.createElement('canvas'); big.width = FW; big.height = FH; drawFace(big, look, expr); const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); g.save(); g.beginPath(); g.ellipse(cv.width / 2, cv.height / 2, cv.width * .42, cv.height * .48, 0, 0, 7); g.clip(); g.drawImage(big, FW * .25 - 200, FH * .5 - 230, 400, 460, 0, 0, cv.width, cv.height); g.restore(); },
 };

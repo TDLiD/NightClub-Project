@@ -227,11 +227,12 @@ const attach0 = async (root, url, opt = {}) => {
   // 재질: 피부에 클럽 조명용 피하산란(SSS) 셰이더 · 그림자
   const skinNames = (opt.skin || []).map(x => x.toLowerCase()), noSkin = (opt.noSkin || []).map(x => x.toLowerCase());
   const matSet = new Set(); model.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m && matSet.add(m)); }); const multi = matSet.size > 1;   // 재질이 하나뿐(옷+피부 한 텍스처)인 모델은 피부 셰이더를 옷에 씌우지 않음
-  u._cloth = [];
+  u._cloth = []; u._contact = [];
   model.traverse(o => { if (!o.isMesh) return; o.frustumCulled = false; if (Q.shadows) o.castShadow = true;
     (Array.isArray(o.material) ? o.material : [o.material]).forEach(m0 => { let m = m0; if (!m) return; const n = ((m.name || '') + ' ' + (o.name || '')).toLowerCase();
       if (NC.Avatar && NC.Avatar.skinCompile && m.isMeshStandardMaterial && !noSkin.some(k => n.includes(k)) && (skinNames.some(k => n.includes(k)) || /skin/.test(n) || (multi && /body|head|face/.test(n))) && !/hair|cloth|shirt|pant|shoe|eye|lash|brow|teeth|tongue/.test(n)) { if (NC.Avatar.realBodyMat && !RH.oldSkin) { m = m.clone(); if (Array.isArray(o.material)) o.material = o.material.map(x => x === m0 ? m : x); else o.material = m; const cu = NC.Avatar.realBodyMat(m); (u._cloth || (u._cloth = [])).push(cu); clothTone(u, cu); }   // v66 피부 마스크 셰이더(인스턴스별 재질 — 옷 색조를 따로 바꿀 수 있게)
         else { m.onBeforeCompile = NC.Avatar.skinCompile; m.customProgramCacheKey = () => 'realSkin'; m.needsUpdate = true; } }
+      else if (NC.Avatar && NC.Avatar.contactMat && o.isSkinnedMesh && m.isMeshStandardMaterial && /body/.test(n) && !/hair|eye|lash|opacity|teeth|tongue/.test(n)) { m = m.clone(); if (Array.isArray(o.material)) o.material = o.material.map(x => x === m0 ? m : x); else o.material = m; (u._contact || (u._contact = [])).push(NC.Avatar.contactMat(m)); }   // v73 옷이 그려진 몸 재질 — 손 접촉 국소 변형용(인스턴스별)
       if (m.envMapIntensity != null) m.envMapIntensity = Math.min(m.envMapIntensity, 1);
       { const an = Math.min(NC.isMobile ? 4 : 8, (NC.renderer && NC.renderer.capabilities.getMaxAnisotropy()) || 1); for (const k of ['map', 'normalMap']) if (m[k] && m[k].anisotropy !== an) { m[k].anisotropy = an; m[k].needsUpdate = true; } }   // v63 비스듬히 본 얼굴·옷 텍스처가 뭉개지지 않게(이방성 필터링)
       if (/opacity|hair|lash/.test(n) && m.map) { m.transparent = false; m.alphaTest = .42; m.alphaToCoverage = true; m.side = T.DoubleSide; m.depthWrite = true; m.roughness = .48; }   // v46 머리카락·속눈썹 카드: 알파 테스트 + 커버리지(정렬 문제 없이 가는 머리결)
