@@ -178,9 +178,10 @@ function attachComp(n, silent) {
   [ST, KL].forEach(R => { if (!R.npcs.includes(n)) R.npcs.push(n); });
   const p = P(); n.x = p.x - .9; n.z = p.z + .4; n.g.position.set(n.x, 0, n.z);
   if (!silent) NC.ui.toast(`💗 ${n.name}님이 함께 가요`);
+  if (NC.PairWalk) { NC.PairWalk.start(n, null, true); n.state = 'escort'; }   // v67 뒤에서 따라오지 않고 옆에 붙어 함께 걸음
 }
 function detachComp(release) {
-  const n = KS.comp; if (!n) return; [ST, KL].forEach(R => { const i = R.npcs.indexOf(n); if (i >= 0) R.npcs.splice(i, 1); });
+  const n = KS.comp; if (!n) return; if (NC.PairWalk) NC.PairWalk.stop(true, n); [ST, KL].forEach(R => { const i = R.npcs.indexOf(n); if (i >= 0) R.npcs.splice(i, 1); });
   if (release) { n.stay = null; n.booked = false; n.karaoke = false; n.state = 'wander'; n.x = ENT.x - 1.4; n.z = ENT.z + .6; n.g.position.set(n.x, 0, n.z); n.g.userData.lookAt = null; n.g.userData.moving = false; n.g.visible = true; KS.comp = null; }
 }
 
@@ -221,11 +222,11 @@ function backToClub() { const n = KS.comp; clearExtras(); R_.go(null, ENT, () =>
 NC.interactProviders.push(() => {
   const p = P(), out = []; if (!p.group || p.seat || p.busy || (NC.Karaoke && NC.Karaoke.inRoom)) return out;
   const cur = R_.current();
-  if (!cur) { const d = Math.hypot(p.x - ENT.x, p.z - ENT.z); if (d < 2.2) out.push({ label: '🚪 나이트 밖으로 나가기 (E) — 길 건너 노래방', dist: d - .2, run: () => { const n = KS.comp; if (n) attachComp(n, true); goStreet(); } }); return out; }
+  if (!cur) { const d = Math.hypot(p.x - ENT.x, p.z - ENT.z); if (d < 2.2) out.push({ label: '🚪 나이트 밖으로 나가기 (E) — 길 건너 노래방', dist: d - .2, run: () => { const n = KS.comp || (NC.PairWalk && NC.PairWalk.n); if (n) attachComp(n, true); goStreet(); } }); return out; }
   const lx = p.x - cur.cx, lz = p.z - cur.cz, near = (o, r) => Math.hypot(lx - o.x, lz - o.z) < r;
   if (cur === ST) {
     if (near(ST.clubDoor, 2.0)) out.push({ label: '🚪 추억의 나이트로 들어가기 (E)', dist: .4, run: backToClub });
-    if (near(ST.karaokeDoor, 2.2)) out.push({ label: '🎤 별빛 노래방 들어가기 (E)', dist: .3, run: goLobby });
+    if (near(ST.karaokeDoor, 2.2)) out.push({ label: '🎤 별빛 노래방 들어가기 (E)', dist: .3, run: () => (KS.comp ? goLobbyWith() : goLobby()) });
   } else if (cur === KL) {
     if (near(KL.exit, 1.6)) out.push({ label: '🚪 거리로 나가기 (E)', dist: .5, run: () => { clearExtras(); goStreet({ x: ST.karaokeDoor.x, z: ST.karaokeDoor.z - .9, ry: Math.PI }); } });
     if (near(KL.counter, 1.9)) out.push({ label: '🛎 사장님께 말 걸기 (E) — 방 배정 · 주문 · 수다', dist: .2, run: ownerMenu });
@@ -242,9 +243,13 @@ NC.interactProviders.push(() => {
     const D = NC.Dialog, ok = n.aff >= 65 || (n.aff >= 45 && Math.random() < .55);
     if (!ok) { n.aff = U.clamp(n.aff - 2, 0, 100); D.npcSay(U.pick(['노래방이요? 음… 아직은 좀 이른 것 같아요 ㅎㅎ', '오늘은 여기서 더 놀래요~ 다음에요!', '저 노래 진짜 못해서… 다음에 가요 ㅠㅠ']), 'shy'); D.floatDelta && D.floatDelta(-2); return; }
     D.npcSay(U.pick(['노래방이요? 완전 좋아요!! 마이크 제가 먼저 잡을래요 🎤', '좋아요~ 길 건너 별빛 노래방 알아요? 거기 가요!', '…가요! 대신 듀엣 한 곡은 꼭 해야 돼요 ㅎㅎ']), 'joy');
-    setTimeout(() => { D.close('bye'); attachComp(n); NC.ui.toast(`💗 ${n.name}님과 길 건너 별빛 노래방으로 가요`); goLobbyWith(); }, 1600);
+    setTimeout(() => { D.close('bye'); attachComp(n); NC.ui.toast(`💗 ${n.name}님과 길 건너 별빛 노래방으로 함께 걸어가요`); walkOut(); }, 1600);
   });
 });
+/* v67 노래방 가는 길: 페이드로 순간이동하지 않고 둘이 함께 걸어서 → 클럽 출입구 → 거리 → 노래방 문 (도중에 직접 조작하면 자동 걷기는 멈추고 문 앞 E 로 이어감) */
+function walkOut() { const p = P(); if (!NC.walkPlayer || !NC.NPC || !NC.NPC.planPath) return goLobbyWith();
+  NC.walkPlayer(NC.NPC.planPath(p, { x: ENT.x, z: ENT.z }), () => { if (R_.current() || !KS.comp) return; goStreet();
+    setTimeout(() => { if (R_.current() !== ST || !KS.comp) return; NC.walkPlayer([{ x: ST.cx + ST.karaokeDoor.x, z: ST.cz + ST.karaokeDoor.z - .9 }], () => { if (R_.current() === ST && KS.comp) goLobbyWith(); }); }, 900); }); }
 function goLobbyWith() { KS.visits++; U.store.set('nc_kvisit', KS.visits); clearExtras(); R_.go(KL, KL.entry, () => { spawnOwner(); const n = KS.comp; if (n) { n.x = KL.cx + KL.entry.x - .9; n.z = KL.cz + KL.entry.z + .3; n.g.position.set(n.x, 0, n.z); n.g.visible = true; } setTimeout(() => owner && ownerGreetPair(), 1200); lobbyEpisode(); }); }
 function ownerGreetPair() { if (!KS.comp) return; say(owner, `어머~ 둘이 왔네? 😍 예쁜 아가씨랑 왔구나! 좋은 방 줄게~`, 3.2); Mo.play(owner, 'clap'); }
 
@@ -260,7 +265,7 @@ NC.tickers.push((dt, t) => {
     if (owner && cur === KL) { Mo.update(owner, dt, { near: true }); if (cam) NC.Avatar.fitLabel(owner, cam); }
     extras.forEach(g => { if (g.visible) { Mo.update(g, dt, { near: true, speed: 1 }); if (cam) NC.Avatar.fitLabel(g, cam); } });
     if (KL.ball) KL.ball.rotation.y += dt * .8;
-    const n = KS.comp; if (n && n.stay === 'outing' && !n.karaoke && !(NC.Karaoke && NC.Karaoke.inRoom) && n.state !== 'seated') {   // 따라다니기 (v45: 노래방 룸 안에서는 앉아 있으므로 따라다니지 않음)
+    const n = KS.comp; if (n && !(NC.PairWalk && NC.PairWalk.n === n) && n.stay === 'outing' && !n.karaoke && !(NC.Karaoke && NC.Karaoke.inRoom) && n.state !== 'seated') {   // 따라다니기 (v45: 노래방 룸 안에서는 앉아 있으므로 따라다니지 않음)
       const p = P(), tx = p.x - Math.sin(p.ry) * .9 + Math.cos(p.ry) * .7, tz = p.z - Math.cos(p.ry) * .9 - Math.sin(p.ry) * .7, dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz), u = n.g.userData;
       if (d > .35) { const s = Math.min(d, (d > 2.5 ? 4 : 2.2) * dt); n.x += dx / d * s; n.z += dz / d * s; u.moving = true; n.g.rotation.y = Math.atan2(dx, dz); } else { u.moving = false; u.lookAt = p.group.position; }
       n.g.position.set(n.x, 0, n.z); n.g.visible = true; }

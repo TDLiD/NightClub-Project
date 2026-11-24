@@ -71,7 +71,11 @@ const OFF_BASE = new Set(['blues', 'pole', 'sing', 'djMix', 'djHype', 'crouch'])
 /* ── 상태 선택 ── */
 function decide(r, u, mc, g) {
   const L = LIB[g], base = u.mBase || 'idle', now = mc.now;
-  if (u.bAct || u.kissK || u.ikLock || u.handTgt || (u.cfix && Object.keys(u.cfix).length) || OFF_BASE.has(base) || u.polePhase != null && base === 'pole') { if (OFF_BASE.has(base) || u.bAct) mc.wasSeated = false; return null; }   // v56 앉아 있다가 블루스로 일어난 사람: 춤이 끝난 뒤 엉뚱하게 '일어서기' 동작이 나오지 않게
+  /* v68 '지난 상호작용의 흔적' 때문에 모션캡처가 영영 꺼져 있던 원인 제거: ikLock 은 couple.js 가 매 프레임 새로 쓰는 표식 → 0.25초 넘게 갱신 없으면 끝난 것,
+   *  cfix(접촉 보정 잔여)는 크기가 사실상 0이면 무시 — 전에는 블루스·포옹이 끝난 뒤에도 남아 있어서 대기·걷기가 실측 동작으로 돌아오지 않았음 */
+  const pn = performance.now(), ikOn = u.ikLock && (pn - (u.ikLock.t || 0) < 250) && ((u.ikLock.L || 0) > .02 || (u.ikLock.R || 0) > .02);
+  const cfOn = u.cfix && Object.values(u.cfix).some(v => Math.abs(v[0]) + Math.abs(v[1]) + Math.abs(v[2]) > .02);
+  if (u.bAct || u.kissK || ikOn || u.handTgt || cfOn || OFF_BASE.has(base) || u.polePhase != null && base === 'pole') { if (OFF_BASE.has(base) || u.bAct) mc.wasSeated = false; return null; }   // v56 앉아 있다가 블루스로 일어난 사람: 춤이 끝난 뒤 엉뚱하게 '일어서기' 동작이 나오지 않게
   if (base === 'sit' || base === 'sitTalk') {
     if (!mc.wasSeated) { mc.wasSeated = true; if (now - (mc.lastWalk || -9) < 1.5) mc.oneShot = { name: L.sitDown, until: now + 4.2, ts: 1.15 }; }   // 걸어와 앉을 때만 앉는 동작(처음부터 앉아 있던 사람은 바로 앉은 자세)
     if (mc.oneShot && mc.oneShot.name === L.sitDown && now < mc.oneShot.until) return { name: L.sitDown, once: true, ts: 1.15, seat: true };
@@ -178,6 +182,7 @@ MC.prep = (r, dt) => {
   const W = mc.w, upOff = gest === 'UPPER_OFF' || (want && want.upper === 0), armsOff = !!(u.holdGlass || u.mic || (want && want.armsOff)), headOff = !!(u.lookAt && !u.moving);
   for (const k of Q.keys()) { const gp = grp(k); let w = W;
     if ((gp === 'armL' || gp === 'armR' || gp === 'fing') && (armsOff || upOff)) w = 0;
+    else if ((gp === 'armL' && u.armOffL) || (gp === 'armR' && u.armOffR)) w = 0;   // v67 함께 걷기: 묶인 팔만 IK(pairwalk.js), 나머지는 실측 걸음
     else if (gp === 'head' && (headOff || upOff)) w = upOff ? 0 : W * .25;
     else if (gp === 'spine' && upOff) w = W * .35;
     mc.wb.set(k, w); }

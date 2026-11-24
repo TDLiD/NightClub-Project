@@ -5,6 +5,15 @@ bodytex = sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] != '-' else None
 FULL = len(sys.argv) > 5 and sys.argv[5] == 'full'
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=src)
+# v70 의상 세트(OUT_<세트>_…): 프로필 사진에는 기본 한 벌만 — 환경변수 OUTFIT, 없으면 이름순 첫 세트
+import re
+_sets = sorted({re.match(r'OUT_([A-Za-z0-9]+)_', o.name).group(1) for o in bpy.data.objects if o.type == 'MESH' and re.match(r'OUT_([A-Za-z0-9]+)_', o.name)})
+if _sets:
+    _want = os.environ.get('OUTFIT') if os.environ.get('OUTFIT') in _sets else _sets[0]
+    for o in list(bpy.data.objects):
+        m = o.type == 'MESH' and re.match(r'OUT_([A-Za-z0-9]+)_', o.name)
+        if m and m.group(1) != _want: bpy.data.objects.remove(o, do_unlink=True)
+    print('portrait outfit:', _want, 'of', _sets)
 arm = [o for o in bpy.data.objects if o.type == 'ARMATURE'][0]
 hb = [b for b in arm.pose.bones if b.name.lower().endswith('head')][0]
 hw = arm.matrix_world @ hb.head
@@ -22,7 +31,7 @@ if bodytex:
             for n in m.node_tree.nodes:
                 if n.type == 'TEX_IMAGE' and n.image and n.image.colorspace_settings.name != 'Non-Color': n.image = bpy.data.images.load(bodytex)
 # model faces? find forward: glTF -> Blender +Y up converted; character faces -Y typically
-mesh = [o for o in bpy.data.objects if o.type == 'MESH'][0]
+mesh = max([o for o in bpy.data.objects if o.type == 'MESH' and not o.name.startswith('OUT_')] or [o for o in bpy.data.objects if o.type == 'MESH'], key=lambda o: len(o.data.vertices))
 if FULL:
     bpy.context.view_layer.update()
     for sd in ('L', 'R'):

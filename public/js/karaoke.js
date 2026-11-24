@@ -416,6 +416,7 @@ async function enter(opts = {}) {
   const P = NC.player; if (P.busy || K.inRoom) return;
   if (NC.Dialog && NC.Dialog.cur) NC.Dialog.close('bye');
   const comp = opts.comp !== undefined ? opts.comp : (opts.inviteAsk ? await inviteCompanion() : null);
+  if (comp && NC.PairWalk && NC.PairWalk.n === comp) NC.PairWalk.stop(true);   // v67 함께 걷다가 입장 → 룸 안에서는 소파에 앉음
   K.mode = opts.mode || 'karaoke'; K.label = opts.label || ''; K.exit = opts.exit || null; K.onLeave = opts.onLeave || null;
   W.zoneLabel.karaoke = K.mode === 'vip' ? `✨ ${K.label}` : `🎤 ${K.label || '노래방'}`;
   NC.ui.fade(() => {
@@ -596,7 +597,7 @@ function clubMood(on) {                                  // 클럽: DJ 블루스
 }
 function startBlues(n) {
   const D = NC.Dialog, P = NC.player; if (BL.n) return;
-  n.bl = n.bl || { kissed: false, warned: 0 };
+  n.bl = n.bl || { kissed: false, warned: 0 }; BL.gap = 0; BL.gapS = 0;
   if (n.aff < 45) { D.npcSay(U.pick(['부르스요? 음… 아직 좀 어색해요. 조금 더 얘기해요 ㅎㅎ', '헉 벌써요? 조금만 더 친해지고요~', '…부르스는 좀. 짠부터 해요.']), 'shy'); NC.Motion.play(n.g, 'headshake'); aff(n, -1); return; }
   /* v28 어느 장소에서나: 노래방 룸 · 스테이지/댄스플로어(DJ 블루스 타임 연출) · 그 밖의 곳(테이블·VIP·바·통로·흡연실·라운지·거리·로비 등)은 두 사람 사이 빈자리에서 */
   BL.where = K.inRoom ? 'karaoke' : CLUB_ZONES.includes(P.zone) ? 'club' : 'any';
@@ -667,10 +668,16 @@ const REACT = {      // out: accept(받아 줌) · stop(손을 잡아 제지) ·
     : n.aff >= 80 ? { out: 'refuse', d: -1, e: 'shy', line: '(입술을 손가락으로 막으며) 천천히요~ 우리 아직 첫 키스도 안 했잖아요 ㅎㅎ' } : { out: 'refuse', d: -6, e: 'annoyed', g: 'push', stop: true, line: '갑자기 왜 이래요! 너무 나갔어요.' },
   neck: n => can(n, 88, true) ? { out: 'accept', d: 3, e: 'kiss', line: P_(['……. (어깨를 움츠리며 숨을 고른다) 거기 약한데…', '(작게 웃으며) 간지러워… 하지 마요… 아니, 해요 💗']) }
     : n.aff >= 70 ? { out: 'refuse', d: -2, e: 'shy', line: '꺅 간지러워요 ㅋㅋ 거긴 안 돼요!' } : { out: 'refuse', d: -6, e: 'annoyed', g: 'push', stop: true, line: '뭐 하는 거예요? 기분 이상해요.' },
-  butt: n => can(n, 90, true) ? { out: 'stop', d: -2, e: 'shy', line: '(손을 잡아 허리로 옮기며) 손은 여기요 ㅎㅎ 매너 있는 사람이 더 좋아요~' }
+  /* v67 19+ 스킨십(성인 확인 후 칩 노출) — 받아 줄지는 호감도 + 첫 키스 여부(=동의). 사람 많은 곳이라 받아 줘도 짧게, 노출은 없음 */
+  butt: n => can(n, 85, true) ? { out: 'accept', d: 1, e: 'shy', line: P_(['(몸을 살짝 더 붙이며) …사람들 보잖아요. 조금만이에요 ㅎㅎ', '(귓가에 작게) 손이 너무 솔직한 거 아니에요? 💗']) }
+    : n.aff >= 70 ? { out: 'stop', d: -2, e: 'shy', line: '(손을 잡아 허리로 옮기며) 손은 여기요 ㅎㅎ 매너 있는 사람이 더 좋아요~' }
     : { out: 'refuse', d: -10, e: 'annoyed', slap: true, stop: true, line: P_(['지금 뭐 하는 거예요?! 손 치워요!', '와… 진짜 실망이에요.']) },
-  chest: n => can(n, 92, true) ? { out: 'stop', d: -4, e: 'annoyed', line: '(손목을 탁 잡으며) 거기까지예요. 분위기 깨지 마요.' }
+  chest: n => can(n, 95, true) ? { out: 'accept', d: 0, e: 'shy', line: P_(['(손등을 살며시 덮으며) …여기선 여기까지요. 이따 둘만 있을 때요 💗', '(얼굴이 빨개지며 손목을 잡아 내린다) 진짜 못 말려요… 사람 많잖아요 ㅎㅎ']) }
+    : can(n, 85, true) ? { out: 'stop', d: -4, e: 'annoyed', line: '(손목을 탁 잡으며) 거기까지예요. 분위기 깨지 마요.' }
     : { out: 'refuse', d: -15, e: 'annoyed', slap: true, stop: true, line: P_(['미쳤어요?! 동의 없이 만지는 건 진짜 아니에요!', '선 넘었어요. 저 기분 너무 나빠요.']) },
+  panty: n => can(n, 95, true) ? { out: 'stop', d: 0, e: 'shy', priv: true, line: P_(['(손목을 꼭 붙잡으며) 여기서는 절대 안 돼요… 다 보이잖아요. 진짜 원하면 우리 둘만 있는 데로 가요 💗', '(귀까지 빨개지며 손을 내린다) 여기선 안 돼요. …나중에, 둘이 있을 때요.']) }
+    : n.aff >= 80 ? { out: 'stop', d: -6, e: 'annoyed', line: '(손을 탁 쳐내며) 지금 장난해요? 여기 사람 많은 데예요!' }
+    : { out: 'refuse', d: -20, e: 'annoyed', slap: true, stop: true, line: P_(['미쳤어요?! 이건 진짜 선 넘었어요!', '하… 최악이에요. 저 갈게요.']) },
   undress: n => n.g.userData.undressed ? { out: 'stop', d: -2, e: 'laugh', line: '(손목을 잡으며) 여기까지만이에요 ㅋㅋ 더는 안 돼요~' }
     : can(n, 95, true) && !n.g.userData.vrm ? { out: 'accept', d: 2, e: 'shy', strip: true, line: U.pick(['…진짜 못 말려. (두 팔을 들어 준다) 겉옷만이에요? 💗', '(작게 웃으며 팔을 든다) 다른 사람들 보면 어떡해요… ㅎㅎ']) }
     : can(n, 90, true) ? { out: 'stop', d: -3, e: 'laugh', line: '(두 손으로 손목을 붙잡으며) 여기서요? ㅋㅋㅋ 선 넘지 마요~ 대신 한 곡 더 춰 줄게요' }
@@ -691,8 +698,30 @@ const ACT = {   // v40 실제 사람 타이밍으로 조정(다가가는 시간�
   butt: { dur: 2.8, hit: 1.15, close: .09, desc: '🍑 허리에 있던 손을 등을 따라 엉덩이로 내린다' },
   chest: { dur: 2.8, hit: 1.15, close: 0, desc: '🫳 손을 옆구리를 따라 가슴 쪽으로 올린다' },
   undress: { dur: 3.4, hit: 1.25, close: 0, desc: '👚 옷자락을 잡고 위로 천천히 올린다' },
+  panty: { dur: 3.0, hit: 1.15, close: .04, mk: 'undress', desc: '🩲 허리춤으로 손을 내려 속옷을 내리려 한다' },   // mk: 손 동작은 '옷자락 잡기'와 같은 경로(상대가 손목을 붙잡아 막음)
   dress: { dur: 2.4, hit: .9, close: 0, desc: '👕 벗겨진 겉옷을 다시 입혀 준다' },
 };
+/* v69 ActionRegistry — 버튼(칩) → 동작 ID → 고유 자세 설정(서는 위치·몸 방향·간격·루트 이동) · 손 IK 목표는 couple.js plan(k) 이 동작마다 따로 정함
+ *  조사 결과(v68까지): ① 13개 동작 중 대부분이 '마주 보고 0.43m' 같은 서는 자리를 공유했고 ② 엉덩이·가슴·속옷 3개는 couple.js 에 손 목표가 아예 없어
+ *  블루스 홀드(허리에 손) 그대로 보였으며 ③ 쓰지 않는 팔은 홀드 자세로 남아 모든 동작이 '서서 안은 자세'의 변형처럼 보였음 → 동작마다 서는 자리와 양팔 모두를 따로 지정
+ *  stance: d = 두 사람 거리의 절반(m) · lat = 리드가 옆으로 비켜서는 거리(상대 귀·볼 쪽) · hug = 머리가 서로 어깨 너머로 가게 엇갈림 · pitchN/pitchP = 몸 전체 기울기(rad, 딥) */
+const ACTIONS = {
+  whisper: { id: 'WHISPER', stance: { d: .17, lat: .17 } },
+  waist: { id: 'WAIST_PULL', stance: { d: .125, pre: .31 } },
+  spin: { id: 'PARTNER_SPIN', stance: { d: .27 } },
+  dip: { id: 'DANCE_DIP', stance: { d: .19, pitchN: -.3, pitchP: .1 } },
+  forehead: { id: 'FOREHEAD_TOUCH', stance: { d: .15 } },
+  cheek: { id: 'CHEEK_KISS', stance: { d: .165, lat: .1 } },
+  hug: { id: 'FULL_HUG', stance: { d: .125, lat: .13, par: true } },   // 머리가 서로 어깨 너머로: 몸은 나란히 마주 서되 옆으로 엇갈림(서로 정면으로 머리를 부딪치지 않게)   // 머리가 서로 어깨 너머로 + 몸을 비스듬히 돌려 꼭 껴안음
+  backhug: { id: 'BACK_HUG', stance: { d: .125 } },
+  kiss: { id: 'ROMANTIC_KISS', stance: { d: .162 } }, deepkiss: { id: 'DEEP_KISS', stance: { d: .155 } },
+  butt: { id: 'AFFECTIONATE_TOUCH', stance: { d: .13, lat: .17 } },   // 리드가 상대 옆으로 비켜서서 팔을 옆구리로 돌려 엉덩이에 손(정면에서 뒤로 뻗으면 손이 옆구리에서 멈췄음)
+  chest: { id: 'CHEST_TOUCH_OVER_CLOTHING', stance: { d: .245 } },
+  undress: { id: 'TOP_HEM_ADJUST', stance: { d: .225 } },
+  panty: { id: 'CLOTHING_ADJUSTMENT', stance: { d: .225 } },
+  dress: { id: 'CLOTHING_RESTORE', stance: { d: .2 } },
+};
+K.ACTIONS = ACTIONS; K.dispatchLog = [];
 function bluesCancel() {   // v39 동작 중 취소/전환: 진행 중인 반응·종료 타이머를 지우고 자세는 부드럽게 블루스 홀드로 복귀
   (BL.tm || []).forEach(clearTimeout); BL.tm = []; const P = NC.player; BL.busy = false; BL.act = null; if (P.group) P.group.userData.bAct = null; if (BL.n) BL.n.g.userData.bAct = null; BL.kiss = 0;
 }
@@ -702,7 +731,10 @@ function bluesAct(kind, forced) {
   const dur = r.kiss ? Math.max(a.dur, r.kiss + a.hit + .6) : a.dur;
   BL.busy = true; BL.act = { k: kind, t0, dur, close: r.out === 'refuse' && !r.kiss ? Math.min(a.close, .03) : a.close, flip: a.flip && r.out === 'accept', spin: a.spin, hit: a.hit, dip: kind === 'dip' && r.out === 'accept',
     vr: { amp: .88 + Math.random() * .24, lag: .13 + Math.random() * .11, sway: (Math.random() - .5) * .5, side: Math.random() < .5 ? 1 : -1, hug: (BL.n && BL.n.aff >= 80) ? 'romantic' : (BL.n && BL.n.aff >= 55) ? 'warm' : 'friend' } };   // v56 side = 키스 때 고개 기울이는 방향(매번 다름) · hug = 호감도별 포옹(친구·따뜻한·연인)   // v55 매번 조금씩 다른 세기·반응 지연(같은 동작이 똑같이 반복되지 않게)
-  P.group.userData.bAct = { k: kind, t0, dur, out: r.out, hit: a.hit }; n.g.userData.bAct = { k: kind, t0, dur, out: r.out, hit: a.hit };
+  const mk = a.mk || kind; BL.act.k = mk; BL.act.id = (ACTIONS[kind] || {}).id || kind; BL.act.btn = kind; BL.act.st = (ACTIONS[kind] || ACTIONS[mk] || {}).stance || null;
+  { const rs = P.group.userData.rig && P.group.userData.rig.shR, ax = n.x - P.x, az = n.z - P.z, l = Math.hypot(ax, az) || 1; if (rs) { const w = rs.getWorldPosition(new T.Vector3()); BL.act.latS = Math.sign((w.x - P.x) * (-az / l) + (w.z - P.z) * (ax / l)) || 1; } else BL.act.latS = 1; }   // 리드의 rig R 어깨 쪽으로 비켜섬(couple.js 의 상대 귀·볼 sR 쪽과 일치)
+  K.dispatchLog.push({ t: Math.round(t0), btn: kind, id: BL.act.id, k: mk, out: r.out }); if (K.dispatchLog.length > 50) K.dispatchLog.shift();
+  P.group.userData.bAct = { k: mk, t0, dur, out: r.out, hit: a.hit }; n.g.userData.bAct = { k: mk, t0, dur, out: r.out, hit: a.hit };
   D.sys(a.desc); D.chips();
   BL.tm.push(setTimeout(() => {                                    // 상대 반응
     if (BL.n !== n) return;
@@ -712,6 +744,7 @@ function bluesAct(kind, forced) {
     if (r.slap) { n.g.userData.bAct = null; NC.Motion.play(n.g, 'slap'); setTimeout(() => { NC.Motion.play(P.group, 'flinch'); P.group.userData.setExpr && P.group.userData.setExpr('sad', 2); }, 330); }
     else if (r.g) { n.g.userData.bAct = null; NC.Motion.play(n.g, r.g); }
     if (r.out === 'accept') { n.g.userData.setExpr && n.g.userData.setExpr(r.e === 'kiss' ? 'kiss' : r.e, (dur - a.hit) + .5); P.group.userData.setExpr && P.group.userData.setExpr(r.e === 'kiss' ? 'kiss' : 'smile', (dur - a.hit) + .3); }
+    if (r.priv) NC.ui.toast(`🏨 ${n.name}: "둘만 있는 곳에서요" — 브루스를 마친 뒤 🏨 모텔 버튼으로 초대해 보세요`);
     aff(n, r.d); D.npcSay(r.line, r.e === 'kiss' ? 'shy' : r.e); if (r.slap) { n.bl.warned++; NC.ui.toast(`💔 ${n.name}: 호감도 ${r.d} — 상대가 원하지 않는 스킨십은 역효과예요`); }
   }, a.hit * 1000));
   BL.tm.push(setTimeout(() => {                                    // 동작 종료
@@ -765,10 +798,16 @@ function premium(kind) {
 }
 const CHIPS = [['👂 귓속말', 'whisper'], ['🤲 허리 끌어당기기', 'waist'], ['💫 한 바퀴 돌리기', 'spin'], ['💃 뒤로 눕히기(딥)', 'dip'], ['💗 이마 맞대기', 'forehead'], ['😚 볼 뽀뽀', 'cheek'],
   ['🤗 꼭 안아 주기', 'hug'], ['🫂 백허그', 'backhug'], ['💋 키스하기', 'kiss']];   // v19: 신체 접촉·탈의 옵션은 제거
+const CHIPS19 = [['🍑 엉덩이 만지기', 'butt'], ['🫳 가슴 주물럭거리기', 'chest'], ['🩲 팬티 내리기', 'panty']];   // v67 성인 확인 후에만
 NC.dialogChipsOverride = (n, CHIP) => {
   if (BL.n !== n) return false;
   if (BL.busy) CHIP('⏹ 지금 동작 멈추기', () => { bluesCancel(); NC.Dialog.chips(); });   // v39 동작 중에도 다른 동작으로 바로 전환 가능
   CHIPS.forEach(([l, k]) => CHIP(l, () => bluesAct(k), k === 'kiss' ? 'pri' : ''));
+  /* v67 🔞 성인 확인 후: 엉덩이·가슴·속옷 — 상대 동의(호감도·첫 키스)에 따라 받아 주거나 막거나 뺨을 맞음 */
+  const AD = NC.Adult, RHx = NC.RealHuman, no19 = !!(RHx && RHx.no19 && RHx.no19(n.g));   // v70 manifest no19 모델(실존 인물 얼굴 등)은 19+ 칩 자체를 안 보임
+  if (no19) { }
+  else if (AD && AD.ok()) CHIPS19.forEach(([l, k]) => CHIP(l, () => bluesAct(k)));
+  else if (AD) CHIP('🔞 19+ 스킨십 (성인 확인)', () => AD.verify().then(ok => ok && NC.Dialog.chips()));
   if (n.g.userData.undressed) CHIP('👕 옷 다시 입혀 주기', () => bluesAct('dress'));
   if (BL.where === 'karaoke' || K.inRoom) PREMIUM.forEach(([l, k]) => CHIP(`${NC.account ? '💎' : '🔒'} ${l} 🪙${PREMIUM_COST}`, () => premium(k)));
   CHIP('⏹ 브루스 그만', () => endBlues('stop'));
@@ -792,24 +831,45 @@ NC.tickers.push(dt => {
     a = .28 * Math.sin(BL.t * .35) * (A ? .3 : 1) + vr.sway * .2, c = BL.c;
   /* v56 얼굴 접촉(키스·이마·볼·귓속말)은 두 사람 사이를 0.32m 아래로 줄이지 않음 — 너무 붙으면 얼굴이 마주치지 못하고 머리가 서로 옆으로 엇갈렸음(입술 24cm 어긋남) */
   let d = .215 - .05 * k - cl; if (A && /^(kiss|deepkiss|forehead|cheek|whisper)$/.test(A.k)) d = Math.max(d, A.k === 'whisper' || A.k === 'cheek' ? .15 : .162);
+  /* v69 동작별 서는 자리(ActionRegistry stance): 접근(가속·감속) → 유지 → 원래 홀드 자리로 복귀 */
+  const ST = A && A.st, eA = A ? Math.min(ez(.05, Math.max(.6, Math.min(A.hit + .25, 1.3)), ae), 1 - ez(A.dur - .95, A.dur - .05, ae)) : 0, refused = A && BL.n.g.userData.bAct && BL.n.g.userData.bAct.out === 'refuse';
+  let dP = null, dN = null, lat = 0;
+  if (ST && !refused) {
+    if (ST.d != null) d = U.lerp(.215 - .05 * k, ST.d, eA);
+    if (ST.pre != null) { const out = ez(0, .55, ae) * (1 - ez(A.hit - .3, A.hit + .05, ae)), pull = Math.min(ez(A.hit - .2, A.hit + .35, ae), 1 - ez(A.dur - .95, A.dur - .1, ae));   // 허리 끌어당기기: 상대가 반 걸음 물러나 있다가 → 리드가 허리를 잡아 끌어당김(리드는 거의 제자리)
+      dP = .215 - .03 * pull; dN = .215 + (ST.pre - .215) * out * 2 - (.215 - ST.d) * 2 * pull + .03 * pull; d = (dP + dN) / 2; }
+    if (ST.lat) lat = ST.lat * eA * (A.latS || 1);
+  }
+  /* v68 간격 보정은 조정자 한 곳에서만: 몸통이 겹치면(contact.spacing) 두 사람 사이 거리를 천천히 벌리고, 여유가 생기면 천천히 되돌림(적분형·감쇠 — 프레임마다 밀고 당기던 진동 없음) */
+  { const gs = BL.gapS || 0, g = BL.gap || 0, mv = .12 * dt; BL.gapS = gs + U.clamp((g - gs) * Math.min(1, dt * 3), -mv, mv); }   // v69 간격 보정도 부드럽게(최대 12cm/s) — 백허그·딥에서 몸이 돌거나 젖혀질 때 간격 필요량이 급변해 루트가 덜컥이던 것 방지
+  d += (BL.gapS || 0) * .5;
   P.group.userData.kissK = n.g.userData.kissK = k; P.group.userData.kissDeep = n.g.userData.kissDeep = BL.deep && k > 0;
-  P.x = c.x - Math.cos(a) * d; P.z = c.z - Math.sin(a) * d; n.x = c.x + Math.cos(a) * d; n.z = c.z + Math.sin(a) * d;
+  { const ax = Math.cos(a), az = Math.sin(a), px = -az, pz = ax, dp = dP != null ? dP : d, dn = dN != null ? dN : d;
+    P.x = c.x - ax * dp + px * lat; P.z = c.z - az * dp + pz * lat; n.x = c.x + ax * dn; n.z = c.z + az * dn; BL.baseRy = Math.atan2(ax, az); }
   /* v55 몸 전체의 이동(루트 모션): ① 딥 — 리드가 앞발로 한 걸음 런지하며 무게중심을 상대 쪽으로, 상대 골반은 살짝 뒤로(제자리에서 상체만 꺾이던 고무인형 느낌 제거)
    *  ② 턴 — 상대가 들어 올린 손 아래로 작은 호를 그리며 돌고(제자리 회전 X), 리드는 반대로 살짝 물러나 균형을 잡음 */
   if (A && (A.dip || A.spin)) { const ax = Math.cos(a), az = Math.sin(a);
     if (A.dip) { const dk = Math.min(ez(.15, A.hit + .1, ae), 1 - ez(A.dur - 1.0, A.dur - .1, ae)) * vr.amp; P.x += ax * .1 * dk; P.z += az * .1 * dk; n.x += ax * .05 * dk; n.z += az * .05 * dk; }
     if (A.spin) { const q = ez(.55, A.hit + .25, ae), arc = Math.sin(Math.PI * q) * .1 * vr.amp; n.x += -az * arc; n.z += ax * arc; P.x -= -az * arc * .25; P.z -= ax * arc * .25; } }
   if (BL.s0 && BL.t < 1.4) { const q = BL.t / 1.4, k2 = q * q * (3 - 2 * q), S0 = BL.s0; P.x = U.lerp(S0.px, P.x, k2); P.z = U.lerp(S0.pz, P.z, k2); n.x = U.lerp(S0.nx, n.x, k2); n.z = U.lerp(S0.nz, n.z, k2); P.group.userData.moving = n.g.userData.moving = q < .85; } else if (BL.s0) { BL.s0 = null; P.group.userData.moving = n.g.userData.moving = false; }
-  P.ry = Math.atan2(n.x - P.x, n.z - P.z); P.group.rotation.y = P.ry;
+  P.ry = Math.atan2(n.x - P.x, n.z - P.z); if (lat && A && A.st && A.st.par && BL.baseRy != null) P.ry = U.lerpAngle(P.ry, BL.baseRy, eA); P.group.rotation.y = P.ry;
   let ny = P.ry + Math.PI;
   if (A && A.flip) ny += Math.PI * ez(.3, 1.15, ae) * (1 - ez(A.dur - .95, A.dur - .1, ae));           // 백허그: 상대가 돌아섰다가 다시 마주 봄(v55 가속·감속)
   if (A && A.spin) { const q = ez(.55, A.hit + .25, ae), anti = ae < .62 ? -.14 * Math.sin(Math.PI * sm(.2, .62, ae)) : 0, settle = .07 * vr.amp * Math.sin(Math.PI * sm(A.hit + .25, A.hit + .9, ae));
     ny += Math.PI * 2 * q + anti + settle; }   // 턴: v55 예비 동작(반대로 살짝 감았다가) → 가속 회전 → 감속 → 살짝 지나쳤다 돌아오며 멈춤
+  if (lat && !(A && (A.flip || A.spin))) ny = BL.baseRy + Math.PI + (A.st && A.st.ny || 0) * eA;   // v69 귓속말·볼·포옹: 리드만 옆으로 비켜서고 상대는 원래 방향 유지(서로 정면으로 다시 마주 보지 않음)
   n.g.rotation.y = ny;
+  /* v69 딥: 상대 몸 전체가 발을 축으로 뒤로 기울고(척추 휘어짐은 motion.js) 리드는 앞으로 숙이며 받침 — 루트 기울기는 pose.js 임대('custom')로 */
+  { const pk = A && A.dip && A.st ? Math.min(ez(A.hit - .5, A.hit + .3, ae), 1 - ez(A.dur - 1.1, A.dur - .15, ae)) : 0, Po = NC.Pose;
+    if (pk > .001) { const qN = new T.Quaternion().setFromEuler(new T.Euler((A.st.pitchN || 0) * pk * vr.amp, ny, 0, 'YXZ')), qP = new T.Quaternion().setFromEuler(new T.Euler((A.st.pitchP || 0) * pk, P.ry, 0, 'YXZ'));
+      n.g.quaternion.copy(qN); P.group.quaternion.copy(qP); if (Po) { Po.claim(n.g, 'blues-dip', 'custom', .25); Po.claim(P.group, 'blues-dip', 'custom', .25); } BL._pitch = true; }
+    else if (BL._pitch) { BL._pitch = false; n.g.rotation.set(0, ny, 0); P.group.rotation.set(0, P.ry, 0); if (Po) { Po.release(n.g, 'blues-dip'); Po.release(P.group, 'blues-dip'); } } }
   /* v47 발도 함께: 턴·돌아서기 중이거나 서로 당겨 거리가 빠르게 변하면 제자리 걸음(발 디딤)으로 — 발이 붙은 채 몸만 도는 것 방지 */
   { const turning = A && ((A.spin && ae > .4 && ae < A.hit + .6) || (A.flip && ((ae > .25 && ae < 1.2) || (ae > A.dur - 1 && ae < A.dur - .05)))), dd = BL._d != null ? Math.abs(d - BL._d) / Math.max(dt, 1e-3) : 0; BL._d = d;
     if (!(BL.s0 && BL.t < 1.4)) { if (K.noMoveFix) { n.g.userData.moving = turning || dd > .06; n.g.userData.walkSlow = turning ? .55 : .4; P.group.userData.moving = dd > .09; } else { const H = BL.hy || (BL.hy = { n: 0, p: 0 }); H.n = turning ? .35 : dd > .06 ? .25 : Math.max(0, H.n - dt); H.p = dd > .09 ? .25 : Math.max(0, H.p - dt); n.g.userData.moving = H.n > 0; n.g.userData.walkSlow = turning ? .55 : .4; P.group.userData.moving = H.p > 0; } } }   /* v63 히스테리시스: 거리 변화율이 문턱값 근처에서 오르내리면 매 프레임 '걷기↔서기'가 뒤집혀 발 고정·모션캡처 레이어가 켜졌다 꺼지며 떨렸음 → 한 번 켜지면 0.25초 유지 */
   P.group.position.set(P.x, NC.groundY(P.x, P.z), P.z); n.g.position.set(n.x, NC.groundY(n.x, n.z), n.z);
+  { const C = NC.Contact; if (C && C.spacing && C.body && !(BL.s0 && BL.t < 1.4)) { const A2 = C.body(P.group), B2 = C.body(n.g);
+      if (A2 && B2) { const s = C.spacing(A2, B2), g0 = BL.gap || 0; let g = g0; if (s.need > .003) g += s.need * Math.min(1, dt * 5); else if (s.room > .02 && g > 0) g -= Math.min(g, (s.room - .02)) * Math.min(1, dt * 1.2); BL.gap = U.clamp(g, 0, .14); } } }
 });
 $('#kCall').onclick = () => callWaiter();
 K.G = G; K.dims = { KX, KZ, HX, HZ, H }; K.playSong = (song, mode) => play(song, mode); K.stopSong = () => stop(true); K.callWaiter = callWaiter; K.startBlues = startBlues; K.endBlues = endBlues; K.BL = BL; K.ACT = ACT; K.bluesAct = (k, f) => bluesAct(k, f);

@@ -613,9 +613,9 @@ function sitBoth(where) {
   const seats = RV.seats[where]; if (!seats) return; const [a, b] = seats, p = P(), n = S.n; endStanding(); stopHand();
   const ax = BX + a.x, az = 90 + a.z, bx = BX + b.x, bz = 90 + b.z;
   NC.sitPlayer({ kind: 'motel', where, x: ax, z: az, ry: a.ry }, { x: ax, z: az, ry: a.ry, h: a.h }); p.group.position.set(ax, 0, az); p.group.rotation.y = a.ry;
-  if (!S.space) { NC.NPC.sit(n, bx, bz, b.ry, b.h); n.g.userData.lookAt = p; } S.follow = false; S.seat = where;
+  if (!S.space) { NC.NPC.sit(n, bx, bz, b.ry, b.h); n.g.userData.lookAt = p; p.group.userData.lookAt = n; } S.follow = false; S.seat = where;   // v72 서로 눈 맞춤(나도 상대를 봄)
 }
-function standBoth() { const p = P(); if (p.seat) NC.requestStand(); const n = S.n; if (n && n.state === 'seated') { NC.unseatAvatar(n.g, n.x + .6, n.z); n.state = 'motel'; } S.follow = true; S.seat = null; try { NC.Couple && (NC.Couple.ST.sofa = null); } catch (e) { } }
+function standBoth() { const p = P(); p.group.userData.lookAt = null; if (p.seat) NC.requestStand(); const n = S.n; if (n && n.state === 'seated') { NC.unseatAvatar(n.g, n.x + .6, n.z); n.state = 'motel'; } S.follow = true; S.seat = null; try { NC.Couple && (NC.Couple.ST.sofa = null); } catch (e) { } }
 function endStanding() { try { if (K.BL && K.BL.n === S.n) K.endBlues('leave'); } catch (e) { } if (S.n && S.n.state === 'blues') S.n.state = 'motel'; }   // 'leave' = 블루스가 상대를 클럽 배회 상태로 돌려놓지 않음
 
 /* 동의 확인 — 편안함(comfort) · 경계심 · 반복 요청 */
@@ -901,7 +901,7 @@ NC.tickers.push(dt => {
   }
 });
 /* v60 확장 모듈(motel19.js)용 내부 핸들 — 같은 상태·동의·연출 함수를 그대로 씀(중복 시스템 X) */
-S._x = { T, U, M, L, pick, col, BX, RHX, RHZ, RH, RV, ROOM, box, cyl, std, glow, nSay, meSay, sys, say, wait, beep, ding, knock, modal, esc, tr, memOf, impaired, adminMax, attrs, save, DB, NEED, consent, romantic, sitBoth, standBoth, standAct, endStanding, stopHand, startHand, stopCurrent, applyMood, MOODS, EVENTS, event, ACTS, photo, roomService, extendStay, checkout, sleepNight, renderPanel, panel, bar, placePartner, updBar, tvShow };
+S._x = { enterRoom, buildRoom, goArea, sitPlayerOnly, T, U, M, L, pick, col, BX, RHX, RHZ, RH, RV, ROOM, box, cyl, std, glow, nSay, meSay, sys, say, wait, beep, ding, knock, modal, esc, tr, memOf, impaired, adminMax, attrs, save, DB, NEED, consent, romantic, sitBoth, standBoth, standAct, endStanding, stopHand, startHand, stopCurrent, applyMood, MOODS, EVENTS, event, ACTS, photo, roomService, extendStay, checkout, sleepNight, renderPanel, panel, bar, placePartner, updBar, tvShow };
 S.api = { decide, inviteScore, attrs, consent, invite: (n, id) => invite(n, STYLES.find(x => x.id === id) || STYLES[1]), npcInvites, checkout, event, avail, memOf };   // 시험·확장용
 /* 👑 관리자 만점 유지 + 🧪 토글 버튼 */
 let admAcc = 0;

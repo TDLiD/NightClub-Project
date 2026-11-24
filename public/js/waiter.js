@@ -33,6 +33,8 @@ const VIP = NC.VIP = {
     const panelN = n;
     NC.Dialog.close('switch'); n.booked = true;
     NC.walkPlayer(NC.NPC.planPath(NC.player, v.seats[1]), () => {});
+    if (NC.PairWalk && NC.PairWalk.start(n, null, true)) {   // v67 따로 걷지 않고 손잡기·팔짱·허리 감싸 안기로 함께 걸어감
+      const wait = () => { if (NC.PairWalk.n !== n && n.state !== 'escort') return; if (Math.hypot(NC.player.x - v.seats[1].x, NC.player.z - v.seats[1].z) < 1.2 || !NC.player.autoPath) { NC.PairWalk.stop(true, n); VIP.seatBoth(i, n); VIP.session = { room: i, npc: n }; NC.Dialog.open(panelN, { intro: '여기 분위기 좋네요. 자, 이제 진짜 얘기해 봐요 🥂' }); } else setTimeout(wait, 300); }; setTimeout(wait, 600); return; }
     NC.NPC.goTo(n, v.seats[2], () => { const wait = () => { if (Math.hypot(NC.player.x - v.seats[1].x, NC.player.z - v.seats[1].z) < 1.2 || !NC.player.autoPath) { VIP.seatBoth(i, n); VIP.session = { room: i, npc: n }; NC.Dialog.open(panelN, { intro: '여기 분위기 좋네요. 자, 이제 진짜 얘기해 봐요 🥂' }); } else setTimeout(wait, 300); }; wait(); });
   },
   endSession(n, reason) {

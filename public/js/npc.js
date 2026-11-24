@@ -18,6 +18,8 @@ function spawn(def, role) {
     const r = U.rng(U.hash((def.id || def.name) + 'pers')), pk = a => a[Math.floor(r() * a.length)], f = (look.gender || def.gender) === 'f';
     const u = g.userData; u.danceStyle = def.dance || pk(f ? ['hipSway', 'bodyRoll', 'hairFlip', 'vogue', 'hipCircle', 'disco', 'breaking', 'techno', 'shimmy'] : ['pump', 'runMan', 'disco', 'techno', 'breaking', 'robot', 'bounceRock', 'stepTouch']);
     u.walkStyle = def.walk || pk(f ? ['model', 'bouncy', 'shy', 'model', null] : ['swagger', 'bouncy', 'shy', 'swagger', null]);
+    u.no19 = !!def.no19;
+    if (def.wardrobe) { u.wardrobe = def.wardrobe; u.outfit = def.outfit || null; }   // v71 실사 모델 위에 입히는 옷·헤어(wardrobe.js)   // v70 실존 인물 동의 범위 밖 — 블루스·모텔 19+ 대상에서 제외(npcs.json no19)
     u.habit = def.habit || pk(['drinker', 'none', 'flirt', 'phone', 'none', 'drinker']);
     u.idlePose = def.pose && def.pose !== 'dance' ? def.pose : (def.pose ? null : pk([null, null, 'talk', 'drink', 'lean', 'pocket', null]));   // v32 대기 포즈
   }
@@ -211,14 +213,17 @@ NC.tickers.push(dt => {
   if (!dt) return; const P = NC.player, BLn = NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n, A = [];
   for (const n of npcs) { if (!n.g.visible || !FREE.has(n.state) || n.g.userData.seated || n === BLn || n.party || n._noSep) continue; if (W.extraZones.some(e => e.test(n.x, n.z))) continue; A.push({ o: n, x: n.x, z: n.z, m: 1, r: .38 }); }
   const WL = NC.Waiters ? NC.Waiters.list : []; for (const o of WL) { if (!o.g || !o.g.visible || o.busy) continue; A.push({ o, x: o.x, z: o.z, m: 1, r: .35, wt: true }); }
-  if (P && P.group && !P.seat && !BLn) A.push({ o: P, x: P.x, z: P.z, m: 0, r: .4 });
+  if (P && P.group && !P.seat) A.push({ o: P, x: P.x, z: P.z, m: 0, r: .4, hard: !!(BLn || (NC.PairWalk && NC.PairWalk.n)) });
+  /* v68 블루스·함께 걷는 두 사람은 '움직이지 않는 장애물'(m:0)로 — 둘 사이 간격은 각자의 조정자가 정하고, 지나가는 손님만 비켜 감(전에는 아예 빠져 있어서 손님이 커플 몸을 관통해 지나갔음) */
+  if (BLn && BLn.g.visible) A.push({ o: BLn, x: BLn.x, z: BLn.z, m: 0, r: .38, hard: true });
+  { const PW = NC.PairWalk && NC.PairWalk.n; if (PW && PW !== BLn && PW.g.visible) A.push({ o: PW, x: PW.x, z: PW.z, m: 0, r: .36, hard: true }); }
   const N = A.length; if (N < 2) return; const mx = 1.4 * dt;
   for (let i = 0; i < N; i++) { const a = A[i];
     for (let j = i + 1; j < N; j++) { const b = A[j]; if (!a.m && !b.m) continue; let dx = b.x - a.x, dz = b.z - a.z; const d2 = dx * dx + dz * dz; if (d2 >= MIN_D * MIN_D) continue;
       let d = Math.sqrt(d2); if (d < 1e-3) { const ang = (i * 7 + j * 13) % 6.283; dx = Math.cos(ang); dz = Math.sin(ang); d = 1; } else { dx /= d; dz /= d; }
       const ov = MIN_D - Math.min(d, MIN_D), tot = a.m + b.m, ka = a.m / tot, kb = b.m / tot;
-      a.x -= dx * ov * ka; a.z -= dz * ov * ka; b.x += dx * ov * kb; b.z += dz * ov * kb; } }
-  for (const a of A) { if (!a.m) continue; const o = a.o; let dx = a.x - o.x, dz = a.z - o.z; const l = Math.hypot(dx, dz); if (l < 1e-4) continue; if (l > mx) { dx *= mx / l; dz *= mx / l; }
+      a.x -= dx * ov * ka; a.z -= dz * ov * ka; b.x += dx * ov * kb; b.z += dz * ov * kb; if (a.hard && b.m) b.hit = true; if (b.hard && a.m) a.hit = true; } }
+  for (const a of A) { if (!a.m) continue; const o = a.o; let dx = a.x - o.x, dz = a.z - o.z; const l = Math.hypot(dx, dz); if (l < 1e-4) continue; const lim = a.hit ? Math.max(mx, 6 * dt) : mx; if (l > lim) { dx *= lim / l; dz *= lim / l; }   // v68 춤추는·함께 걷는 커플과 겹친 사람은 더 빨리 비켜 감(걷는 속도보다 빠르게 밀어내 관통 방지)
     o.x += dx; o.z += dz; NC.collide(o, a.r); if (o.g) o.g.position.set(o.x, NC.groundY(o.x, o.z), o.z); }
 });
 /* v56 배경 인물이 마네킹처럼 굳어 있지 않게(손님 전원, 걷는 중·춤추는 중·대화 중 제외)

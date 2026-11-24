@@ -953,7 +953,7 @@
   "doyun": "m_32",
   "leo": "m_06",
   "lena": "f_21",
-  "hyejung": "f_22",
+  "hyejung": "f_29",
   "mikyung": "f_26",
   "yuka": "f_31",
   "eunsook": "f_23",
@@ -961,7 +961,8 @@
   "dongsu": "m_31",
   "junho": "m_36",
   "marco": "m_24",
-  "kenji": "m_35"
+  "kenji": "m_35",
+  "joyeosa": "f_22"
  },
  "guestPlan": {
   "_설명": "v55 테이블 손님 이름·모델 고정. 성별별 순서대로 배정(모바일은 앞쪽 일부만 등장). [이름, 모델id]. 동양:서양 = 7:3",

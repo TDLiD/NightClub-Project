@@ -21,6 +21,7 @@ const wait = async ms => { const g = Z.gen; await X.wait(ms); if (g !== Z.gen) t
 function resetZ() { Object.assign(Z, { out: { me: 0, n: 0 }, wear: { me: '', n: '' }, wet: { me: 0, n: 0 }, drinks: { me: 0, n: 0 }, nonAlc: { me: false, n: false }, mood: 30, lim: {}, wins: { me: 0, n: 0 }, hist: [], pm: 0, touch: null, lie: null, pin: null, slide: null, shower: null, paused: false, games: 0 }); Z.jac = { fill: 0, on: false, in: false, foam: false }; }
 const adultOk = () => !!(U.store.get('nc_adult19', 0) || (NC.account && NC.account.adult));
 function verifyAdult() { return modal(`<h3>🔞 ${L('성인 전용', 'Adults only')}</h3><p>${L('이 메뉴는 만 19세 이상 성인을 위한 콘텐츠예요.<br>등장인물은 모두 성인이며, 모든 행동은 서로 동의할 때만 진행돼요.', 'This menu is for adults (19+). All characters are adults and every action needs mutual consent.')}</p>`, [[L('네, 만 19세 이상이에요', 'Yes, I am 19+'), 1, true], [L('아니요', 'No'), 0]]).then(({ val }) => { if (val) { U.store.set('nc_adult19', 1); if (NC.account) NC.account.adult = true; } return !!val; }); }   // 실제 본인인증 API 는 여기서 연결
+NC.Adult = { ok: adultOk, verify: verifyAdult };   // v67 블루스 19+ 칩(karaoke.js)도 같은 성인 확인 사용
 const gP = () => ((P().group.userData.look || {}).gender === 'f' ? 'f' : 'm'), gN = () => (S.n && S.n.gender === 'm' ? 'm' : 'f');
 const gOf = w => (w === 'me' ? gP() : gN()), G = w => (w === 'me' ? P().group : S.n.g);
 const nm = () => esc(S.n ? S.n.name : '');
@@ -79,7 +80,10 @@ function buildGarment(g, kind, gender) {
   if (sp.hip) { const fl = sp.flare || 1, m = part(B.hips, H, Kn, right, sp.hip[0], sp.hip[1], t => rH * (1 - .18 * Math.max(0, t)) * (1 + (fl - 1) * Math.max(0, t)) * (t < 0 ? 1 + t * .35 : 1), .82, mat); if (m) { m.userData.hip = true; parts.push(m); } }
   g.userData.m19 = { kind, gender, parts, real: B.real };
 }
+/* v72 실사 모델은 몸에 맞춘 껍질 옷 레이어(wardrobe.js OutfitManager)로 — 재킷 벗음·편한 차림(슬리퍼)까지 화면에 반영, 막대형 옷 소품은 절차적 몸에만 */
+const layerOf = w => visualOf(w) || (Z.out[w] === 2 ? 'barefoot' : Z.out[w] === 1 ? 'jacketOff' : '');
 function refresh(w) { if (!S.n && w === 'n') return; const g = G(w), kind = visualOf(w), r = g.userData.m19, B = bonesOf(g);
+  const WR = NC.Wardrobe; if (WR && WR.setLayer && (g.userData.real || g.userData.realModel !== undefined)) { if (r) clearGarment(g); const k2 = layerOf(w) || null; if (g.userData._lyK !== k2 || (g.userData.real && !g.userData.real._ly === !!k2)) { WR.setLayer(g, k2, gOf(w)); g.userData._lyK = k2; } return; }
   if (r && r.kind === kind && r.real === (B && B.real) && r.parts.every(m => isUnder(m, g))) return; if (!kind) return clearGarment(g); buildGarment(g, kind, gOf(w)); }
 function isUnder(o, root) { for (let p = o.parent; p; p = p.parent) if (p === root) return true; return false; }
 function refreshAll() { refresh('me'); if (S.n) refresh('n'); }
@@ -521,7 +525,8 @@ function messages() { meSay('(폴라로이드 뒷면에 몰래 메시지를 써�
 function romanticDinner() { if (!NC.Wallet.spend(18)) return toast(L('🪙 코인이 모자라요', '🪙 Not enough coins')); sys(L('📞 프런트에 스테이크·와인 세트를 주문했어요 🪙18', '📞 Ordered a steak & wine set 🪙18')); setTimeout(() => event('e04', true, 'snack'), 5000); bump(6, 3); }
 
 /* ═════════════ 6. 이벤트 e25~e35 (EVENTS 에 추가 — 기존 이벤트 엔진·쿨다운 그대로) ═════════════ */
-const ok19 = () => inRoom() && !Z.lie && !Z.pin && !Z.shower && !document.querySelector('.modal') && adultOk();
+const no19P = () => { const RHx = NC.RealHuman; return !!(S.n && RHx && RHx.no19 && RHx.no19(S.n.g)); };   // v70 manifest no19 상대는 19+ 대상에서 제외
+const ok19 = () => !no19P() && inRoom() && !Z.lie && !Z.pin && !Z.shower && !document.querySelector('.modal') && adultOk();
 Object.assign(EVENTS, {
   e25: { ok: () => ok19() && moodNow() > 62 && trustNow() >= 60 && !Z.wet.n && !drunkN() && !meDrunk() && tr(S.n).bd < .6, run: async () => { nSay(byT({ shy: '저기… 샤워, 같이 할래요? …싫으면 그냥 웃어 넘겨요 ㅎㅎ', cool: '…같이 씻을래요?', playful: '샤워 같이 할 사람~? ㅋㅋ 손!', outgoing: '우리 같이 씻을래요? 물 따뜻하대요!' }), 'shy');
     const { val } = await modal(`<h3>🚿 ${nm()}${L('님의 제안', '’s invitation')}</h3>`, [[L('❤️ 좋아요', '❤️ Yes'), 1, true], [L('😊 나중에요', '😊 Maybe later'), 0]]); if (val) showerTogether(true); else { meSay('지금은 괜찮아요. 먼저 씻어요 ㅎㅎ'); nSay('응, 알았어요 ㅎㅎ', 'smile'); bump(0, 2); } } },
@@ -616,15 +621,16 @@ const GROUPS = [
     ['pm', L('🌙 둘만의 시간 (서로 동의 · 암전)', '🌙 Private moment (mutual · fade)'), privateMoment, () => lockBody()]]],
 ];
 const lab = it => typeof it[1] === 'function' ? it[1]() : it[1];
-S.extActs = []; GROUPS.forEach(([, , list]) => list.forEach(it => S.extActs.push(['x19_' + it[0], '', async () => { if (Z.running) { toast(L('⏳ 지금 하는 걸 먼저 마쳐요 (⏹ 그만으로 멈출 수 있어요)', '⏳ Finish the current activity first')); return; } const why = it[3] && it[3](); if (why) { toast(why); nSay(why.includes('취') ? '오늘은 이런 건 안 할래요. 맨정신일 때 해요 💧' : '…지금은 안 돼요 ㅎㅎ', 'smile'); return; } const my = ++Z.runTok; Z.running = true; try { await it[2](); } catch (e) { if (e !== CANCEL) console.error('[motel19]', it[0], e); } finally { if (Z.runTok === my) Z.running = false; } renderIfOpen(); }])));
+S.extActs = []; GROUPS.forEach(([, , list]) => list.forEach(it => S.extActs.push(['x19_' + it[0], '', async () => { if (no19P()) return; if (Z.running) { toast(L('⏳ 지금 하는 걸 먼저 마쳐요 (⏹ 그만으로 멈출 수 있어요)', '⏳ Finish the current activity first')); return; } const why = it[3] && it[3](); if (why) { toast(why); nSay(why.includes('취') ? '오늘은 이런 건 안 할래요. 맨정신일 때 해요 💧' : '…지금은 안 돼요 ㅎㅎ', 'smile'); return; } const my = ++Z.runTok; Z.running = true; try { await it[2](); } catch (e) { if (e !== CANCEL) console.error('[motel19]', it[0], e); } finally { if (Z.runTok === my) Z.running = false; } renderIfOpen(); }])));
 const renderIfOpen = () => { if (panel.style.display === 'flex') renderPanel(); };
 S.extPanel = () => {
   if (S.step !== 'room' || !S.n) return ''; const chip = `<div class="m19c">${L('나', 'Me')}: ${stateTxt('me')} · ${esc(S.n.name)}: ${stateTxt('n')} · 🍷 ${Z.drinks.me}/${Z.drinks.n}${drunkN() || S.n.drunk ? ' 🥴' : ''} · 🔥 ${L('분위기', 'Mood')} ${moodNow()}</div>`;
+  if (no19P()) return '';
   if (!adultOk()) return `<h4 class="m19h">🔥 19+ ${L('프라이빗', 'Private')}</h4><div class="g"><button data-a="x19adult">🔞 ${L('성인 확인 후 열기', 'Verify age to open')}</button></div>`;
   return `<details class="m19" ${Z.open._root ? 'open' : ''} data-k="_root"><summary>🔥 19+ ${L('프라이빗 익스피리언스', 'Private experience')} <small>${L('(행위마다 동의 · 언제든 ⏹)', '(consent each · stop anytime)')}</small></summary>${chip}
     ${GROUPS.map(([k, t, list]) => `<details class="m19s" ${Z.open[k] ? 'open' : ''} data-k="${k}"><summary>${t}</summary><div class="g">${list.map(it => { const why = it[3] && it[3](); return `<button data-a="x19_${it[0]}" class="${why ? 'off' : ''}" title="${esc(why || '')}">${esc(lab(it))}</button>`; }).join('')}</div></details>`).join('')}</details>`;
 };
-S.extClick = id => { if (/^x19_/.test(id) && Z.running) { toast(L('⏳ 지금 하는 걸 먼저 마치거나 ⏹ 그만을 눌러요', '⏳ Finish the current activity or press ⏹ Stop')); return true; } if (id === 'x19adult') { verifyAdult().then(okk => { if (okk) { Z.open._root = true; renderPanel(); } }); return true; } return false; };
+S.extClick = id => { if (/^x19_/.test(id) && no19P()) return true; if (/^x19_/.test(id) && Z.running) { toast(L('⏳ 지금 하는 걸 먼저 마치거나 ⏹ 그만을 눌러요', '⏳ Finish the current activity or press ⏹ Stop')); return true; } if (id === 'x19adult') { verifyAdult().then(okk => { if (okk) { Z.open._root = true; renderPanel(); } }); return true; } return false; };
 panel.addEventListener('toggle', e => { const d = e.target; if (d.tagName === 'DETAILS' && d.dataset.k) { Z.open[d.dataset.k] = d.open; U.store.set('nc_m19open', Z.open); } }, true);
 const css = document.createElement('style'); css.textContent = `
 #motelPanel details.m19{border:1px solid rgba(255,80,120,.45);border-radius:12px;padding:6px 8px;background:linear-gradient(180deg,rgba(60,0,24,.55),rgba(20,4,16,.4))}
@@ -687,7 +693,7 @@ for (const sec of ['general', 'romance']) for (const a of X.ACTS[sec]) { const w
 S.onBuild = onBuild;
 S.onRoom = () => { resetZ(); refreshAll(); };
 S.onStop = silent => stopAll(silent);
-S.onCheckout = () => { stopAll(true); if (S.n) { S.n.drunk = false; S.n.g.userData.handPose = null; clearGarment(S.n.g); S.n.g.rotation.x = S.n.g.rotation.z = 0; } clearGarment(P().group); P().group.rotation.x = P().group.rotation.z = 0; Z.jac = { fill: 0, on: false, in: false, foam: false }; Z.out = { me: 0, n: 0 }; Z.wear = { me: '', n: '' }; if (RV.candles) RV.candles = null; };
+S.onCheckout = () => { stopAll(true); try { for (const g of [P().group, S.n && S.n.g]) if (g && NC.Wardrobe) { NC.Wardrobe.setLayer(g, null); g.userData._lyK = null; } } catch (e) { } if (S.n) { S.n.drunk = false; S.n.g.userData.handPose = null; clearGarment(S.n.g); S.n.g.rotation.x = S.n.g.rotation.z = 0; } clearGarment(P().group); P().group.rotation.x = P().group.rotation.z = 0; Z.jac = { fill: 0, on: false, in: false, foam: false }; Z.out = { me: 0, n: 0 }; Z.wear = { me: '', n: '' }; if (RV.candles) RV.candles = null; };
 let acc = 0;
 NC.tickers.push(dt => {
   if (!dt || !S.on) return; dt = Math.min(dt, .1);
@@ -698,5 +704,6 @@ NC.tickers.push(dt => {
   else if (S.step === 'leaving' && (P().group.userData.m19 || (S.n && S.n.g.userData.m19))) S.onCheckout();
 });
 S.x19 = { SC, Z, ask, refreshAll, visualOf, stopAll, GROUPS, lie, unlie, buildGarment, clearGarment, bonesOf };   // 시험·확장용
+S._z = { Z, setOut, refreshAll, layerOf, stateTxt };   // v72 시험·확장용
 console.info('[motel19] v60 🔥 19+ 프라이빗 익스피리언스 — 객실 전용');
 })();

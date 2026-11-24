@@ -44,12 +44,12 @@ function BLUES_ACT(p, u) {
   } else if (k === 'whisper') {                          // 귓속말: 리드가 고개를 숙여 상대 귀 쪽으로 → 상대가 간지러워 어깨를 움츠리며 웃음
     const w = env3(e, 0, .8, D - .6, D);
     if (lead) { J('head', [.3, .72, .12], w); J('neck', [.1, .3, 0], w); J('torso', [.14, .18, 0], w); }
-    else if (acc) { const r = env3(e, H, H + .3, D - .5, D); J('head', [.12, -.3, .3], r); J('torso', [.05, .1, .08 * Math.sin(e * 14)], r); p.bodyY = (p.bodyY || 0) + .012 * r * Math.abs(Math.sin(e * 14)); }
+    else if (acc) { const r = env3(e, H, H + .3, D - .5, D); J('head', [.12, -.3, .3], r); J('torso', [.05, .1, .045 * Math.sin(e * 9)], r); p.bodyY = (p.bodyY || 0) + .008 * r * Math.abs(Math.sin(e * 9)); }   // v69 간지러워 웃는 어깨 들썩임: 14→9rad/s·진폭 절반(덜덜 떠는 것처럼 보이던 것 완화)
     else { const r = env3(e, H - .2, H + .2, D - .5, D); J('head', [-.05, -.6, 0], r); }
   } else if (k === 'spin') {                             // 턴: 리드 왼손과 상대 오른손을 머리 위로 들어 올리고 상대가 그 아래에서 한 바퀴 (회전은 karaoke.js 틱커)
     const w = env3(e, 0, .5, D - .5, D);
     if (lead) { J('shL', [-2.75, 0, .2], w); J('elL', [-.25, 0, 0], w); J('torso', [-.03, .15, 0], w); }
-    else { J('shR', [-2.75, 0, -.15], w); J('elR', [-.25, 0, 0], w); J('shL', [-.6, 0, -.6], w); J('elL', [-.4, 0, 0], w); p.bodyY = (p.bodyY || 0) + .025 * w; }
+    else { J('shR', [-2.75, 0, -.15], w); J('elR', [-.25, 0, 0], w); J('shL', [-.32, .1, -.22], w); J('elL', [-1.05, 0, 0], w); p.bodyY = (p.bodyY || 0) + .025 * w; }   // v68 안 잡은 팔: 옆으로 뻗던(T자) 팔 → 팔꿈치를 굽혀 허리 앞에 자연스럽게
   } else if (k === 'dip') {                              // 딥: 리드가 오른팔로 등을 받치고 상체를 숙임 → 상대가 뒤로 젖혀 눕고 한쪽 팔을 우아하게 뻗음
     const w = env3(e, .2, H, D - .9, D - .1);
     /* v61 딥 재설계 — 통짜로 넘어가지 않게: 받치는 사람은 앞뒤로 다리를 벌린 런지(앞 무릎 굽힘·골반 낮춤)로 체중을 받고 상체를 숙여 등을 받침,
@@ -92,7 +92,8 @@ function BLUES_ACT(p, u) {
         const sh = lerp3(lerp3(base[0], mid[0], m1), end[0], m2), el = U.lerp(U.lerp(base[1], mid[1], m1), end[1], m2); J('shR', sh, back); J('elR', [el, 0, 0], back); J('torso', [.05, -.06, 0], back * m2); }
       if (ref) { const f = env3(e, H + .3, H + .45, D - .4, D); J('head', [-.1, -.7, .2], f); J('torso', [-.15, -.3, 0], f); }
     } else {
-      const stiff = env3(e, H - .35, H - .15, D - .5, D); J('torso', [-.12, 0, 0], stiff * .7); J('head', [-.12, .35, 0], stiff * .7); p.bodyY = (p.bodyY || 0) + .012 * stiff;   // 순간 굳으며 리드를 돌아봄
+      const acc = A.out === 'accept', stiff = env3(e, H - .35, H - .15, D - .5, D) * (acc ? .3 : 1); J('torso', [-.12, 0, 0], stiff * .7);
+      if (acc) { const g = env3(e, H, H + .5, D - .6, D); J('torso', [.07, 0, .03], g); J('head', [.16, -.18, .12], g); }   // v67 받아 줌: 굳지 않고 수줍게 고개를 숙이며 몸을 기댐 J('head', [-.12, .35, 0], stiff * .7); p.bodyY = (p.bodyY || 0) + .012 * stiff;   // 순간 굳으며 리드를 돌아봄
       if (A.out === 'stop') { const g = env3(e, H, H + .35, D - .8, D - .3);
         if (k === 'butt') { J('shL', [.85, .01, .12], g); J('elL', [-1.17, 0, 0], g); } else { J('shR', [.26, -.4, -.15], g); J('elR', [-2.32, 0, 0], g); } }
     }

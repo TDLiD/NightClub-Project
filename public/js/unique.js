@@ -17,7 +17,7 @@ const live = () => { const out = []; const P = NC.player; if (P && P.group) out.
   for (const g of (NC.NPC && NC.NPC.staff) || []) out.push(g);
   for (const k in (NC.remotes || {})) { const r = NC.remotes[k]; if (r && r.group) out.push(r.group); }
   return out; };
-const rank = root => isPlayer(root) ? 4 : root.userData._uPinned ? 3 : (NC.npcs || []).some(n => n.g === root && n.persona) ? 2 : 1;
+const rank = root => isPlayer(root) ? 4 : (root.userData._uPinned || root.userData.wardrobe) ? 3 :   /* v71 옷을 입히는 인물(조여사)은 바탕 모델이 정해져 있어 바꾸지 않음 */ (NC.npcs || []).some(n => n.g === root && n.persona) ? 2 : 1;
 function usedBy(id, except) { const r = []; for (const g of live()) { if (g === except) continue; const u = g.userData; if (u._uid === id && (u.real || u._uPending)) r.push(g); } return r; }
 function pool(gender) { const C = RH.cfg || {}, P = C.playerPool || {}; return (P[gender] || []).slice(); }
 function pickFree(gender, except) { const busy = new Set(); for (const g of live()) if (g !== except && g.userData._uid) busy.add(g.userData._uid);

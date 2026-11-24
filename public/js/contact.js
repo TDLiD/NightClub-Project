@@ -69,7 +69,9 @@ function solveArm(A, B, side, dt, hug) {
     const grad = [0, 0, 0, 0], d = .035;
     PARAMS.forEach(([j, ax], i) => { const J = j === 'sh' ? R[sh] : R[el], key = ['x', 'y', 'z'][ax]; J.rotation[key] += d; grad[i] = (armCostX(R, sh, el, B, hug) - c0) / d; J.rotation[key] -= d; });
     for (let i = 0; i < 4; i++) grad[i] *= PW[i]; const gn = Math.hypot(...grad); if (gn < 1e-5) break;
-    const step = ik ? Math.min(.03, .012 + c0 * .2) : Math.min(.09, .04 + c0 * .6);
+    /* v68 진동 원인: 방향만 정규화하고 최소 보폭(.012/.04)을 고정해 두어 관통 0 근처에서 경계를 넘나들며 매 프레임 같은 크기로 왕복(파트너 손 2프레임 주기 15~20mm 떨림)
+     *  → 보폭을 남은 관통량에 비례시켜 0 에 수렴(경계를 넘지 않음) */
+    const step = ik ? Math.min(.03, c0 * .25) : Math.min(.09, c0 * .7);
     PARAMS.forEach(([j, ax], i) => { const J = j === 'sh' ? R[sh] : R[el], key = ['x', 'y', 'z'][ax], dv = -grad[i] / gn * step; J.rotation[key] += dv;
       const jn = j === 'sh' ? sh : el; fx[jn] = fx[jn] || [0, 0, 0]; fx[jn][ax] = Math.max(-LIM, Math.min(LIM, fx[jn][ax] + dv)); });
     if (R[el].rotation.x > 0) { const over = R[el].rotation.x; R[el].rotation.x = 0; fx[el][0] -= over; }   // 팔꿈치는 앞으로만 굽음
@@ -116,17 +118,22 @@ const TICK = dt => {
   for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
     const a = list[i], b = list[j], d = Math.hypot(a.position.x - b.position.x, a.position.z - b.position.z); if (d > .78 || Math.abs(a.position.y - b.position.y) > .6) continue;
     if (a.userData.seated && b.userData.seated && d > .45) continue;
+    { const PW = NC.PairWalk, pg = NC.player && NC.player.group, pn = PW && PW.n && PW.n.g; if (pn && (a === pn || b === pn || ((a === pg || b === pg) && d < .5))) continue; }   // v67 함께 걷는 두 사람: 간격·팔은 pairwalk.js 가 맡음(여기서 밀거나 팔을 고치면 걸음이 떨리고 모션캡처 걷기가 꺼짐)
     STAT.pairs++; a.updateMatrixWorld(true); b.updateMatrixWorld(true);
     const A = body(a), B = body(b); if (!A || !B) continue;
     // ① 몸통 간격 (앉아 있으면 위치를 못 움직이므로 팔만)
-    if (!a.userData.seated && !b.userData.seated) {
+    /* v68 단일 소유권: 블루스 두 사람의 루트 위치·간격은 karaoke.js 조정자가 매 프레임 정함 — 여기서 몸통을 밀고 당기면(①) 두 시스템이 번갈아 써서 안기 중 루트가 프레임마다 18cm씩 왕복했음 */
+    const BLn = NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n, ownPair = BLn && NC.player && ((a === NC.player.group && b === BLn.g) || (b === NC.player.group && a === BLn.g));
+    /* v69 조정자가 소유한 몸(블루스 두 사람·함께 걷는 두 사람)은 다른 사람과 겹쳐도 루트를 밀지 않고 상대(행인)만 밈 — 딥 도중 옆 손님과 겹쳐 파트너 루트가 25cm 밀렸다가 튕겨 돌아오던 원인 */
+    const PWn = NC.PairWalk && NC.PairWalk.n, own = g => !!((BLn && (g === BLn.g || g === (NC.player && NC.player.group))) || (PWn && (g === PWn.g || g === (NC.player && NC.player.group)))), oa = own(a), ob = own(b);
+    if (!ownPair && !(oa && ob) && !a.userData.seated && !b.userData.seated) {
       { const act = a.userData.bAct || b.userData.bAct; if (act && SIDE_K.has(act.k) && act.out !== 'refuse') {   // 안기: 머리를 서로 어깨 너머로(볼 맞대기) — 몸을 옆으로 살짝 엇갈림
           const e = (performance.now() - act.t0) / 1000, w = Math.min(sm(0, .9, e), 1 - sm(act.dur - .8, act.dur, e)), off = .085 * w;
-          a.position.x -= A.right.x * off; a.position.z -= A.right.z * off; b.position.x += A.right.x * off; b.position.z += A.right.z * off; a.updateMatrixWorld(true); b.updateMatrixWorld(true); Object.assign(A, body(a)); Object.assign(B, body(b)); } }
+          if (!oa && !ob) { a.position.x -= A.right.x * off; a.position.z -= A.right.z * off; b.position.x += A.right.x * off; b.position.z += A.right.z * off; } a.updateMatrixWorld(true); b.updateMatrixWorld(true); Object.assign(A, body(a)); Object.assign(B, body(b)); } }
       const s = spacing(A, B), pr = pullTarget(a.userData, b.userData, s), key = pairKey(a, b);
       const cur = PULL.get(key) || 0, nx = cur + (pr - cur) * Math.min(1, dt * 5); PULL.set(key, nx); touchedPairs.add(key);
       const k = s.need > .002 ? s.need : -Math.min(nx, s.room + .03);   // 양수 = 벌림 · 음수 = 다가감(닿을 때까지만)
-      const move = kk => { a.position.x -= s.ux * kk * .5; a.position.z -= s.uz * kk * .5; b.position.x += s.ux * kk * .5; b.position.z += s.uz * kk * .5; a.updateMatrixWorld(true); b.updateMatrixWorld(true); Object.assign(A, body(a)); Object.assign(B, body(b)); };
+      const fa = oa ? 0 : ob ? 1 : .5, fb = ob ? 0 : oa ? 1 : .5, move = kk => { a.position.x -= s.ux * kk * fa; a.position.z -= s.uz * kk * fa; b.position.x += s.ux * kk * fb; b.position.z += s.uz * kk * fb; a.updateMatrixWorld(true); b.updateMatrixWorld(true); Object.assign(A, body(a)); Object.assign(B, body(b)); };
       if (Math.abs(k) > .002) { move(k); const s2 = spacing(A, B); if (s2.need > .002) move(s2.need); } }   // 2차 보정으로 수렴
     // ② ③ 팔
     if (contactMode(a.userData) || contactMode(b.userData) || d < .5) {

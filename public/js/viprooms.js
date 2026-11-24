@@ -9,7 +9,9 @@
 const NC = window.NC; if (!NC || !NC.world || !NC.Rooms || !NC.Rooms.make) return;
 const T = NC.THREE, M = NC.mat, U = NC.util, col = NC.col, W = NC.world, R_ = NC.Rooms, P = () => NC.player;
 const box = (w, h, d) => new T.BoxGeometry(w, h, d);
-const enterVip = (label, exit) => NC.Karaoke && NC.Karaoke.enter({ mode: 'vip', label, exit, comp: null });
+/* v67 함께 걷던 파트너(💑)가 있으면 같이 입장하고, 나올 때 다시 함께 걸음 */
+const enterVip = (label, exit) => { const PW = NC.PairWalk, comp = PW && PW.n ? PW.n : null, st = PW && PW.style; if (comp) PW.stop(true);
+  return NC.Karaoke && NC.Karaoke.enter({ mode: 'vip', label, exit, comp, onLeave: comp ? () => setTimeout(() => { if (comp.enabled !== false && comp.state !== 'off' && !comp.leftRoom && NC.PairWalk) NC.PairWalk.start(comp, st, true); }, 250) : null }); };
 
 /* ═════ 2층 VIP 라운지 ═════ */
 const LG = R_.make('lounge2f', '✨ 2층 VIP 라운지', 200, -40, 10, 3.6, 3.4);
