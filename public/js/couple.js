@@ -148,7 +148,7 @@ function plan(A, B, lead, act, e) {
     if (lead) { o.L = P.waistSide(B, sL); o.R = P.waistSide(B, sR); }
     else { const kq = U.clamp((dh - .03) / .14, 0, .75) + U.clamp((-dh - .15) / .15, 0, .6); o.L = P.shoulderTop(B, sL).lerp(P.upperArm(B, sL), kq); o.R = P.shoulderTop(B, sR).lerp(P.upperArm(B, sR), kq); }
     o.head = P.brow(B).lerp(P.lips(B), .5); o.wHead = .45; o.hp = { L: 'hold', R: 'hold' };   // 눈맞춤: 상대 얼굴(눈 높이)을 봄 — 머리를 관통해 먼 곳을 보지 않음
-    o.drop = U.clamp(dh * .18, 0, .03); o.lean = U.clamp((dh - .04) * .28, 0, .04); o.toe = dh < -.05 ? U.clamp(-dh * .18, 0, .028) : 0; };
+    o.drop = U.clamp(dh * .05, 0, .008); o.lean = U.clamp((dh - .03) * .4, 0, .06);   /* v81 키 맞춤은 무릎 대신 상체 숙임으로 — 다리가 거의 펴진 상태에선 2.5cm 낮추기만 해도 무릎이 27° 굽어 뒤로 꺾여 보였음 */ o.toe = dh < -.05 ? U.clamp(-dh * .18, 0, .028) : 0; };
   base(); if (!act) return o;
   const k = act.k, acc = act.out === 'accept', D = act.dur, H = act.hit || 1;
   o.w = env(e, 0, Math.min(.9, H), D - .8, D);   // 동작 가중치(접근·정렬 → 접촉 → 해제·복귀)
@@ -182,7 +182,7 @@ function plan(A, B, lead, act, e) {
   if (!acc && lead && !(k === 'undress' && act.out === 'stop')) o.w *= Math.max(0, 1 - sm(H, H + .35, e)) * .8 + .05;    // 거절당하면 리드의 손이 중간에서 거둬짐 · v69 옷 정리(속옷)는 '제지'여도 상대가 손목을 붙잡은 채로 유지(손이 허리춤에 남음)
   o.hp = o.hp && o.hp.L === 'hold' ? null : o.hp;
   /* v56 얼굴 접촉 동작의 키 맞춤: 상체를 크게 숙이지 않음(실제 사람은 고개·목으로 맞춤) — 큰 사람은 살짝(최대 0.13rad) 숙이고 무릎을 굽히고, 작은 사람은 앞꿈치로 섬. 나머지 높이는 얼굴 IK(목·머리)가 맞춤 */
-  if (HEAD_ACTS.has(k) && acc) { o.lean = U.clamp(dh * .55, 0, .11) + (k === 'whisper' ? .02 : .025); o.toe = U.clamp(-dh * .35, 0, .035); o.drop = U.clamp(dh * .25, 0, .04); }   // 큰 사람은 숙이고, 작은 사람은 까치발
+  if (HEAD_ACTS.has(k) && acc) { o.lean = U.clamp(dh * .55, 0, .11) + (k === 'whisper' ? .02 : .025); o.toe = U.clamp(-dh * .35, 0, .035); o.drop = U.clamp(dh * .08, 0, .012); }   // 큰 사람은 숙이고, 작은 사람은 까치발
   return o;
 }
 

@@ -309,7 +309,8 @@ function apply(r, dt) {
   if (M) { r.holder.position.x -= R.body.position.x * u.figScale * M.w; r.holder.position.y -= R.body.position.y * u.figScale * M.w; r.holder.position.z -= R.body.position.z * u.figScale * M.w;   // v54 절차 몸 흔들림은 모션캡처가 대신
     try { RH.MC.post(r, M); } catch (e) { if (!RH._mcErr2) { RH._mcErr2 = 1; console.warn('[mocap ik]', e); } } }
   coupleBody(r, u, dt);
-  if (!r.lod && (u.dance === 'blues' || (r.fpW || 0) > .004 || u.bAct)) { try { legGuard(r, u, dt); } catch (e) { if (!RH._lgErr) { RH._lgErr = 1; console.warn('[legGuard]', e); } } }
+  if (!RH.noLeg && (u.dance === 'blues' || (r.fpW || 0) > .004 || u.bAct)) { try { legGuard(r, u, dt); }   // v81 경량(LOD) 모델 손님 커플도 — 전엔 가까운 고화질 모델만 고쳐서 손님끼리 추는 블루스는 무릎이 뒤로 꺾인 채였음
+   catch (e) { if (!RH._lgErr) { RH._lgErr = 1; console.warn('[legGuard]', e); } } }
   const F = r.face; if (F) {
     const W = AK[u.expr] || AK.neutral; for (const k in W) setMorph(F, k, W[k]);
     r.blinkW += ((u.blink ? 1 : 0) - r.blinkW) * Math.min(1, dt * 30); if (r.blinkW > .02) { setMorph(F, 'eyeBlinkLeft', Math.max(W.eyeBlinkLeft || 0, r.blinkW)); setMorph(F, 'eyeBlinkRight', Math.max(W.eyeBlinkRight || 0, r.blinkW)); setMorph(F, 'eyesClosed', r.blinkW); }
@@ -330,7 +331,10 @@ const _fp = new T.Vector3(), _fq = new T.Quaternion(), _fa = new T.Vector3(), _f
 function coupleBody(r, u, dt) { coupleBody0(r, u, dt); try { faceIK(r, u); } catch (e) { if (!RH._fErr) { RH._fErr = 1; console.warn('[faceIK]', e); } } }
 function coupleBody0(r, u, dt) {
   const now = performance.now(), F = u.footPlant && now - u.footPlant.t < 200 ? u.footPlant : null, Bn = r.Bn;
-  const lockOK = F && !u.moving && !u.seated && !RH.noFoot;   // v56 걸어오는 중·앉아 있는 중에는 발을 고정하지 않음(고정된 발을 끌고 걸어 무릎이 굽고 구부정해지던 원인)
+  /* v81 몸(루트)이 실제로 미끄러지듯 움직이는 중이면(블루스 커플이 돌며 이동·밀림) 발을 고정하지 않음 — 발이 뒤에 남아 다리가 뒤로 끌려 무릎이 꺾여 보이던 원인 */
+  r.root.getWorldPosition(_fb); if (r._rp && dt > 0) { const sp = Math.hypot(_fb.x - r._rp.x, _fb.z - r._rp.z) / dt; r._rspd = (r._rspd || 0) + (Math.min(sp, 3) - (r._rspd || 0)) * Math.min(1, dt * 6); } (r._rp || (r._rp = new T.Vector3())).copy(_fb);
+  const sliding = (r._rspd || 0) > (RH.slideV ?? .12);
+  const lockOK = F && !u.moving && !u.seated && !RH.noFoot && !sliding;   // v56 걸어오는 중·앉아 있는 중에는 발을 고정하지 않음(고정된 발을 끌고 걸어 무릎이 굽고 구부정해지던 원인)
   if (u.moving || u.seated) r.fp = null;
   r.fpW = (r.fpW || 0) + ((lockOK ? (F.w ?? 1) : 0) - (r.fpW || 0)) * Math.min(1, dt * 4); const w = r.fpW;
   /* 호흡: 가슴 뼈를 뼈 방향에 수직인 두 축으로만 ±1% (2.5초 주기, 사람마다 위상 다름) */
@@ -345,11 +349,14 @@ function coupleBody0(r, u, dt) {
   for (const sd of ['L', 'R']) {
     const A = Bn['ul' + sd], B = Bn['ll' + sd], C = Bn['foot' + sd]; const nat = C.getWorldPosition(new T.Vector3());
     let st = fp[sd]; const a0 = r.ank0 != null ? Math.max(.03, r.ank0 * sc) : null; if (!st) { st = fp[sd] = { p: nat.clone(), y0: a0 ?? Math.max(.03, Math.min(.16, nat.y - floorY - (toe - drop) * w)), from: null, t: 0 }; }
-    if (!st.from && Math.hypot(nat.x - st.p.x, nat.z - st.p.z) > .3) { st.p.copy(nat); }   // 너무 벌어지면(밀림·순간 이동) 다리를 늘이지 말고 그 자리에 다시 디딤
+    const off = Math.hypot(nat.x - st.p.x, nat.z - st.p.z); r.fpDrag = Math.max(r.fpDrag || 0, off);
+    if (!st.from && off > (RH.replant ?? .2)) { st.p.copy(nat); }   // v81 .3→.2: 너무 벌어지기 전에 그 자리에 다시 디딤   // 너무 벌어지면(밀림·순간 이동) 다리를 늘이지 말고 그 자리에 다시 디딤
     const restY = floorY + Math.max(.02, st.y0) + toe * w * .8;                              // 발목 높이(까치발이면 그만큼 위)
     if (st.from) { st.t += dt / .32; const q = Math.min(1, st.t), e = q * q * (3 - 2 * q); st.p.copy(st.from).lerp(nat, e); st.p.y = restY + Math.sin(Math.PI * q) * .035; if (q >= 1) { st.from = null; fp.step = null; } }
-    else { const dx = nat.x - st.p.x, dz = nat.z - st.p.z; st.p.y = restY; if (Math.hypot(dx, dz) > .09 && !fp.step) { st.from = st.p.clone(); st.t = 0; fp.step = sd; } }
-    const tg = nat.clone().lerp(st.p, w); ik2(A, B, C, tg);
+    else { const dx = nat.x - st.p.x, dz = nat.z - st.p.z; st.p.y = restY; if (Math.hypot(dx, dz) > .07 && !fp.step) { st.from = st.p.clone(); st.t = 0; fp.step = sd; } }
+    const tg = nat.clone().lerp(st.p, w);
+    if (!RH.oldAnk) tg.y = nat.y + ((drop - toe * .2) + (st.p.y - restY)) * w;   // v81 발 고정은 '수평 미끄러짐'만 막음 — 높이는 원래 발목 높이 기준(키 맞춤으로 몸을 낮춘 만큼만 무릎을 굽히고, 발 옮길 때만 살짝 듦). 전엔 바닥에서 계산한 발목 높이가 실제와 달라 무릎이 늘 15~35° 굽고 정강이가 뒤로 꺾여 보였음
+    ik2(A, B, C, tg);
     if (toe > .002) { /* 까치발: 발끝을 아래로(발바닥 굽힘) — 발목→발끝 방향을 바닥 쪽으로 기울임 */
       const toeB = C.children.find(x => x.isBone); if (toeB) { C.updateMatrixWorld(true); C.getWorldPosition(_fa); toeB.getWorldPosition(_fb); const d = _fb.sub(_fa); const len = d.length(); if (len > 1e-4) { d.divideScalar(len);
         const axis = new T.Vector3().crossVectors(d, new T.Vector3(0, -1, 0)); if (axis.lengthSq() > 1e-6) { axis.normalize(); const ang = Math.min(.45, Math.asin(Math.min(.9, toe * w * 1.6 / Math.max(.08, len * 1.4))));
@@ -374,7 +381,7 @@ function legGuard(r, u, dt) {
     if (kl < .012 || bend < .12) continue;                                  // 거의 펴진 다리는 방향이 의미 없음
     const out = sd === 'L' ? .28 : -.28; _lp.set(fx + lx * out, 0, fz + lz * out); _lp.addScaledVector(_lx, -_lp.dot(_lx)); if (_lp.lengthSq() < 1e-6) continue; _lp.normalize(); _lk.divideScalar(kl);
     let ang = Math.acos(U.clamp(_lk.dot(_lp), -1, 1)); const sgn = Math.sign(_lx.dot(_lk.clone().cross(_lp))) || 1;
-    if (ang <= .45) continue; const rot = (ang - .45) * sgn * Math.min(1, dt * 18 + .35);   // 앞쪽 ±0.45rad 범위 밖만 되돌림(급하면 한 번에 크게)
+    if (ang <= .45) continue; const rot = (ang - .45) * sgn;   // v81 앞쪽 ±0.45rad 밖이면 그 프레임에 바로 전부 되돌림(자세가 매 프레임 새로 정해지므로 일부만 고치면 늘 남아 있었음)
     A.getWorldQuaternion(_lg); _lgi.copy(_lg).invert(); _lq.setFromAxisAngle(_lx, rot); A.quaternion.multiply(_lgi.clone().multiply(_lq).multiply(_lg)); A.updateMatrixWorld(true); fixed++;
   }
   RH.stats.knee = (RH.stats.knee || 0) + fixed; RH.stats.kneeMax = Math.max(RH.stats.kneeMax || 0, +maxBend.toFixed(2));
