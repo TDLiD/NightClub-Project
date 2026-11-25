@@ -257,7 +257,11 @@ function tickBlues() {
     const set = (g, partner, ee, isLead) => { const u = g.userData; if (!act || !acc || !HEAD_ACTS.has(act.k)) { u.faceTgt = null; return; }
       const hh = (g.userData.look && g.userData.look.height || 1.7) - (partner.userData.look && partner.userData.look.height || 1.7), sh = U.clamp(.5 + hh * 1.6, .3, .7);   // 키 큰 사람이 더 많이 숙이고 작은 사람은 덜 듦(목이 과하게 젖혀지지 않게)
       const k = act.k, w = env(ee, act.hit * .5, act.hit + .1, act.dur - .9, act.dur - .25); let o = null;
-      if (k === 'kiss' || k === 'deepkiss') o = { mode: 'lips', share: sh, tilt: (isLead ? 1 : -1) * (k === 'deepkiss' ? .12 : .08) * ((act.vr && act.vr.amp) || 1), gap: k === 'deepkiss' ? .004 : .01 };
+      if (k === 'kiss' || k === 'deepkiss') { const deep = k === 'deepkiss', ph = now / 1000;
+        /* v82 사람 같은 키스: 입술을 '눌렀다 살짝 떼는' 리듬(0.4~0.5초 주기, 두 사람 같은 박자) + 고개 기울기가 숨 쉬듯 커졌다 작아짐.
+         *  딥키스는 3초쯤마다 고개 방향을 반대로 천천히 바꿈(코가 부딪치지 않게 서로 반대쪽 유지) · 기울기 크기도 더 큼 */
+        const press = .5 + .5 * Math.sin(ph * (deep ? 2.4 : 2.0)), side = deep ? Math.tanh(2.6 * Math.sin(ph * 1.05)) : 1, amp = (deep ? .16 : .09) * ((act.vr && act.vr.amp) || 1) * (1 + .3 * Math.sin(ph * 1.3));
+        o = { mode: 'lips', share: sh, tilt: (isLead ? 1 : -1) * amp * side, gap: (deep ? .001 + .007 * press : .006 + .006 * press) + .022 * (1 - Math.abs(side)) }; }   // 고개 방향을 바꾸는 순간엔 입술을 살짝 떼어 코가 부딪치지 않게
       else if (k === 'forehead') o = { mode: 'brow', share: sh, tilt: 0, gap: .006 };
       else if (k === 'cheek') o = isLead ? { mode: 'cheek', side: 1, share: .85, tilt: .12, gap: .008 } : { mode: 'lips', share: 0, tilt: -.1, gap: .05 };
       else if (k === 'whisper') o = isLead ? { mode: 'ear', side: 1, share: .85, tilt: .08, gap: .03 } : null;

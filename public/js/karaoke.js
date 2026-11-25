@@ -612,7 +612,7 @@ function startBlues(n) {
   if (P.seat) { const s = P.seat; if (s.kind === 'karaoke') { occ[s.s] = null; NC.unseatAvatar(P.group, BL.c.x, BL.c.z); P.seat = null; } else NC.standLocal(); }
   occ.forEach((o, k) => { if (o === n) occ[k] = null; }); NC.unseatAvatar(n.g, BL.c.x, BL.c.z);
   BL.s0 = { px: P.x, pz: P.z, nx: n.x, nz: n.z };   // v39 Approach: 순간이동 없이 지금 자리에서 걸어와 자리 잡음
-  BL.n = n; BL.t = 0; BL.t0 = performance.now(); BL.kiss = 0; n.state = 'blues'; n.g.userData.lookAt = null; P.group.userData.lookAt = null;
+  BL.n = n; BL.t = 0; BL.t0 = performance.now(); BL.kiss = 0; BL.kissEnd = 0; n.state = 'blues'; n.g.userData.lookAt = null; P.group.userData.lookAt = null;
   BL.glass = [P.group.userData.holdGlass, n.g.userData.holdGlass]; P.group.userData.holdGlass = n.g.userData.holdGlass = false;
   { const st = NC.bluesStyle ? NC.bluesStyle() : null; P.group.userData.bSt = n.g.userData.bSt = st; }   // v80 나와 추는 블루스도 상대마다 스타일이 다름
   P.group.userData.dance = 'blues'; P.group.userData.bluesLead = true; n.g.userData.dance = 'blues'; n.g.userData.bluesLead = false; P.group.userData.hideLabel = n.g.userData.hideLabel = true;
@@ -622,6 +622,7 @@ function startBlues(n) {
   D.chips();   // v21 블루스 반주 삭제 — 지금 나오는 MP3 에 맞춰 춤
 }
 function endBlues(reason) {
+  { const dl = document.getElementById('dlg'); if (dl && dl._kissFade) { dl._kissFade = false; dl.style.opacity = ''; dl.style.pointerEvents = ''; } BL.kcSide = null; }   // v82 키스 클로즈업 중 끝나도 대화창 복구
   const n = BL.n; if (!n) return; BL.n = null; n.bluesDanced = true; const P = NC.player;   // v48 브루스 후에도 조명 옵션 유지
   if (K.playing && K.playing.singer === 'blues') stop(true);
   if (BL.glass) { P.group.userData.holdGlass = BL.glass[0]; n.g.userData.holdGlass = BL.glass[1]; }
@@ -661,11 +662,11 @@ const REACT = {      // out: accept(받아 줌) · stop(손을 잡아 제지) ·
   hug: n => can(n, 55) ? { out: 'accept', d: 2, e: 'shy', line: P_(['…따뜻하다. 좀 더 이러고 있어요', '헤헤, 갑자기 왜요 ㅎㅎ 좋아요']) } : { out: 'refuse', d: -1, e: 'shy', g: 'headshake', line: '앗, 너무 가까워요 ㅎㅎ 천천히요~' },
   backhug: n => can(n, 75) ? { out: 'accept', d: 3, e: 'shy', line: P_(['(손을 포개며) …이대로 노래 끝날 때까지 있어요', '뒤에서 안으니까 더 설레요… 💗']) } : { out: 'refuse', d: -2, e: 'shy', line: '(살짝 빠져나오며) 아직 거기까진 아니에요 ㅎㅎ' },
   kiss: n => {
-    if (n.aff >= 80 && (performance.now() - BL.t0 > 4000 || (NC.adminMax && NC.adminMax()))) return { out: 'accept', d: n.bl.kissed ? 2 : 5, e: 'kiss', kiss: 2.6, line: n.bl.kissed ? P_(['…또요? ㅎㅎ 좋아요', '오늘 밤 진짜 이상하다… 좋은 쪽으로요 💗']) : P_(['……. (살짝 웃으며 눈을 감는다) 💋', '이러면 반칙인데… 그래도 좋아요 💗']) };
+    if (n.aff >= 80 && (performance.now() - BL.t0 > 4000 || (NC.adminMax && NC.adminMax()))) return { out: 'accept', d: n.bl.kissed ? 2 : 5, e: 'kiss', kiss: 3.2, line: n.bl.kissed ? P_(['…또요? ㅎㅎ 좋아요', '오늘 밤 진짜 이상하다… 좋은 쪽으로요 💗']) : P_(['……. (살짝 웃으며 눈을 감는다) 💋', '이러면 반칙인데… 그래도 좋아요 💗']) };
     if (n.aff >= 60) return { out: 'refuse', d: -1, e: 'shy', line: P_(['앗… 아직은 좀 이른 것 같아요 ㅎㅎ (고개를 살짝 돌린다)', '음~ 그건 조금 더 친해지고요!']) };
     return { out: 'refuse', d: -6, e: 'annoyed', g: 'push', stop: true, line: P_(['어머, 왜 이래요! 천천히 해요.', '잠깐만요, 이건 아니죠.']) };
   },
-  deepkiss: n => can(n, 92, true) ? { out: 'accept', d: 4, e: 'kiss', kiss: 3.8, line: P_(['……하아. (한참 뒤에 떨어지며) 숨 막히는 줄 알았어요 💗', '(목에 팔을 감고 놓아주지 않는다) …조금만 더요']) }
+  deepkiss: n => can(n, 92, true) ? { out: 'accept', d: 4, e: 'kiss', kiss: 4.4, line: P_(['……하아. (한참 뒤에 떨어지며) 숨 막히는 줄 알았어요 💗', '(목에 팔을 감고 놓아주지 않는다) …조금만 더요']) }
     : n.aff >= 80 ? { out: 'refuse', d: -1, e: 'shy', line: '(입술을 손가락으로 막으며) 천천히요~ 우리 아직 첫 키스도 안 했잖아요 ㅎㅎ' } : { out: 'refuse', d: -6, e: 'annoyed', g: 'push', stop: true, line: '갑자기 왜 이래요! 너무 나갔어요.' },
   neck: n => can(n, 88, true) ? { out: 'accept', d: 3, e: 'kiss', line: P_(['……. (어깨를 움츠리며 숨을 고른다) 거기 약한데…', '(작게 웃으며) 간지러워… 하지 마요… 아니, 해요 💗']) }
     : n.aff >= 70 ? { out: 'refuse', d: -2, e: 'shy', line: '꺅 간지러워요 ㅋㅋ 거긴 안 돼요!' } : { out: 'refuse', d: -6, e: 'annoyed', g: 'push', stop: true, line: '뭐 하는 거예요? 기분 이상해요.' },
@@ -694,7 +695,7 @@ const ACT = {   // v40 실제 사람 타이밍으로 조정(다가가는 시간�
   hug: { dur: 4.0, hit: .9, close: .08, desc: '🤗 두 팔로 꼭 끌어안는다' },
   backhug: { dur: 4.6, hit: 1.5, close: .11, flip: true, desc: '🫂 살짝 돌려 세우고 뒤에서 끌어안는다' },
   kiss: { dur: 4.0, hit: 1.25, close: .07, desc: '💋 한 손으로 볼을 감싸며 입을 맞추려 한다' },
-  deepkiss: { dur: 5.0, hit: 1.0, close: .06, desc: '🔥 두 손으로 얼굴을 감싸고 깊게 입을 맞추려 한다' },
+  deepkiss: { dur: 5.6, hit: 1.0, close: .06, desc: '🔥 두 손으로 얼굴을 감싸고 깊게 입을 맞추려 한다' },
   neck: { dur: 3.6, hit: 1.1, close: .08, desc: '💋 고개를 숙여 목덜미에 입술을 댄다' },
   butt: { dur: 2.8, hit: 1.15, close: .09, desc: '🍑 허리에 있던 손을 등을 따라 엉덩이로 내린다' },
   chest: { dur: 2.8, hit: 1.15, close: 0, desc: '🫳 손을 옆구리를 따라 가슴 쪽으로 올린다' },
@@ -724,7 +725,7 @@ const ACTIONS = {
 };
 K.ACTIONS = ACTIONS; K.dispatchLog = [];
 function bluesCancel() {   // v39 동작 중 취소/전환: 진행 중인 반응·종료 타이머를 지우고 자세는 부드럽게 블루스 홀드로 복귀
-  (BL.tm || []).forEach(clearTimeout); BL.tm = []; const P = NC.player; BL.busy = false; BL.act = null; if (P.group) P.group.userData.bAct = null; if (BL.n) BL.n.g.userData.bAct = null; BL.kiss = 0;
+  (BL.tm || []).forEach(clearTimeout); BL.tm = []; const P = NC.player; BL.busy = false; BL.act = null; if (P.group) P.group.userData.bAct = null; if (BL.n) BL.n.g.userData.bAct = null; BL.kiss = 0; BL.kissEnd = 0;
 }
 function bluesAct(kind, forced) {
   if (BL.busy) bluesCancel();
@@ -739,7 +740,7 @@ function bluesAct(kind, forced) {
   D.sys(a.desc); D.chips();
   BL.tm.push(setTimeout(() => {                                    // 상대 반응
     if (BL.n !== n) return;
-    if (r.kiss) { BL.kiss = r.kiss; BL.kissDur = r.kiss; BL.deep = kind === 'deepkiss'; n.bl.kissed = true; }
+    if (r.kiss) { BL.kiss = r.kiss; BL.kissDur = r.kiss; BL.kissEnd = performance.now() + r.kiss * 1000; BL.deep = kind === 'deepkiss'; n.bl.kissed = true; }   // v82 실제 시계 기준(입맞춤 동작과 같은 시계 — 느린 기기에서 클로즈업만 오래 남지 않게)
     if (r.strip && NC.Avatar.undress(n.g, true)) { NC.ui.toast(`👚 ${n.name}의 겉옷이 벗겨졌어요 — 부르스가 끝나면 다시 입어요`); }
     if (r.redress) NC.Avatar.undress(n.g, false);
     if (r.slap) { n.g.userData.bAct = null; NC.Motion.play(n.g, 'slap'); setTimeout(() => { NC.Motion.play(P.group, 'flinch'); P.group.userData.setExpr && P.group.userData.setExpr('sad', 2); }, 330); }
@@ -803,7 +804,7 @@ const CHIPS19 = [['🍑 엉덩이 만지기', 'butt'], ['🫳 가슴 주물럭�
 NC.dialogChipsOverride = (n, CHIP) => {
   if (BL.n !== n) return false;
   if (BL.busy) CHIP('⏹ 지금 동작 멈추기', () => { bluesCancel(); NC.Dialog.chips(); });   // v39 동작 중에도 다른 동작으로 바로 전환 가능
-  CHIPS.forEach(([l, k]) => CHIP(l, () => bluesAct(k), k === 'kiss' ? 'pri' : ''));
+  CHIPS.forEach(([l, k]) => CHIP(l, () => bluesAct(k === 'kiss' && n.bl && n.bl.kissed && can(n, 92, true) ? 'deepkiss' : k), k === 'kiss' ? 'pri' : ''));   // v82 이미 입맞춘 사이 · 호감도 92+ 면 💋 가 딥키스
   /* v67 🔞 성인 확인 후: 엉덩이·가슴·속옷 — 상대 동의(호감도·첫 키스)에 따라 받아 주거나 막거나 뺨을 맞음 */
   const AD = NC.Adult, RHx = NC.RealHuman, no19 = !!(RHx && RHx.no19 && RHx.no19(n.g));   // v70 manifest no19 모델(실존 인물 얼굴 등)은 19+ 칩 자체를 안 보임
   if (no19) { }
@@ -826,7 +827,8 @@ NC.on('dialog:close', n => { if (BL.n && BL.n === n) endBlues('stop'); });
 const sm = (a, b, x) => U.clamp((x - a) / (b - a), 0, 1);
 const ez = (a, b, x) => { const t = sm(a, b, x); return t * t * t * (t * (t * 6 - 15) + 10); };   // v55 smootherstep: 가속→감속(일정 속도로 돌던 기계적인 움직임 제거)
 NC.tickers.push(dt => {
-  if (!BL.n) return; const n = BL.n, P = NC.player; BL.t += dt; if (BL.kiss > 0) BL.kiss -= dt;
+  if (!BL.n) return; const n = BL.n, P = NC.player; BL.t += dt; if (BL.kiss > 0) BL.kiss = BL.kissEnd ? Math.max(0, (BL.kissEnd - performance.now()) / 1000) : BL.kiss - dt;
+  { const dl = document.getElementById('dlg'), on = BL.kiss > 0 && !K.noKissCam; if (dl && dl._kissFade !== on) { dl._kissFade = on; dl.style.transition = 'opacity .45s'; dl.style.opacity = on ? '.12' : ''; dl.style.pointerEvents = on ? 'none' : ''; } }   // v82 클로즈업 동안 대화창을 흐리게
   const kd = BL.kissDur, k = BL.kiss > 0 ? Math.min(1, (kd - BL.kiss) / .55, BL.kiss / .55) : 0, A = BL.act, ae = A ? (performance.now() - A.t0) / 1000 : 0,
     vr = A && A.vr || { amp: 1, sway: 0 }, cl = A ? A.close * vr.amp * Math.min(ez(.05, Math.max(.6, Math.min(A.hit + .25, 1.3)), ae), 1 - ez(A.dur - .95, A.dur - .05, ae)) : 0,   // v55 다가가기(가속·감속) → 닿은 뒤 유지 → 천천히 떨어짐
     a = .28 * Math.sin(BL.t * .35) * (A ? .3 : 1) + vr.sway * .2, c = BL.c;
@@ -888,7 +890,23 @@ NC.interactProviders.push(() => {
 });
 
 /* 카메라: 노래 중엔 시네마틱 2컷 교차 */
+/* v82 💋 키스 클로즈업: 키스가 받아들여진 동안(BL.kiss) 두 사람 옆(지금 카메라가 있는 쪽)에서 입술 높이로 다가가 확대 → 천천히 조금 돎 → 끝나면 원래 블루스 화면으로 돌아감 */
+const _kv = new T.Vector3();
+function headOf(g) { const r = g.userData.real, h = r && r.Bn && r.Bn.head; if (h) return h.getWorldPosition(new T.Vector3()); const R = g.userData.rig; if (R && R.head) return R.head.getWorldPosition(new T.Vector3()); return g.position.clone().setY(g.position.y + 1.6); }
+function kissCam() {
+  const P = NC.player, n = BL.n; if (!P.group || !n) return null;
+  const hp = headOf(P.group), hn = headOf(n.g), m = hp.clone().add(hn).multiplyScalar(.5); m.y -= .06;   // 머리 뼈 → 입술 높이
+  let ax = hn.x - hp.x, az = hn.z - hp.z; const l = Math.hypot(ax, az) || 1; ax /= l; az /= l;
+  const kd = BL.kissDur || 2.5, el = kd - BL.kiss, sm = (a, b, x) => { const t = U.clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  const k = sm(0, 1.0, el) * sm(0, .9, BL.kiss);                  // 다가감(1초) → 머묾 → 끝나기 0.9초 전부터 물러남
+  if (BL.kcSide == null) { const c = NC.camera.position; BL.kcSide = Math.sign((c.x - m.x) * -az + (c.z - m.z) * ax) || 1; BL.kcA0 = 0; }
+  const rot = BL.kcSide * (.18 - el * .07), cs = Math.cos(rot), sn = Math.sin(rot), sx = (-az * cs - ax * sn) * BL.kcSide, sz = (ax * cs - az * sn) * BL.kcSide;   // 옆에서 시작해 천천히 돎
+  const dist = 2.0 - 1.36 * k;                                    // 2.0m → 0.64m
+  return { cx: m.x + sx * dist, cy: m.y + .05 + .32 * (1 - k), cz: m.z + sz * dist, tx: m.x, ty: m.y - .02 * (1 - k), tz: m.z, free: true, kiss: true };
+}
 NC.camOverride = () => {
+  if (BL.n && BL.kiss > 0 && !K.noKissCam) { const kc = kissCam(); if (kc) return kc; }
+  if (BL.n && BL.kiss <= 0) BL.kcSide = null;
   if (BL.n) { const c = BL.c, a = Math.sin(performance.now() / 7000) * .3, gy = NC.groundY(c.x, c.z), A = BL.act, far = A && (A.k === 'dip' || A.k === 'spin') ? 2.7 : 2.2; return { cx: c.x + Math.sin(a) * far - .5, cy: gy + 1.65, cz: c.z + Math.cos(a) * far, tx: c.x - .5, ty: gy + 1.25, tz: c.z }; }
   if (!K.inRoom) return null; const st = K.playing; const dlgOpen = NC.Dialog && NC.Dialog.cur;
   if (!st && !dlgOpen) return null;
