@@ -15,7 +15,7 @@ const LOOK = { gender: 'm', height: 1.75, skin: '#e8bf9f', hairStyle: 'slick', h
 const LINES = { greet: ['손님~ 저쪽 테이블에서 한번 뵙고 싶다는데요 😄', '잠깐 저랑 같이 가실까요? 좋은 자리 있어요~', '오늘 물 좋은 테이블 있습니다, 모실게요!'], intro: ['형님~ 제가 모셔 왔습니다! 🙇', '자~ 인사들 나누세요 ㅎㅎ', '두 분 잘 어울리시네요~ 즐거운 시간 되세요!'], girl: ['어머, 진짜요? ㅎㅎ', '…한 번만 가 볼게요 😊', '어디요 어디? ㅋㅋ'] };
 const ES = NC.Escort = { list: [], log: [] };
 const female = n => n.gender === 'f' && (n.role === 'persona' || n.role === 'crowd');
-const free = n => n.enabled !== false && n.g && n.g.visible && !n.booked && !n.karaoke && !n.stay && !n.drunkHelp && !n._escortBy && !['seated', 'talk', 'blues', 'karaoke', 'escort', 'party', 'off'].includes(n.state)
+const free = n => n.enabled !== false && n.g && n.g.visible && !n.booked && !n.karaoke && !n.stay && !n._dk && !n._sd && !n.drunkHelp && !n._escortBy && !['seated', 'talk', 'blues', 'karaoke', 'escort', 'party', 'off'].includes(n.state)
   && n !== (NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n) && !(NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.n === n) && !(NC.PairWalk && NC.PairWalk.n === n) && !W.extraZones.some(e => e.test(n.x, n.z)) && (W.vipAt ? W.vipAt(n.x, n.z) < 0 : true);
 const bubble = (g, t, s = 2.6) => NC.bubble && NC.bubble(g, t, s);
 

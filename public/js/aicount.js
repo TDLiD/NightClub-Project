@@ -10,7 +10,7 @@ const NC = window.NC; if (!NC) return;
 const AC = NC.AICount = { target: null, max: 0, last: 0 };
 const pool = () => (NC.npcs || []).filter(n => n.role === 'crowd' || n.role === 'persona');
 const pinned = n => !!(n.def && (n.def.always || n.def.wardrobe));
-const busy = n => n.booked || n.karaoke || n.stay || n._escortBy || ['seated', 'talk', 'blues', 'karaoke', 'escort', 'party'].includes(n.state) || (NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.n === n) || (NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n === n);
+const busy = n => n.booked || n.karaoke || n.stay || n._dk || n._sd || n._escortBy || ['seated', 'talk', 'blues', 'karaoke', 'escort', 'party'].includes(n.state) || (NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.n === n) || (NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n === n);
 const active = n => n.enabled !== false && n.state !== 'off' && n.g && n.g.visible;
 AC.count = () => pool().filter(active).length;
 AC.apply = t => {

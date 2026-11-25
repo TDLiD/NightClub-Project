@@ -9,7 +9,7 @@
 const NC = window.NC, T = window.THREE, U = NC.util, W = NC.world, Mo = NC.Motion;
 const P = () => NC.player;
 const female = n => n.gender === 'f' && (n.role === 'persona' || n.role === 'crowd');
-const free = n => !n.booked && !n.karaoke && !n.stay && !n.drunkHelp && !['seated', 'talk', 'blues', 'karaoke'].includes(n.state) && n !== (NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n);
+const free = n => !n.booked && !n.karaoke && !n.stay && !n._dk && !n._sd && !n.drunkHelp && !['seated', 'talk', 'blues', 'karaoke'].includes(n.state) && n !== (NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n);
 const inClub = () => !(NC.Karaoke && NC.Karaoke.inRoom) && !['restroom', 'smoke', 'karaoke'].includes(P().zone);
 function summon(n, x, z) {          // 온라인 모드에서 꺼져 있던 손님을 불러올 때
   if (n.state === 'off' || !n.enabled || !n.g.visible) { n.enabled = true; n.state = 'wander'; n.x = x; n.z = z; n.g.position.set(x, NC.groundY(x, z), z); n.g.visible = true; }
@@ -71,6 +71,7 @@ function startApproach(kind = 'stage') {
 }
 NC.tickers.push(dt => {
   const p = P(); if (!p || !p.group) return;
+  if ((NC.DanceKing && NC.DanceKing.phase) || (NC.DanceShow && NC.DanceShow.on)) { idleSince = performance.now(); revNext = Math.max(revNext, performance.now() + 30000); return; }   // v78 댄싱 킹/퀸·신나게 춤추기 중엔 먼저 다가오지 않음
   if (approaching) { const n = approaching; if (Math.hypot(n.x - p.x, n.z - p.z) > (approachKind === 'book' ? 30 : 9) || NC.Dialog.cur || (approachKind === 'stage' && p.zone !== 'stage') || p.room >= 0) { approaching = null; if (!NC.Dialog.cur || NC.Dialog.cur.n !== n) NC.NPC.release(n); } return; }
   const moved = !lastPos || Math.hypot(p.x - lastPos.x, p.z - lastPos.z) > .05; lastPos = { x: p.x, z: p.z };
   const quiet = p.zone === 'stage' && !moved && !p.seat && !p.busy && !NC.Dialog.cur && !p.autoPath && !(NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n);

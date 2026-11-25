@@ -203,7 +203,8 @@ const BASE = {
     p.shR = [-.72, 0, -.32]; p.elR = [-2.2, 0, 0];
     if (big === 0) { p.shL = [-.4 - .25 * Math.max(0, sw), 0, -.35]; p.elL = [-.8, 0, 0]; } else if (big === 1) { p.shL = [-1.6, 0, -.5 + .2 * sw]; p.elL = [-.25, 0, 0]; } else { p.shL = [-.2, 0, -1.2 - .3 * dip]; p.elL = [-.4, 0, 0]; }
   },
-  stageDance(p, t, u, b) { CHOREO(p, u, b, 1); },  // v12: 스테이지 — 크고 흐르는 안무 9종
+  stageDance(p, t, u, b) { CHOREO(p, u, b, 1); },
+  showDance(p, t, u, b) { CHOREO(p, u, b, 1); },   // v78 신나게 춤추기(모션캡처가 없을 때의 절차 안무)  // v12: 스테이지 — 크고 흐르는 안무 9종
   /* v28 폴 댄스(오른손으로 폴을 잡고 회전): stage.js 가 u.polePhase('walk'|'spin'|'climb'|'wave')와 위치·회전을 정함 */
   pole(p, t, u, b) {
     const s = Math.sin(t * 2.1 + u.seed * 3), c = Math.cos(t * 1.05), ph = u.polePhase || 'walk';

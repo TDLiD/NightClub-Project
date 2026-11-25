@@ -125,6 +125,13 @@ NC.tickers.push(dt => {
     });
   }
 });
+/* v78 ✋ 같이 걷기 해제 — 걷는 동안 화면 아래에 항상 보이는 버튼 + Q 키 (전에는 상대에게 다시 말을 걸어야만 「손 놓기」가 나왔음) */
+const stopBtn = document.createElement('button'); stopBtn.id = 'pwStop'; stopBtn.type = 'button';
+stopBtn.style.cssText = 'position:fixed;left:50%;bottom:132px;transform:translateX(-50%);z-index:60;display:none;padding:9px 18px;border:0;border-radius:999px;background:linear-gradient(90deg,#444a63,#2a2e40);color:#fff;font:700 14px/1.2 inherit;box-shadow:0 4px 16px #0008;cursor:pointer';
+document.body.appendChild(stopBtn);
+stopBtn.onclick = e => { e.stopPropagation(); if (!S.n) return; const nm = S.n.name; S.stop(false); NC.ui.toast(`✋ ${nm}님과 손을 놓았어요 — 같이 걷기 끝`); };
+addEventListener('keydown', e => { if (e.code !== 'KeyQ' || !S.n || e.repeat) return; const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return; stopBtn.onclick(e); });
+NC.tickers.push(() => { const on = !!S.n && !(NC.Dialog && NC.Dialog.cur); const want = on ? '' : 'none'; if (stopBtn.style.display !== want) stopBtn.style.display = want; if (on) { const t = `✋ ${S.n.name}님과 같이 걷기 그만 (Q)`; if (stopBtn.textContent !== t) stopBtn.textContent = t; } });
 NC.on && NC.on('dialog:close', n => { if (S.n === n && n.state === 'wander') n.state = 'escort'; });
 console.info('[pairwalk] v67 함께 걷기 — 손잡기·팔짱·허리 감싸 안기');
 })();

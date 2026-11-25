@@ -94,10 +94,11 @@ function decide(r, u, mc, g) {
     const rr = ratio(nm); if (v > .15 && (rr < .7 || rr > 1.4)) { let best = nm, bd = 9; for (const n of L.walkAll) { const d = Math.abs(Math.log(Math.max(.05, ratio(n)))); if (d < bd) { bd = d; best = n; } } nm = best; }
     mc.walkName = nm; return { name: nm, walk: true };
   }
-  if (base === 'groove' || base === 'stageDance') {
+  if (base === 'groove' || base === 'stageDance' || base === 'showDance') {   // v78 showDance: 신나게 춤추기·댄싱 킹/퀸 — 강한 춤만 골라 빠르게 바꿔 가며
     /* v56 성격별 춤(손님): 수줍음 = 담백·감성 · 쿨 = 쿨 · 활발 = 강렬·쿨·감성 · 장난 = 익살·감성 — 느린 곡(BPM<100)이면 누구나 담백·감성 쪽으로
      *  + 자연스러운 쉬는 구간: 성격에 따라 20~70초마다 3~7초 동안 박자만 타며 숨 고르기(둘러보기·숨쉬기 대기 동작) */
     let pool = base === 'stageDance' ? L.stage : L.dance;
+    if (base === 'showDance') { const hp = L.dance.filter(n => !/neutral/.test(n)); if (!mc.dancePick || mc.dancePick.base !== base || now > mc.dancePick.until) { const prev = mc.dancePick && mc.dancePick.name, c = hp.filter(n => n !== prev); mc.dancePick = { base, name: pick(c.length ? c : hp, H(u, 81 + Math.floor(now * 3))), until: now + 3.2 + 2.6 * H(u, 82 + Math.floor(now)) }; } return { name: mc.dancePick.name, dance: true, hype: true }; }
     if (base === 'groove') { const pre = g + '_dancing_', A = NC.Audio, slow = A && A.bpm && A.bpm < 100, tr = u.trait || ['outgoing', 'cool', 'playful', 'shy'][Math.floor(H(u, 61) * 4)];
       const want = slow ? ['neutral', 'affective'] : { shy: ['neutral', 'affective'], cool: ['cool', 'neutral'], outgoing: ['aggressive', 'cool', 'affective'], playful: ['silly', 'affective', 'cool'] }[tr] || null;
       if (want) { const p2 = pool.filter(n => want.some(w => n === pre + w)); if (p2.length) pool = p2; }
@@ -166,7 +167,8 @@ MC.prep = (r, dt) => {
     if (want && want.dance && top) { const A = NC.Audio, bpm = (A && A.bpm) || 118, cb = clipTempo(c); if (cb) { let k = bpm / cb; while (k > 1.45) k /= 2; while (k < .7) k *= 2;
         // 위상 맞춤: 클립의 골반 최저점이 박자에 오도록 재생 속도를 살짝 당기거나 늦춤
         const b = A && A.beat ? A.beat() : null; if (b && c.dip != null) { const per = 60 / cb, cp = (((Ly.t - c.dip) / per) % 1 + 1) % 1; let e = b.phase - cp; e -= Math.round(e); k *= 1 + U.clamp(e, -.5, .5) * .25; }
-        ts = k * (A && A.energy != null ? .9 + .2 * U.clamp(A.energy, 0, 1) : 1); } }
+        ts = k * (A && A.energy != null ? .9 + .2 * U.clamp(A.energy, 0, 1) : 1); }
+      if (want.hype) ts *= 1.14; }
     Ly.t += dt * ts; any = any || c; }
   if (r.mcForce && r.mcForce.t != null && mc.layers.length) { const top = mc.layers[mc.layers.length - 1]; top.t = r.mcForce.t; mc.layers.forEach(l => { l.w = l === top ? 1 : 0; }); }
   while (mc.layers.length > 1 && mc.layers[0].w < .01) mc.layers.shift();
