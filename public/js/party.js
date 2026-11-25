@@ -177,8 +177,17 @@ NC.tickers.push(dt => {
   if ((PT.barT = (PT.barT || 0) - dt) <= 0) { PT.barT = .5; renderBar(); }
   const now = performance.now() / 1000;
   // 블루스: 커플이 마주 보고 천천히 돌며 흔들기 (가끔 살짝 기댐)
+  /* v83 커플끼리 겹치지 않게: '지금 실제 커플 중심'(제자리 + 돌아다니는 흔들림) 사이를 1.15m 이상으로 — 밀어낸 양은 pr.sep 에 쌓아 둠
+   *  · 내 블루스 커플(BL)과도 1.25m · 벽·탁자 쪽으로는 안 밀림 */
+  { const on = PT.pairs.filter(p => p.on), K0 = NC.Karaoke, BLc = K0 && K0.BL && K0.BL.n && !K0.inRoom ? K0.BL.c : null, MIN = 1.15;
+    const ctr = p => { const S = p.st || { roam: 1 }, sp = p.sep || (p.sep = { x: 0, z: 0 }); return { x: p.c.x + Math.sin(now * .21 * S.roam + p.ph) * .35 * S.roam + sp.x, z: p.c.z + Math.cos(now * .17 * S.roam + p.ph) * .25 * S.roam + sp.z }; };
+    const C = on.map(ctr), kk = Math.min(1, dt * 6);
+    for (let i = 0; i < on.length; i++) {
+      for (let j = i + 1; j < on.length; j++) { const dx = C[j].x - C[i].x, dz = C[j].z - C[i].z, d = Math.hypot(dx, dz); if (d >= MIN) continue; const k = (MIN - d) / 2 * kk, nx = d > 1e-3 ? dx / d : 1, nz = d > 1e-3 ? dz / d : 0; on[i].sep.x -= nx * k; on[i].sep.z -= nz * k; on[j].sep.x += nx * k; on[j].sep.z += nz * k; }
+      if (BLc) { const dx = C[i].x - BLc.x, dz = C[i].z - BLc.z, d = Math.hypot(dx, dz); if (d < MIN + .1) { const k = (MIN + .1 - d) * kk, nx = d > 1e-3 ? dx / d : 1, nz = d > 1e-3 ? dz / d : 0; on[i].sep.x += nx * k; on[i].sep.z += nz * k; } }
+      if (NC.collide) { const q = ctr(on[i]), q0 = { x: q.x, z: q.z }; NC.collide(q, .7); on[i].sep.x += q.x - q0.x; on[i].sep.z += q.z - q0.z; } } }
   PT.pairs.forEach(pr => { if (!pr.on) return; const a = pr.m, b = pr.f; if (a.state !== 'party' || b.state !== 'party') return;
-    const S = pr.st || { rot: .18, roam: 1 }, ang = pr.ph + now * S.rot, d = .22, cx = pr.c.x + Math.sin(now * .21 * S.roam + pr.ph) * .35 * S.roam, cz = pr.c.z + Math.cos(now * .17 * S.roam + pr.ph) * .25 * S.roam;   // 도는 빠르기·방향·이동 폭도 커플마다
+    const S = pr.st || { rot: .18, roam: 1 }, ang = pr.ph + now * S.rot, d = .22, sp = pr.sep || { x: 0, z: 0 }, cx = pr.c.x + Math.sin(now * .21 * S.roam + pr.ph) * .35 * S.roam + sp.x, cz = pr.c.z + Math.cos(now * .17 * S.roam + pr.ph) * .25 * S.roam + sp.z;   // 도는 빠르기·방향·이동 폭도 커플마다
     a.x = cx - Math.cos(ang) * d; a.z = cz - Math.sin(ang) * d; b.x = cx + Math.cos(ang) * d; b.z = cz + Math.sin(ang) * d;
     const ry = Math.atan2(b.x - a.x, b.z - a.z); a.g.rotation.y = ry; b.g.rotation.y = ry + Math.PI;
     const k = Math.max(0, Math.sin(now * .35 + pr.ph * 2)) * .5; a.g.userData.kissK = b.g.userData.kissK = k;

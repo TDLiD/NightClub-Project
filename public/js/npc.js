@@ -56,7 +56,7 @@ function planPath(from, to) {
   if (W.terraceVia) out.push(...W.terraceVia(out.length ? out[out.length - 1] : from, to));
   out.push(to); return out;
 }
-function goTo(n, to, onArrive, speed = 2.6) { n.state = 'path'; n.path = planPath(n, to); n.onArrive = onArrive; n.speed = speed; n.stuck = 0; const u = n.g.userData; u.dance = null; u.seated = false; }
+function goTo(n, to, onArrive, speed = 2.6) { if (NC.Nav && NC.Nav.fixGoal && !(to && to.exact)) to = NC.Nav.fixGoal(to); n.state = 'path'; n.path = NC.Nav ? NC.Nav.refine(n, planPath(n, to)) : planPath(n, to);   /* v83 구역 경유점 사이를 격자 A* 로 이어 탁자·의자를 돌아감 */ n.onArrive = onArrive; n.speed = speed; n.stuck = 0; const u = n.g.userData; u.dance = null; u.seated = false; }
 
 function stepToward(n, tx, tz, dt) {
   const dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz), u = n.g.userData;
@@ -130,7 +130,9 @@ function update(n, dt) {
   } else if (n.state === 'path') {
     const tgt = n.path && n.path[0];
     if (!tgt) { u.moving = false; n.state = 'idle'; const f = n.onArrive; n.onArrive = null; f && f(n); }
-    else if (stepToward(n, tgt.x, tgt.z, dt) || n.stuck > 1.2) { n.path.shift(); n.stuck = 0; }
+    else if (stepToward(n, tgt.x, tgt.z, dt)) { n.path.shift(); n.stuck = 0; }
+    else if (NC.Nav && NC.Nav.unstick(n, dt)) { n.stuck = 0; }   // v83 막히면 A* 로 다시 찾기·옆으로 비켜서기
+    else if (n.stuck > 4) { n.path.shift(); n.stuck = 0; }   // 그래도 안 되면 그 경유점은 건너뜀(예전 1.2초 → 4초)
   } else if (n.state === 'talk') { u.moving = false; u.dance = null; u.lookAt = P; const yw = Math.atan2(P.x - n.x, P.z - n.z); n.g.rotation.y = U.lerpAngle(n.g.rotation.y, yw, Math.min(1, dt * 5)); }
   else if (n.state === 'seated') { u.moving = false; }
   else if (n.state !== 'escort') { u.moving = false; }   // escort: 웨이터에게 손잡혀 걷는 중(episodes.js 가 위치·걷기 상태를 줌)

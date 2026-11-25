@@ -29,11 +29,12 @@ function spawn() {
   });
 }
 ES.walkTo = (o, to, sp) => walkTo(o, to, sp); ES.step = (o, dt) => step(o, dt);   // v79 events.js(샴페인 쇼)가 웨이터를 잠깐 빌려 씀 — state 'show' 동안은 이 파일의 상태 머신이 건드리지 않음
-function walkTo(o, to, speed) { o.path = NC.NPC && NC.NPC.planPath ? NC.NPC.planPath(o, to) : [to]; if (!o.path || !o.path.length) o.path = [to]; o.speed = speed || o.speed; }
+function walkTo(o, to, speed) { if (NC.Nav && NC.Nav.fixGoal) to = NC.Nav.fixGoal(to); o.path = NC.NPC && NC.NPC.planPath ? NC.NPC.planPath(o, to) : [to]; if (NC.Nav) o.path = NC.Nav.refine(o, o.path);   /* v83 탁자를 돌아가는 경로(전엔 경유점 사이를 직선으로 걸어 탁자에 막혀 헛걸음) */ if (!o.path || !o.path.length) o.path = [to]; o.speed = speed || o.speed; }
 function step(o, dt) {   // 경로 따라 걷기 → 도착하면 true
   const p = o.path && o.path[0]; if (!p) { o.g.userData.moving = false; return true; }
   const dx = p.x - o.x, dz = p.z - o.z, d = Math.hypot(dx, dz); if (d < .3) { o.path.shift(); return !o.path.length; }
   const s = Math.min(d, o.speed * dt); o.x += dx / d * s; o.z += dz / d * s; if (NC.collide) NC.collide(o, .32);
+  if (NC.Nav && NC.Nav.unstick(o, dt)) return false;   // v83 탁자에 막혀 헛걸음하면 다시 찾기
   o.g.rotation.y = U.lerpAngle(o.g.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 7)); o.g.userData.moving = true; return false;
 }
 function release(o, why) { const n = o.n; o.n = null; o.w = 0; const ug = o.g.userData; ug.armOffL = ug.armOffR = false;
@@ -44,7 +45,9 @@ function pickTable(o) { const tb = (NC.tables || []).filter(t => Math.hypot(t.x 
 /* 손님: 웨이터 옆(오른쪽 52cm)을 스프링으로 따라옴 + 같은 방향 */
 function follow(o, dt) {
   const n = o.n, u = n.g.userData, ry = o.g.rotation.y, fx = Math.sin(ry), fz = Math.cos(ry), rx = -fz, rz = fx, side = o.side || 1;
-  const tx = o.x + rx * side * .52, tz = o.z + rz * side * .52, dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz);
+  let tx = o.x + rx * side * .52, tz = o.z + rz * side * .52;
+  if (NC.Path && NC.Path.isBlocked && NC.Path.isBlocked(tx, tz)) { tx = o.x - fx * .5 + rx * side * .18; tz = o.z - fz * .5 + rz * side * .18; }   // v83 옆자리가 탁자·벽이면 반 걸음 뒤에서 따라감(좁은 통로)
+  const dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz);
   if (d > 3) { n.x = tx; n.z = tz; } else { const k = 1 - Math.exp(-dt * 6), mx = 2.2 * dt; let sx = dx * k, sz = dz * k; const sl = Math.hypot(sx, sz); if (sl > mx) { sx *= mx / sl; sz *= mx / sl; } n.x += sx; n.z += sz; }
   if (NC.collide) NC.collide(n, .24);
   n.g.position.set(n.x, NC.groundY ? NC.groundY(n.x, n.z) : 0, n.z); u.moving = o.g.userData.moving || d > .14;

@@ -75,5 +75,7 @@ function find(from, to, opt = {}) {
   if (opt.exact && out.snapped) out.push({ x: to.x, z: to.z });
   return out;
 }
-NC.Path = { find, rebuild: build, isBlocked: (x, z) => { if (!G) build(); return blocked(...cellOf(x, z)); } };
+NC.Path = { find, rebuild: build, isBlocked: (x, z) => { if (!G) build(); return blocked(...cellOf(x, z)); },
+  los: (a, b) => { if (!inClub(a) || !inClub(b)) return true; if (!G) build(); return los(a, b); },   // v83 직선이 트였는지(nav.js)
+  free: (x, z) => { if (!inClub({ x, z })) return null; if (!G) build(); const c = nearestFree(...cellOf(x, z), 8); return c ? posOf(...c) : null; } };   // v83 가장 가까운 빈 자리
 })();

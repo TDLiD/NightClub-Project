@@ -475,7 +475,7 @@ function lod(force, from) {
   const cam = NC.camera; if (!cam && !from) return; const cp = from || cam.position, mob = NC.isMobile, low = Q.level === 'low';
   const near = C.near || 7, mid = C.mid || 45, maxN = mob ? (C.maxMobile ?? 2) : low ? Math.min(2, C.max ?? 6) : (C.max ?? 6), maxM = mob || low ? (C.maxMidMobile ?? 8) : (C.maxMid ?? 60);
   const cand = [], BLn = NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n, Dn = NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.n;
-  const pri = new Set([BLn && BLn.g, Dn && Dn.g].filter(Boolean));   // v48.1 블루스 상대·대화 상대는 항상 고해상도(가장 가까운 것으로 취급)
+  const pri = new Set([BLn && BLn.g, Dn && Dn.g].filter(Boolean)); (NC.Stage && NC.Stage.dancers || []).forEach(d => d.g && pri.add(d.g));   // v83 원형 무대 댄서도 늘 먼저(손님이 많으면 멀리 있는 댄서 차례가 밀려 안 보이던 문제)   // v48.1 블루스 상대·대화 상대는 항상 고해상도(가장 가까운 것으로 취급)
   rootsAll().forEach(r => { const g = r.g; if (!g.parent || !g.userData.rig || g.userData.vrm) return; if (g.userData.real && g.userData.real.pinned) return;
     const m = modelFor(C, r); if (!m) return; let vis = g.visible; for (let p = g.parent; vis && p; p = p.parent) vis = p.visible;
     const d = r.me || pri.has(g) ? 0 : g.getWorldPosition(V1).distanceTo(cp); cand.push({ r, m, d: vis ? d : 1e9 }); });

@@ -135,6 +135,20 @@ function updateZone(dt, moving) {
 }
 const coinEl = $('#coins'); const showCoins = v => { coinEl.textContent = '🪙 ' + v; }; NC.on('coins', showCoins); showCoins(NC.Wallet.get());
 
+/* v83 화면에서 패널이 가리지 않은 가로 영역의 가운데(NDC −1~1) — 0.3초마다 다시 잼 */
+let fcT = 0, fcV = 0;
+function freeCenterX() {
+  const now = performance.now(); if (now - fcT < 300) return fcV; fcT = now;
+  const Wd = innerWidth; let L = 0, R = Wd;
+  const cands = new Set(); ['dlg', 'guestList', 'evPane', 'chatPanel'].forEach(id => { const el = document.getElementById(id); if (el) { cands.add(el); [...el.children].forEach(c => cands.add(c)); } });
+  [...document.body.children].forEach(el => { if (el.tagName !== 'CANVAS' && el.tagName !== 'SCRIPT') cands.add(el); });   // 이름이 다른 큰 패널도(대화창 본체가 #dlg 안쪽 요소인 경우 등)
+  for (const el of cands) { const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < .3 || cs.pointerEvents === 'none') continue;
+    const r = el.getBoundingClientRect(); if (r.width < 120 || r.height < 200 || r.width > Wd * .45 || r.bottom < 80) continue;
+    if (r.left + r.width / 2 < Wd / 2) L = Math.max(L, r.right); else R = Math.min(R, r.left); }
+  if (R - L < Wd * .3) { L = 0; R = Wd; }
+  fcV = ((L + R) / 2) / Wd * 2 - 1; return fcV;
+}
+NC.freeCenterX = freeCenterX;
 /* ───────── 메인 루프 ───────── */
 const clock = new T.Clock(); let tAcc = 0; const camTarget = new T.Vector3(), camPos = new T.Vector3();
 /* v17 시작(로그인) 화면 동안: 3D 클럽은 배경일 뿐이라 거의 쉬게 함
@@ -193,7 +207,11 @@ function frame() {
       dlgCam.yaw0 = cam.yaw; dlgCam.dist0 = cam.dist; dlgCam.pitch0 = cam.pitch; dlgCam.armed = true;
     } else if (dlgCam.armed) { dlgCam.on = false; dlgCam.armed = false; }
     if (f) { camTarget.set(f.tx, f.ty, f.tz); camPos.set(f.cx, f.cy, f.cz);
-      if (innerWidth > 800 && !f.free) { let dx = f.tx - f.cx, dz = f.tz - f.cz; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; camTarget.x += -dz * .95; camTarget.z += dx * .95; camPos.x += -dz * .95; camPos.z += dx * .95; } }   // 오른쪽 대화 패널을 피해 인물을 왼쪽에 배치
+      if (innerWidth > 800 && !f.free) { let dx = f.tx - f.cx, dz = f.tz - f.cz; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+        /* v83 두 사람이 '양쪽 팝업 사이 빈 화면'의 가운데에 오게: 왼쪽(손님 목록 등)·오른쪽(대화창) 패널이 가린 폭을 재서 그 가운데 화면 x 로 옮김
+         *  (전엔 무조건 0.95m 왼쪽으로 밀어서 왼쪽 손님 목록 뒤로 숨거나 한쪽에 치우쳤음) */
+        const c = freeCenterX(), dist = Math.hypot(f.cx - f.tx, f.cy - f.ty, f.cz - f.tz), halfW = dist * Math.tan(camera.fov * Math.PI / 360) * camera.aspect, m = -c * halfW;
+        camTarget.x += -dz * m; camTarget.z += dx * m; camPos.x += -dz * m; camPos.z += dx * m; } }   // 오른쪽 대화 패널을 피해 인물을 왼쪽에 배치
     else { if (NC._camTween) { const tw = NC._camTween; if (pt.down || f) NC._camTween = null; else { tw.t += dt; const k = Math.min(1, dt * 3.2); cam.yaw = U.lerpAngle(cam.yaw, tw.yaw, k); cam.dist += (tw.dist - cam.dist) * k; cam.pitch += (tw.pitch - cam.pitch) * k; if (tw.t > 1.2) NC._camTween = null; } }
       const tx = P.group.position.x, tz = P.group.position.z, ty = 1.4 + P.y, inner = P.room >= 0 || P.zone === 'karaoke', dist = ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? Math.min(cam.dist, 4.2) : P.room >= 0 ? Math.min(cam.dist, 8) : cam.dist;
       camTarget.set(tx, ty, tz); camPos.set(tx + Math.sin(cam.yaw) * Math.cos(cam.pitch) * dist, ty + Math.sin(cam.pitch) * dist, tz + Math.cos(cam.yaw) * Math.cos(cam.pitch) * dist); camPos.y = Math.min(camPos.y, ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? 2.75 : W.ROOM.h - .5); void inner;

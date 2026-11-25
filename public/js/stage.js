@@ -13,24 +13,25 @@ const FXo = () => NC.Features || {};
 
 /* ═════ ① 포디움 무대 댄서 ═════ */
 const DANCER_LOOKS = [
-  ['폴댄서 아라', { gender: 'f', realModel: 'f_15', height: 1.7, idol: true, hairStyle: 'highPony', hairColor: '#120c10', hair2: '#ff3d9a', top: 'crop', topColor: '#ff2d8a', bottom: 'shorts', mini: true, bottomColor: '#141016', shoes: 'boots', shoeColor: '#141016', pattern: 'solid', hat: null, curve: .42, choker: true, face: { lipColor: '#c4475a', shadow: '#d070a0', liner: .9, earring: true } }],   // v28 폴 피트니스 의상(스포츠 크롭 + 숏츠)
-  ['폴댄서 미오', { gender: 'f', realModel: 'f_16', height: 1.7, idol: true, hairStyle: 'long', hairColor: '#d8c8e8', top: 'crop', topColor: '#22d3ff', bottom: 'shorts', mini: true, bottomColor: '#141016', shoes: 'boots', shoeColor: '#141016', pattern: 'solid', hat: null, curve: .42, face: { lipColor: '#d0566a', shadow: '#6a8ad8', liner: .9, earring: true } }],
-  ['댄서 레이', { gender: 'f', realModel: 'f_09', height: 1.7, idol: true, hairStyle: 'highPony', hairColor: '#c8c4d8', hair2: '#3de6ff', top: 'stageJacket', topColor: '#1a7ad4', inner: 'tee', innerColor: '#f4f2ee', bottom: 'cargo', bottomColor: '#141016', shoes: 'boots', chain: true, pattern: 'solid', hat: null, curve: .4, face: { lipColor: '#d0566a', shadow: '#6a8ad8', attractive: true } }],
-  ['댄서 제이', { gender: 'f', realModel: 'f_03', height: 1.7, idol: true, hairStyle: 'long', hairColor: '#160e12', top: 'crop', topColor: '#d8dce6', metallic: true, bottom: 'shorts', mini: true, bottomColor: '#141016', shoes: 'boots', shoeColor: '#141016', pattern: 'solid', hat: null, curve: .42, choker: true, face: { lipColor: '#c0384e', attractive: true } }],
+  ['댄서 아라', { gender: 'f', realModel: 'f_15', height: 1.7, idol: true, hairStyle: 'highPony', hairColor: '#120c10', hair2: '#ff3d9a', top: 'crop', topColor: '#ff2d8a', bottom: 'shorts', mini: true, bottomColor: '#141016', shoes: 'boots', shoeColor: '#141016', pattern: 'solid', hat: null, curve: .42, choker: true, face: { lipColor: '#c4475a', shadow: '#d070a0', liner: .9, earring: true } }],   // v28 폴 피트니스 의상(스포츠 크롭 + 숏츠)
+  ['댄서 미오', { gender: 'f', realModel: 'f_31', height: 1.7, idol: true, hairStyle: 'long', hairColor: '#d8c8e8', top: 'crop', topColor: '#22d3ff', bottom: 'shorts', mini: true, bottomColor: '#141016', shoes: 'boots', shoeColor: '#141016', pattern: 'solid', hat: null, curve: .42, face: { lipColor: '#d0566a', shadow: '#6a8ad8', liner: .9, earring: true } }],
+  ['댄서 레이', { gender: 'f', realModel: 'f_28', height: 1.7, idol: true, hairStyle: 'highPony', hairColor: '#c8c4d8', hair2: '#3de6ff', top: 'stageJacket', topColor: '#1a7ad4', inner: 'tee', innerColor: '#f4f2ee', bottom: 'cargo', bottomColor: '#141016', shoes: 'boots', chain: true, pattern: 'solid', hat: null, curve: .4, face: { lipColor: '#d0566a', shadow: '#6a8ad8', attractive: true } }],
+  ['댄서 제이', { gender: 'f', realModel: 'f_25', height: 1.7, idol: true, hairStyle: 'long', hairColor: '#160e12', top: 'crop', topColor: '#d8dce6', metallic: true, bottom: 'shorts', mini: true, bottomColor: '#141016', shoes: 'boots', shoeColor: '#141016', pattern: 'solid', hat: null, curve: .42, choker: true, face: { lipColor: '#c0384e', attractive: true } }],
 ];
 const dancers = [];
 function spawnDancers() {
   if (dancers.length || !W.podiums) return;
   W.podiums.forEach((pd, i) => {
     const ry = Math.atan2(0 - pd.x, -2 - pd.z);   // 홀 가운데를 바라봄
-    (i === 0 ? [-.62, .62] : [-.48, .48]).forEach((off, k) => {
+    [-.48, .48].forEach((off, k) => {
       const [name, look] = DANCER_LOOKS[i * 2 + k];
       const g = NC.Avatar.create({ name, look, seed: U.hash(name), expr: 'smile', hiRes: true, labelColor: '#ff9ad5' });
       const x = pd.x + Math.cos(ry) * off, z = pd.z - Math.sin(ry) * off;
       g.position.set(x, pd.y, z); g.rotation.y = ry; NC.scene.add(g);
       const u = g.userData; u.dance = 'stageDance'; u.danceStyle = MOVES[i % MOVES.length];
+      u.layer = { kind: ['sportPink', 'sportCyan', 'sportLime', 'sportViolet'][i * 2 + k], gender: 'f' }; u.stageDancer = true;   // v83 스포츠 브라 + 숏팬츠(wardrobe.js LAYERS) — 실사 모델이 붙을 때 입힘
       const d = { g, pd: i, ry };
-      if (i === 0) {   // v28 왼쪽 원형 무대 = 폴 댄스: 각자 크롬 폴 하나씩, 폴 주위를 돌며 걷기·회전·매달리기·바디 웨이브
+      if (false && i === 0) {   // v83 양쪽 원형 무대 모두 격렬한 군무(전엔 왼쪽 = 폴 댄스) · v28 왼쪽 원형 무대 = 폴 댄스: 각자 크롬 폴 하나씩, 폴 주위를 돌며 걷기·회전·매달리기·바디 웨이브
         const px = x, pz = z, pole = new NC.THREE.Mesh(new NC.THREE.CylinderGeometry(.026, .026, 3.4, 14), NC.mat.std('#e8e8f0', { roughness: .12, metalness: 1 }));
         pole.position.set(px, pd.y + 1.7, pz); NC.scene.add(pole); u.dance = 'pole'; Object.assign(d, { pole: { x: px, z: pz }, th: k * Math.PI, y: pd.y, lift: 0 });
       }

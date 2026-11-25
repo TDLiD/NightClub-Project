@@ -306,10 +306,17 @@ const LAYERS = {
   silk: { f: { top: 'robe', sleeve: 'elbow', bottom: 'knee', mat: 'silkRed', robe: 1, slippers: 1 }, m: { top: 'robe', sleeve: 'elbow', bottom: 'knee', mat: 'silkPlum', robe: 1, slippers: 1 } },
   towel: { f: { top: 'chest', sleeve: 'none', bottom: 'thighDress', mat: 'towel', slippers: 1 }, m: { top: 'none', sleeve: 'none', bottom: 'kneeDress', mat: 'towel', slippers: 1 } },
   cover: { f: { top: 'chest', sleeve: 'none', bottom: 'kneeDress', mat: 'towel', slippers: 1 }, m: { top: 'none', sleeve: 'none', bottom: 'kneeDress', mat: 'towel', slippers: 1 } },
+  /* v83 무대 원형 스테이지 댄서: 스포츠 브라 + 숏팬츠 (가슴 아래~허리는 피부색 껍질 = 드러난 배, 팔·허벅지도 피부) — 운동복 수준, 몸통·골반은 항상 가림 */
+  sportPink: { f: { top: 'cami', sleeve: 'none', bottom: 'hip', mat: 'sportPink', botMat: 'shortsBlack', braTo: .29, keepShoes: 1 } },
+  sportCyan: { f: { top: 'cami', sleeve: 'none', bottom: 'hip', mat: 'sportCyan', botMat: 'shortsBlack', braTo: .29, keepShoes: 1 } },
+  sportLime: { f: { top: 'cami', sleeve: 'none', bottom: 'hip', mat: 'sportLime', botMat: 'shortsDenim', braTo: .29, keepShoes: 1 } },
+  sportViolet: { f: { top: 'cami', sleeve: 'none', bottom: 'hip', mat: 'sportViolet', botMat: 'shortsBlack', braTo: .29, keepShoes: 1 } },
 };
 const LMAT = { blouse: () => mat({ color: 0xf1ebe0, roughness: .75 }), tee: () => mat({ color: 0xe9e7e2, roughness: .9 }), camiSatin: () => mat({ map: satin('satWine', '#5a0c22', '#a3274a'), roughness: .32, metalness: .08 }), tankWhite: () => mat({ color: 0xf2f1ec, roughness: .9 }),
   lounge: () => mat({ map: check('chkNavy', '#2a3550', '#36456a'), roughness: .85 }), slipSatin: () => mat({ map: satin('satChamp', '#b89a72', '#ead6b6'), roughness: .3, metalness: .08 }), pjNavy: () => mat({ map: satin('satNavy', '#16223e', '#2c3e66'), roughness: .35 }),
   pjBlue: () => mat({ map: check('chkBlue', '#9cc0e6', '#b8d4f0'), roughness: .85 }), terry: () => mat({ map: terry(), roughness: 1 }), silkRed: () => mat({ map: satin('satRed', '#6e0a2c', '#b0204c'), roughness: .3, metalness: .08 }), silkPlum: () => mat({ map: satin('satPlum', '#24142e', '#4a2a5a'), roughness: .3, metalness: .08 }),
+  sportPink: () => mat({ color: 0xff2d8a, roughness: .45, emissive: 0x3a0018 }), sportCyan: () => mat({ color: 0x18d6ff, roughness: .45, emissive: 0x00222c }), sportLime: () => mat({ color: 0xb6ff2a, roughness: .45, emissive: 0x182600 }), sportViolet: () => mat({ color: 0x9b5cff, roughness: .45, emissive: 0x160a2c }),
+  shortsBlack: () => mat({ color: 0x111116, roughness: .5, metalness: .05 }), shortsDenim: () => mat({ color: 0x2a3f66, roughness: .8 }),
   towel: () => mat({ map: terry(), roughness: 1 }), slipper: () => mat({ map: terry(), roughness: 1 }), belt: () => mat({ map: terry(), roughness: 1 }) };
 function buildLayer(A, sp, skinCol) {
   const shell2 = (A_, m, vs, pk, off) => shell(A_, m, vs, pk, off, null, 2);
@@ -327,12 +334,12 @@ function buildLayer(A, sp, skinCol) {
   const topPick = v => { if (sp.top === 'none') return false; if (handW(v) > .25) return false; const h = H(v);
     if (armsW(v) > .45) { const q = elbowQ(v, side(v)); return q < sleeveTo && (sp.sleeve !== 'none' || false); }
     if (W(v, 'neck') > .45) return sp.top === 'neck' || sp.top === 'robe' ? h < neckH + .03 && !(A.F(v.bw) > A.F(A.P(Bn.neck)) + .005) : false;
-    return isTorso(v) && h < topLine && h > (sp.bottom === 'keep' ? waist - .06 : crotch + .02) && !inV(v); };
+    return isTorso(v) && h < topLine && h > (sp.braTo != null ? neckH - sp.braTo : sp.bottom === 'keep' ? waist - .06 : crotch + .02) && !inV(v); };   // v83 braTo: 스포츠 브라는 가슴 아래에서 끝남
   const topOff = sp.robe ? .016 : sp.mat === 'pjBlue' || sp.mat === 'pjNavy' || sp.mat === 'lounge' ? .011 : .008;
   const top = shell2(A, A.body, A.BV, topPick, topOff); if (top) out.push({ name: 'LY_top', ...top, mat: M });
   // 2) 아래(반바지·치마형·바지·가운 자락) — 다리 + 골반, 'Dress' 는 다리 사이를 메우듯 조금 더 띄움
   if (botTo !== null) { const dress = /Dress/.test(sp.bottom) || sp.robe; const bot = shell2(A, A.body, A.BV, v => { const h = H(v); if (armsW(v) > .2 || handW(v) > .2 || footW(v) > .35) return false; return h > botTo && (legW(v) > .4 || (W(v, 'torso') > .5 && h < (sp.top === 'none' ? waist + .02 : waist + .02))); }, v => (dress ? .02 : .009) + (dress ? Math.max(0, (crotch - H(v))) * .12 : 0));
-    if (bot) out.push({ name: 'LY_bottom', ...bot, mat: M }); }
+    if (bot) out.push({ name: 'LY_bottom', ...bot, mat: sp.botMat ? LMAT[sp.botMat]() : M }); }
   // 3) 피부: 소매 밖 팔(+손 제외) · 아래 밖 다리(발목 위) · 위 끝보다 위의 어깨·목 앞(여성은 쇄골 위까지만) · 남성 수건 차림 상체
   const skinPick = v => { const h = H(v); if (handW(v) > .3 || footW(v) > .3 || W(v, 'head') > .3) return false;
     if (armsW(v) > .45) return elbowQ(v, side(v)) >= sleeveTo - .02;
@@ -340,6 +347,7 @@ function buildLayer(A, sp, skinCol) {
     if (sp.top === 'none') return isTorso(v) && h > waist - .02 && h < neckH + .05;   // 남성 수건(허리) 차림
     if (W(v, 'neck') > .45) return sp.top !== 'neck';
     if (inV(v)) return true;
+    if (sp.braTo != null && isTorso(v) && h <= neckH - sp.braTo + .01 && h >= waist + .01) return true;   // v83 드러난 배(가슴 아래 ~ 숏팬츠 허리선)
     return isTorso(v) && h >= topLine - .01 && h < neckH + .05; };
   const sk = shell2(A, A.body, A.BV, skinPick, .004); if (sk) out.push({ name: 'LY_skin', ...sk, mat: skin, order: -1 });
   // 4) 캐미솔·민소매 어깨끈

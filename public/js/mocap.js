@@ -232,6 +232,11 @@ MC.post = (r, mc) => {
     pel.getWorldPosition(_t); const seatY = floorY + (u.seatH || .5) * (r.root.scale.y || 1), wantY = seatY + .1 * (mc.L || 1);
     const prog = mc.isOnce ? mc.prog : 1;
     const dy = (wantY - _t.y) * prog * mc.w; if (Math.abs(dy) > 1e-4) { pel.position.y += dy / (mc.L / 100); r.model.updateMatrixWorld(true); }
+    /* v83 골반을 의자 한가운데(루트 = 의자 중심, 등받이 쪽으로 4cm) 위에 — 앉기 모션의 골반이 앞으로 나가 있어 의자 앞 허공에 떠 앉은 것처럼 보이던 문제 */
+    if (!MC.noSeatXZ) { pel.getWorldPosition(_t); const yaw = r.root.rotation.y, fx = Math.sin(yaw), fz = Math.cos(yaw), k = prog * mc.w;
+      const want = new T.Vector3(_v.x - fx * .04, _t.y, _v.z - fz * .04), cur = _t.clone();
+      if (Math.hypot(want.x - cur.x, want.z - cur.z) > .01) { const pp = pel.parent, lw = pp.worldToLocal(want.clone()), lc = pp.worldToLocal(cur.clone()); pel.position.x += (lw.x - lc.x) * k; pel.position.z += (lw.z - lc.z) * k; pel.position.y += (lw.y - lc.y) * k; r.model.updateMatrixWorld(true); }
+      MC.stats.seatFix = +Math.hypot(want.x - cur.x, want.z - cur.z).toFixed(3); }
   }
   // 발: 앉았을 때는 바닥에 고정, 서 있을 때는 바닥 아래로 들어가면 올림
   const ank = mc.rest.ank;

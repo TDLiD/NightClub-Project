@@ -24,7 +24,8 @@ function agents() {
     const g = n.g, u = g && g.userData; if (!u || !g.visible || n.enabled === false || SKIP_ST.has(n.state) || u.seated) continue;
     if (tossing && n._dk) continue;
     const mov = !!u.moving && (n.state === 'wander' || n.state === 'path' || n.state === 'escort' || n.state === 'party');
-    A.push({ o: n, g, n, mov, w: mov ? 1 : n.state === 'talk' || n.state === 'dk' || n.state === 'dshow' ? .35 : .7, r: C.R * (u.look && u.look.body === 'plus' ? 1.15 : 1) });
+    const pairOn = n._pair && n._pair.on && u.dance === 'blues';   // v83 블루스 커플은 party.js 가 커플 중심을 옮겨 서로 떼어 놓음 → 여기선 거의 안 밀림
+    A.push({ o: n, g, n, mov, w: pairOn ? .05 : mov ? 1 : n.state === 'talk' || n.state === 'dk' || n.state === 'dshow' ? .35 : .7, r: C.R * (u.look && u.look.body === 'plus' ? 1.15 : 1) });
   }
   for (const w of (NC.Escort && NC.Escort.list) || []) { if (!w.g || !w.g.visible || w.state === 'idle') continue; A.push({ o: w, g: w.g, esc: w, mov: w.state !== 'greet' && w.state !== 'intro', w: .8, r: C.R }); }
   return { P, BL, pw: NC.PairWalk && NC.PairWalk.n, sd: NC.DanceShow && NC.DanceShow.on && NC.DanceShow.on.n, mo: NC.Motel && NC.Motel.on && NC.Motel.n };
@@ -34,9 +35,8 @@ function linked(a, b, X) {
   if (a.me || b.me) { const o = a.me ? b : a, n = o.n; if (!n) return !!(o.esc && false);
     return n === X.pw || n === (X.BL && X.BL.n) || n === X.sd || n === X.mo || n.state === 'escort' && X.pw === n; }
   if (a.esc || b.esc) { const w = a.esc || b.esc, o = a.esc ? b : a; return !!(o.n && (w.n === o.n || o.n._escortBy === w)); }
-  const ua = a.g.userData, ub = b.g.userData;
-  if (ua.dance === 'blues' && ub.dance === 'blues') return true;           // 파티 블루스 커플
-  if (a.n.state === 'party' && b.n.state === 'party' && Math.hypot(a.o.x - b.o.x, a.o.z - b.o.z) < .7) return true;
+  if (a.n._pair && a.n._pair === b.n._pair) return true;                 // v83 같은 블루스 커플끼리만(전엔 블루스 추는 사람 '아무나'끼리 겹침을 허용해 옆 커플과 몸이 겹쳤음)
+  if (a.n._huntPair && a.n._huntPair === b.n._huntPair) return true;
   return false;
 }
 function place(ag) {   // 밀린 위치 반영 + 벽·탁자 충돌
