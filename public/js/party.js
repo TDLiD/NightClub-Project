@@ -88,6 +88,10 @@ function start(mode) {
   renderBar(); NC.emit && NC.emit('party:start', mode);
 }
 function sendTo(n, to, done) { n.state = 'wander'; NC.NPC.goTo(n, to, () => { if (!n.party) { if (n.state === 'idle') { n.state = 'wander'; n.pause = 1; n.wp = null; } return; } done && done(n); }, 3.0); n.speed = 2.8 + Math.random() * .6; }
+/* v80 블루스 스타일 뽑기(두 사람이 같은 객체를 공유) */
+const B_STYLES = [['sway', .16, 1], ['rock', .1, .6], ['box', .32, 1.3], ['cheek', .06, .4], ['bounce', .2, 1.1]];
+NC.bluesStyle = (want) => { const b = want ? B_STYLES.find(x => x[0] === want) || B_STYLES[0] : B_STYLES[Math.floor(Math.random() * B_STYLES.length)];
+  return { style: b[0], tempo: .82 + Math.random() * .36, ph: Math.random() * 20, amp: .8 + Math.random() * .45, rot: b[1] * (.7 + Math.random() * .6) * (Math.random() < .5 ? -1 : 1), roam: b[2] }; };
 function partyDance(n, force) {
   const u = n.g.userData; n.state = 'party'; u.moving = false; u.seated = false;
   u.dance = force || (Math.random() < .55 ? 'stageDance' : 'groove');
@@ -96,7 +100,8 @@ function partyDance(n, force) {
 }
 function pairReady(pr) {
   if (++pr.ready < 2 || !PT.mode) return;
-  [pr.m, pr.f].forEach(n => { n.state = 'party'; const u = n.g.userData; u.dance = 'blues'; u.bluesLead = n === pr.m; u.hideLabel = true; });
+  if (!pr.st) pr.st = NC.bluesStyle();   // v80 커플마다 스타일·빠르기·회전 방향이 다름
+  [pr.m, pr.f].forEach(n => { n.state = 'party'; const u = n.g.userData; u.dance = 'blues'; u.bluesLead = n === pr.m; u.hideLabel = true; u.bSt = pr.st; });
   pr.on = true;
 }
 
@@ -173,7 +178,7 @@ NC.tickers.push(dt => {
   const now = performance.now() / 1000;
   // 블루스: 커플이 마주 보고 천천히 돌며 흔들기 (가끔 살짝 기댐)
   PT.pairs.forEach(pr => { if (!pr.on) return; const a = pr.m, b = pr.f; if (a.state !== 'party' || b.state !== 'party') return;
-    const ang = pr.ph + now * .18, d = .22, cx = pr.c.x + Math.sin(now * .21 + pr.ph) * .35, cz = pr.c.z + Math.cos(now * .17 + pr.ph) * .25;
+    const S = pr.st || { rot: .18, roam: 1 }, ang = pr.ph + now * S.rot, d = .22, cx = pr.c.x + Math.sin(now * .21 * S.roam + pr.ph) * .35 * S.roam, cz = pr.c.z + Math.cos(now * .17 * S.roam + pr.ph) * .25 * S.roam;   // 도는 빠르기·방향·이동 폭도 커플마다
     a.x = cx - Math.cos(ang) * d; a.z = cz - Math.sin(ang) * d; b.x = cx + Math.cos(ang) * d; b.z = cz + Math.sin(ang) * d;
     const ry = Math.atan2(b.x - a.x, b.z - a.z); a.g.rotation.y = ry; b.g.rotation.y = ry + Math.PI;
     const k = Math.max(0, Math.sin(now * .35 + pr.ph * 2)) * .5; a.g.userData.kissK = b.g.userData.kissK = k;

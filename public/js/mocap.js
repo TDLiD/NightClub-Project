@@ -99,6 +99,11 @@ function decide(r, u, mc, g) {
      *  + 자연스러운 쉬는 구간: 성격에 따라 20~70초마다 3~7초 동안 박자만 타며 숨 고르기(둘러보기·숨쉬기 대기 동작) */
     let pool = base === 'stageDance' ? L.stage : L.dance;
     if (base === 'showDance') { const hp = L.dance.filter(n => !/neutral/.test(n)); if (!mc.dancePick || mc.dancePick.base !== base || now > mc.dancePick.until) { const prev = mc.dancePick && mc.dancePick.name, c = hp.filter(n => n !== prev); mc.dancePick = { base, name: pick(c.length ? c : hp, H(u, 81 + Math.floor(now * 3))), until: now + 3.2 + 2.6 * H(u, 82 + Math.floor(now)) }; } return { name: mc.dancePick.name, dance: true, hype: true }; }
+    /* v80 무대 춤·디스코 타임: 사람마다 다른 강한 춤 — 강한 클립만, 4~9초마다 각자 다른 때에 바꿈, 재생 빠르기도 사람마다(아래 want.hard) */
+    if (base === 'stageDance' || (base === 'groove' && NC.Party && NC.Party.mode === 'disco')) {
+      const hp = [...new Set(L.stage.concat(L.dance))].filter(n => !/neutral/.test(n)), key = base + ':hard';
+      if (hp.length) { if (!mc.dancePick || mc.dancePick.base !== key || now > mc.dancePick.until) { const prev = mc.dancePick && mc.dancePick.name, c = hp.filter(n => n !== prev); mc.dancePick = { base: key, name: pick(c.length ? c : hp, H(u, 91 + Math.floor(now * 1.7))), until: now + 4 + 5 * H(u, 92 + Math.floor(now)) }; }
+        return { name: mc.dancePick.name, dance: true, hard: true }; } }
     if (base === 'groove') { const pre = g + '_dancing_', A = NC.Audio, slow = A && A.bpm && A.bpm < 100, tr = u.trait || ['outgoing', 'cool', 'playful', 'shy'][Math.floor(H(u, 61) * 4)];
       const want = slow ? ['neutral', 'affective'] : { shy: ['neutral', 'affective'], cool: ['cool', 'neutral'], outgoing: ['aggressive', 'cool', 'affective'], playful: ['silly', 'affective', 'cool'] }[tr] || null;
       if (want) { const p2 = pool.filter(n => want.some(w => n === pre + w)); if (p2.length) pool = p2; }
@@ -166,9 +171,11 @@ MC.prep = (r, dt) => {
     if (want && want.walk && !u.moving) ts = .4;
     if (want && want.dance && top) { const A = NC.Audio, bpm = (A && A.bpm) || 118, cb = clipTempo(c); if (cb) { let k = bpm / cb; while (k > 1.45) k /= 2; while (k < .7) k *= 2;
         // 위상 맞춤: 클립의 골반 최저점이 박자에 오도록 재생 속도를 살짝 당기거나 늦춤
-        const b = A && A.beat ? A.beat() : null; if (b && c.dip != null) { const per = 60 / cb, cp = (((Ly.t - c.dip) / per) % 1 + 1) % 1; let e = b.phase - cp; e -= Math.round(e); k *= 1 + U.clamp(e, -.5, .5) * .25; }
+        const b = A && A.beat ? A.beat() : null; if (b && c.dip != null && !want.hard) {   // v80 강한 춤은 위상 맞춤 안 함(모두 같은 순간 같은 동작이 되던 원인) — 빠르기만 박자에
+        const per = 60 / cb, cp = (((Ly.t - c.dip) / per) % 1 + 1) % 1; let e = b.phase - cp; e -= Math.round(e); k *= 1 + U.clamp(e, -.5, .5) * .25; }
         ts = k * (A && A.energy != null ? .9 + .2 * U.clamp(A.energy, 0, 1) : 1); }
-      if (want.hype) ts *= 1.14; }
+      if (want.hype) ts *= 1.14;
+      if (want.hard) ts *= .94 + .26 * H(u, 93); }   // v80 사람마다 0.94~1.2배
     Ly.t += dt * ts; any = any || c; }
   if (r.mcForce && r.mcForce.t != null && mc.layers.length) { const top = mc.layers[mc.layers.length - 1]; top.t = r.mcForce.t; mc.layers.forEach(l => { l.w = l === top ? 1 : 0; }); }
   while (mc.layers.length > 1 && mc.layers[0].w < .01) mc.layers.shift();

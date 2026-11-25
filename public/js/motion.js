@@ -218,10 +218,20 @@ const BASE = {
   },
   // v56 키스 중 상체·고개 숙임은 couple.js(키 차이 맞춤·얼굴 조준)로 옮김(여기선 0.03만) — 두 사람이 똑같이 허리를 0.19rad 꺾던 문제
   // v9 부르스(블루스): 마주 보고 천천히 좌우로 흔들기. 리드는 손을 상대 허리에, 상대는 어깨에. u.kissK(0~1) 로 서로 기울임
+  // v80 커플마다 다른 블루스: u.bSt = { style, tempo, ph, amp } 를 두 사람이 '같은 객체'로 공유(party.js·karaoke.js) → 한 커플은 서로 박자가 맞고, 커플끼리는 스타일·빠르기·위상이 다름
+  //   sway 좌우 흔들기 · rock 앞뒤로 흔들며 체중 이동 · box 박스 스텝(4박 발 바꾸기) · cheek 볼 맞대고 거의 제자리 · bounce 무릎으로 가볍게 튕기는 투스텝
   blues(p, t, u) {
-    const s = Math.sin(t * 1.55), w = Math.sin(t * .77), k = u.kissK || 0;
-    p.bodyX = .035 * s; p.hipsY = u.hipH - .012 * Math.abs(s); p.legL = [.06 * s, 0, -.04]; p.legR = [-.06 * s, 0, .04]; p.knL = [Math.max(0, s) * .14, 0, 0]; p.knR = [Math.max(0, -s) * .14, 0, 0];
-    const tl = u.kissDeep ? .16 + .05 * Math.sin(t * 1.3) : .1; p.torso = [.07 + .03 * k, .05 * w, -.04 * s]; p.head = [.1 * (1 - k), .12 * w * (1 - k) + (u.kissDeep ? .1 * Math.sin(t * .9) * k : 0), (u.bluesLead ? tl : -tl) * k + .05 * s * (1 - k)];
+    const St = u.bSt, st = St ? St.style : 'sway', am = St ? St.amp : 1; if (St) t = performance.now() / 1000 * St.tempo + St.ph;   // 공유 시계(두 사람 같은 위상)
+    const s = Math.sin(t * 1.55), w = Math.sin(t * .77), k = u.kissK || 0, mir = u.bluesLead ? 1 : -1;   // 마주 보므로 상대는 좌우 반대
+    p.bodyX = .035 * s * am; p.hipsY = u.hipH - .012 * Math.abs(s); p.legL = [.06 * s, 0, -.04]; p.legR = [-.06 * s, 0, .04]; p.knL = [Math.max(0, s) * .14, 0, 0]; p.knR = [Math.max(0, -s) * .14, 0, 0];
+    let tx = .07 + .03 * k, tz = -.04 * s * am;
+    if (st === 'rock') { const f = Math.sin(t * 1.2) * am * mir; p.bodyX = .012 * s; p.bodyZ = .04 * f; p.legL = [-.1 * f, 0, -.04]; p.legR = [.1 * f, 0, .04]; p.knL = [Math.max(0, f) * .2, 0, 0]; p.knR = [Math.max(0, -f) * .2, 0, 0]; tx += .04 * f; tz *= .4; }
+    else if (st === 'box') { const q = t * .78, ph = ((q % 4) + 4) % 4, e = .5 - .5 * Math.cos((ph % 1) * Math.PI), sd = ph < 1 ? e : ph < 2 ? 1 : ph < 3 ? 1 - e : 0, fw = (ph < 2 ? 1 : -1) * Math.sin((ph % 2) / 2 * Math.PI) * mir;
+      p.bodyX = (sd - .5) * .07 * am; p.bodyZ = fw * .03; p.legL = [-.12 * fw, 0, -.04 - .06 * sd]; p.legR = [.12 * fw, 0, .04 + .06 * (1 - sd)]; p.knL = [Math.abs(fw) * .16 + .03, 0, 0]; p.knR = [Math.abs(fw) * .1 + .03, 0, 0]; tz = -.05 * (sd - .5); }
+    else if (st === 'cheek') { p.bodyX = .015 * s; p.legL = [.03 * s, 0, -.04]; p.legR = [-.03 * s, 0, .04]; p.knL = [.04 + Math.max(0, s) * .05, 0, 0]; p.knR = [.04 + Math.max(0, -s) * .05, 0, 0]; tx = .12 + .03 * k; tz = -.02 * s; }
+    else if (st === 'bounce') { const bb = Math.abs(Math.sin(t * 2.1)); p.hipsY = u.hipH - .028 * bb * am; p.knL = [.06 + .22 * bb, 0, 0]; p.knR = [.06 + .22 * bb, 0, 0]; p.legL = [-.08 * bb + .05 * s, 0, -.05]; p.legR = [-.08 * bb - .05 * s, 0, .05]; p.bodyX = .03 * s * am; }
+    const tl = u.kissDeep ? .16 + .05 * Math.sin(t * 1.3) : .1; p.torso = [tx, .05 * w, tz]; p.head = [.1 * (1 - k), .12 * w * (1 - k) + (u.kissDeep ? .1 * Math.sin(t * .9) * k : 0), (u.bluesLead ? tl : -tl) * k + .05 * s * (1 - k)];
+    if (st === 'cheek') p.head[2] += (u.bluesLead ? .14 : -.14) * (1 - k);   // 볼 맞대기: 서로 반대쪽으로 고개를 기울임
     if (u.bluesLead) { p.shL = [-.59, .02, -.19]; p.elL = [-1.08, 0, 0]; p.shR = [-.59, -.02, .19]; p.elR = [-1.08, 0, 0]; }     // 손: 상대 허리 옆 (IK)
     else { p.shL = [-1.24, -.04, -.05]; p.elL = [-1.08, 0, 0]; p.shR = [-1.29, -.01, .1]; p.elR = [-.94, 0, 0]; }                  // 손: 상대 어깨 위 (IK)
     BLUES_ACT(p, u);
@@ -404,6 +414,7 @@ function update(a, dt, opt = {}) {
     s[0] += (tg[0] - s[0]) * k; s[1] += (tg[1] - s[1]) * k; s[2] += (tg[2] - s[2]) * k; B.rotation.set(s[0], s[1], s[2]); }
   R.hips.position.y += ((p.hipsY != null ? p.hipsY : u.hipH) - R.hips.position.y) * k;
   R.body.position.y += ((p.bodyY || 0) - R.body.position.y) * k; R.body.position.x += ((p.bodyX || 0) - R.body.position.x) * k;
+  R.body.position.z += ((p.bodyZ || 0) - R.body.position.z) * k;   // v80 앞뒤 체중 이동(블루스 rock·box)
   // 호흡: 어깨가 아주 미세하게 오르내림
   { const br = Math.sin(m.t * 1.45 + u.seed * 6); if (u.shY == null) { u.shY = R.shL.position.y; } R.shL.position.y = R.shR.position.y = u.shY + .0045 * br; R.torso.rotation.x += .008 * br; }
   if (u.skirt) u.skirt.scale.y += ((u.seated ? .45 : 1) - u.skirt.scale.y) * k;

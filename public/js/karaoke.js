@@ -614,6 +614,7 @@ function startBlues(n) {
   BL.s0 = { px: P.x, pz: P.z, nx: n.x, nz: n.z };   // v39 Approach: 순간이동 없이 지금 자리에서 걸어와 자리 잡음
   BL.n = n; BL.t = 0; BL.t0 = performance.now(); BL.kiss = 0; n.state = 'blues'; n.g.userData.lookAt = null; P.group.userData.lookAt = null;
   BL.glass = [P.group.userData.holdGlass, n.g.userData.holdGlass]; P.group.userData.holdGlass = n.g.userData.holdGlass = false;
+  { const st = NC.bluesStyle ? NC.bluesStyle() : null; P.group.userData.bSt = n.g.userData.bSt = st; }   // v80 나와 추는 블루스도 상대마다 스타일이 다름
   P.group.userData.dance = 'blues'; P.group.userData.bluesLead = true; n.g.userData.dance = 'blues'; n.g.userData.bluesLead = false; P.group.userData.hideLabel = n.g.userData.hideLabel = true;
   D.npcSay(n.aff >= 75 ? U.pick(['좋아요… 천천히 리드해 줘요 💗', '이 노래 너무 좋다… 가까이 와요']) : U.pick(['음… 한 곡만이에요? ㅎㅎ', '부르스 진짜 오랜만이다 ㅋㅋ 발 밟지 마요!']), 'shy');
   if (!n.bl.danced) { n.bl.danced = true; aff(n, 3); }

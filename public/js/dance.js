@@ -122,10 +122,12 @@ const C = { x: 0, z: -9.4 };   // 무대 앞 댄스플로어(world.js zones.danc
 const AUD_SHOUT = ['와아아~!!', '미쳤다 미쳤어!! 🔥', '오오오오~!!', '한 바퀴 더!!', '대박!!', '꺄아~!! 👏', '리듬 봐 리듬!!'];
 const btnBar = document.createElement('div'); btnBar.id = 'dkBar';
 btnBar.style.cssText = 'position:fixed;left:50%;top:118px;transform:translateX(-50%);z-index:61;display:none;gap:8px';
-btnBar.innerHTML = '<button data-a="watch" type="button">👀 구경하기</button><button data-a="join" type="button">🙋 나도 참가</button>';
-[...btnBar.children].forEach(b => { b.style.cssText = 'padding:8px 16px;border:0;border-radius:999px;background:linear-gradient(90deg,#ff3d9a,#8a3dff);color:#fff;font:700 14px/1.2 inherit;box-shadow:0 4px 16px #0008;cursor:pointer'; });
+btnBar.innerHTML = '<button data-a="watch" type="button">👀 구경하기</button><button data-a="join" type="button">🙋 나도 참가</button><button data-a="stop" type="button" title="댄싱 킹/퀸 이벤트를 지금 끝냄">⏹ 이벤트 끝내기</button>';   // v80 끝내기
+[...btnBar.children].forEach(b => { b.style.cssText = (b.dataset.a === 'stop' ? 'background:#444a63!important;' : '') + 'padding:8px 16px;border:0;border-radius:999px;background:linear-gradient(90deg,#ff3d9a,#8a3dff);color:#fff;font:700 14px/1.2 inherit;box-shadow:0 4px 16px #0008;cursor:pointer'; });
 document.body.appendChild(btnBar);
-btnBar.onclick = e => { const a = e.target && e.target.dataset && e.target.dataset.a; if (!a || !DK.S) return; e.stopPropagation(); if (a === 'watch') watch(); else join(); };
+btnBar.onclick = e => { const a = e.target && e.target.dataset && e.target.dataset.a; if (!a || !DK.S) return; e.stopPropagation();
+  if (a === 'stop') { djSay('오늘 댄싱 킹·퀸은 여기까지~!! 다들 수고하셨어요 👏'); announce('⏹ 댄싱 킹/퀸 이벤트 종료', 3, '#9aa3c7'); DK.stop(); NC.ui.toast('⏹ 댄싱 킹/퀸 이벤트를 끝냈어요'); return; }
+  if (a === 'watch') watch(); else join(); };
 const announce = (t, s, c) => { const F = NC.Features; if (F && F.announce) F.announce(t, s, c); else NC.ui.toast(t); };
 const djSay = t => { if (NC.DJ) bubble(NC.DJ, t, 4); NC.ui.chatAdd && NC.ui.chatAdd('🎧 DJ 루나', t); };
 function avail(n) {
@@ -275,10 +277,26 @@ function dkTick(dt) {
   } else if (DK.phase === 'end') { if (S.phT > 3) DK.stop(); }
 }
 
+/* ═════ 4. v80 무대 춤·디스코 타임: 손님마다 가끔 턴(한 바퀴·두 바퀴)·점프 — 다른 시스템이 정한 몸 방향에 '더해서' 돌기 때문에 끝나면 원래 방향 ═════ */
+const SPN = new Map(); let spnT = 0;
+function spinTick(dt) {
+  spnT -= dt;
+  if (spnT <= 0) { spnT = .6;
+    const disco = NC.Party && NC.Party.mode === 'disco';
+    for (const n of NC.npcs || []) { const g = n.g, u = g && g.userData; if (!u || !g.visible || u.moving || u.seated || SPN.has(g) || FL.has(g) || n._dk || n._sd) continue;
+      const hard = u.dance === 'stageDance' || (disco && u.dance === 'groove'); if (!hard) continue;
+      if (Math.random() > .085 || SPN.size >= 8) continue;   // 한 사람당 대략 7초에 한 번
+      const big = Math.random() < .3; SPN.set(g, { t: 0, dur: big ? 1.1 : .7, turns: big ? 2 : 1, dir: Math.random() < .5 ? 1 : -1, last: 0, hop: Math.random() < .5 ? .07 : 0, y0: g.position.y }); } }
+  for (const [g, s] of SPN) { s.t += dt; const k = Math.min(1, s.t / s.dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2, a = e * Math.PI * 2 * s.turns * s.dir;
+    g.rotation.y += a - s.last; s.last = a;
+    if (s.hop) { g.position.y = s.y0 + Math.sin(k * Math.PI) * s.hop; if (NC.Pose && NC.Pose.claim) NC.Pose.claim(g, 'dance-spin', 'custom', .25); }
+    if (k >= 1) { if (s.hop) g.position.y = s.y0; SPN.delete(g); } }
+}
 NC.tickers.push(dt => { if (!dt) return; dt = Math.min(dt, .1);
   try { showTick(dt); } catch (e) { console.error('[dance] show', e); try { SD.stop(true); } catch (e2) { SD.on = null; } }
   try { dkTick(dt); if (DK.S && DK.S.t > 60 + DK.S.cont.length * (DK.DUR + 25)) { console.warn('[dance] 댄싱 킹/퀸 시간 초과 → 정리'); DK.stop(); } }
   catch (e) { console.error('[dance] dk', e); try { DK.stop(); } catch (e2) { DK.phase = null; DK.S = null; } btnBar.style.display = 'none'; }   // v79 오류가 나도 이벤트·버튼이 남지 않게
-  try { flairTick(dt); } catch (e) { console.error('[dance] flair', e); } });
+  try { flairTick(dt); } catch (e) { console.error('[dance] flair', e); }
+  try { spinTick(dt); } catch (e) { console.error('[dance] spin', e); SPN.clear(); } });
 console.info('[dance] v78 신나게 춤추기 · 댄싱 킹/퀸 이벤트');
 })();
