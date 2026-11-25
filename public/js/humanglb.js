@@ -309,6 +309,7 @@ function apply(r, dt) {
   if (M) { r.holder.position.x -= R.body.position.x * u.figScale * M.w; r.holder.position.y -= R.body.position.y * u.figScale * M.w; r.holder.position.z -= R.body.position.z * u.figScale * M.w;   // v54 절차 몸 흔들림은 모션캡처가 대신
     try { RH.MC.post(r, M); } catch (e) { if (!RH._mcErr2) { RH._mcErr2 = 1; console.warn('[mocap ik]', e); } } }
   coupleBody(r, u, dt);
+  if (!r.lod && (u.dance === 'blues' || (r.fpW || 0) > .004 || u.bAct)) { try { legGuard(r, u, dt); } catch (e) { if (!RH._lgErr) { RH._lgErr = 1; console.warn('[legGuard]', e); } } }
   const F = r.face; if (F) {
     const W = AK[u.expr] || AK.neutral; for (const k in W) setMorph(F, k, W[k]);
     r.blinkW += ((u.blink ? 1 : 0) - r.blinkW) * Math.min(1, dt * 30); if (r.blinkW > .02) { setMorph(F, 'eyeBlinkLeft', Math.max(W.eyeBlinkLeft || 0, r.blinkW)); setMorph(F, 'eyeBlinkRight', Math.max(W.eyeBlinkRight || 0, r.blinkW)); setMorph(F, 'eyesClosed', r.blinkW); }
@@ -354,6 +355,29 @@ function coupleBody0(r, u, dt) {
         const axis = new T.Vector3().crossVectors(d, new T.Vector3(0, -1, 0)); if (axis.lengthSq() > 1e-6) { axis.normalize(); const ang = Math.min(.45, Math.asin(Math.min(.9, toe * w * 1.6 / Math.max(.08, len * 1.4))));
           const qw = C.getWorldQuaternion(new T.Quaternion()), dq = _fq.setFromAxisAngle(axis, ang), pq = C.parent.getWorldQuaternion(new T.Quaternion()).invert(); C.quaternion.copy(pq.multiply(dq.multiply(qw))); } } } }
   }
+}
+
+/* v79 무릎 방향 지킴이(블루스·커플 동작 중): 발 고정 IK·모션캡처 리타깃이 겹치면 다리가 거의 펴진 순간 굽힘 평면이 흔들려
+ *  무릎이 뒤로(역관절)·옆으로 꺾이던 문제 → 엉덩이→발목 축을 중심으로 허벅지를 돌려 무릎이 '몸 앞쪽(살짝 바깥)'을 향하게 맞춤.
+ *  발목 위치는 축 위라 그대로(발은 바닥에 붙은 채) · 앞쪽 ±0.45rad 안이면 손대지 않음 */
+const _la = new T.Vector3(), _lb = new T.Vector3(), _lc = new T.Vector3(), _lx = new T.Vector3(), _lk = new T.Vector3(), _lp = new T.Vector3(), _lq = new T.Quaternion(), _lg = new T.Quaternion(), _lgi = new T.Quaternion();
+function legGuard(r, u, dt) {
+  const Bn = r.Bn; if (!Bn.ulL || !Bn.llL || !Bn.footL || !Bn.ulR || !Bn.llR || !Bn.footR) return;
+  r.model.updateMatrixWorld(true); const yaw = r.root.rotation.y, fx = Math.sin(yaw), fz = Math.cos(yaw), lx = Math.cos(yaw), lz = -Math.sin(yaw);   // 앞 · 캐릭터 왼쪽
+  let fixed = 0, maxBend = 0;
+  for (const sd of ['L', 'R']) {
+    const A = Bn['ul' + sd], B = Bn['ll' + sd], C = Bn['foot' + sd];
+    A.getWorldPosition(_la); B.getWorldPosition(_lb); C.getWorldPosition(_lc);
+    _lx.copy(_lc).sub(_la); const len = _lx.length(); if (len < 1e-4) continue; _lx.divideScalar(len);
+    _lk.copy(_lb).sub(_la); _lk.addScaledVector(_lx, -_lk.dot(_lx)); const kl = _lk.length();
+    const bend = Math.PI - _la.clone().sub(_lb).angleTo(_lc.clone().sub(_lb)); if (bend > maxBend) maxBend = bend;
+    if (kl < .012 || bend < .12) continue;                                  // 거의 펴진 다리는 방향이 의미 없음
+    const out = sd === 'L' ? .28 : -.28; _lp.set(fx + lx * out, 0, fz + lz * out); _lp.addScaledVector(_lx, -_lp.dot(_lx)); if (_lp.lengthSq() < 1e-6) continue; _lp.normalize(); _lk.divideScalar(kl);
+    let ang = Math.acos(U.clamp(_lk.dot(_lp), -1, 1)); const sgn = Math.sign(_lx.dot(_lk.clone().cross(_lp))) || 1;
+    if (ang <= .45) continue; const rot = (ang - .45) * sgn * Math.min(1, dt * 18 + .35);   // 앞쪽 ±0.45rad 범위 밖만 되돌림(급하면 한 번에 크게)
+    A.getWorldQuaternion(_lg); _lgi.copy(_lg).invert(); _lq.setFromAxisAngle(_lx, rot); A.quaternion.multiply(_lgi.clone().multiply(_lq).multiply(_lg)); A.updateMatrixWorld(true); fixed++;
+  }
+  RH.stats.knee = (RH.stats.knee || 0) + fixed; RH.stats.kneeMax = Math.max(RH.stats.kneeMax || 0, +maxBend.toFixed(2));
 }
 
 /* v56 얼굴 접촉 IK(키스·이마·볼): 보이는 모델의 가슴·목·머리 3관절 CCD 로 내 입술(이마)을 두 사람 사이의 만나는 점까지 옮기고, 코가 부딪치지 않게 서로 반대로 고개를 기울임

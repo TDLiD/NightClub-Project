@@ -228,6 +228,7 @@ DK.stop = () => {
   DK.next = now() + 540 + Math.random() * 300;
 };
 function dkTick(dt) {
+  { const on = !!DK.S && ['gather', 'enter', 'dance', 'score', 'next'].includes(DK.phase) && !(NC.Karaoke && NC.Karaoke.inRoom) && !(NC.Motel && NC.Motel.on), want = on ? 'flex' : 'none'; if (btnBar.style.display !== want) btnBar.style.display = want; }   // v79 이벤트가 끝나면(어떤 경로로 끝나든) 버튼을 반드시 숨김
   if (!DK.phase) {
     if (!NC.started || now() < DK.next) return;
     const p = P(), inRoom = (NC.Karaoke && NC.Karaoke.inRoom) || (NC.Motel && NC.Motel.on) || (NC.Outside && NC.Outside.on);
@@ -259,6 +260,7 @@ function dkTick(dt) {
       if (!S.win) return DK.stop();
       const wg = gOf(S.win), fem = S.win.me ? (P().group.userData.gender === 'f') : S.win.n.gender === 'f';
       announce(`👑 오늘의 댄싱 ${fem ? '퀸' : '킹'}은 ${nameOf(S.win)}!! (${S.win.score}점) 👑`, 7, '#ffd23d');
+      (DK.winners = DK.winners || []).push({ name: nameOf(S.win), score: S.win.score, title: fem ? '퀸' : '킹', me: !!S.win.me, at: Date.now() });
       djSay(`오늘의 댄싱 ${fem ? '퀸' : '킹'}!! ${nameOf(S.win)}~!!! 헹가래 갑니다~!! 🎉`);
       if (NC.fx && NC.fx.confetti) NC.fx.confetti(wg.position.x, 2.2, wg.position.z, 120);
       btnBar.style.display = 'none';
@@ -273,6 +275,10 @@ function dkTick(dt) {
   } else if (DK.phase === 'end') { if (S.phT > 3) DK.stop(); }
 }
 
-NC.tickers.push(dt => { if (!dt) return; dt = Math.min(dt, .1); try { showTick(dt); dkTick(dt); flairTick(dt); } catch (e) { console.error('[dance]', e); } });
+NC.tickers.push(dt => { if (!dt) return; dt = Math.min(dt, .1);
+  try { showTick(dt); } catch (e) { console.error('[dance] show', e); try { SD.stop(true); } catch (e2) { SD.on = null; } }
+  try { dkTick(dt); if (DK.S && DK.S.t > 60 + DK.S.cont.length * (DK.DUR + 25)) { console.warn('[dance] 댄싱 킹/퀸 시간 초과 → 정리'); DK.stop(); } }
+  catch (e) { console.error('[dance] dk', e); try { DK.stop(); } catch (e2) { DK.phase = null; DK.S = null; } btnBar.style.display = 'none'; }   // v79 오류가 나도 이벤트·버튼이 남지 않게
+  try { flairTick(dt); } catch (e) { console.error('[dance] flair', e); } });
 console.info('[dance] v78 신나게 춤추기 · 댄싱 킹/퀸 이벤트');
 })();

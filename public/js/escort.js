@@ -25,9 +25,10 @@ function spawn() {
     const g = NC.Avatar.create({ name: '🤵 ' + title, look: Object.assign({}, LOOK), seed: U.hash('esc' + id), expr: 'smile', labelColor: '#ffd23d' });
     g.userData.wardrobe = 'waiter_shirt'; g.userData.outfit = 'main';
     const x = -9 + i * 9, z = (W.corridorY || 10.75) - .4; g.position.set(x, 0, z); NC.scene.add(g);
-    ES.list.push({ id, title, g, x, z, state: 'idle', wait: 6 + i * 7 + Math.random() * 6, path: null, n: null, w: 0, t: 0, speed: 1.9 });
+    ES.list.push({ id, title, g, x, z, state: 'idle', wait: 6 + i * 7 + Math.random() * 6, path: null, n: null, w: 0, t: 0, speed: 1.9, home: { x, z } });
   });
 }
+ES.walkTo = (o, to, sp) => walkTo(o, to, sp); ES.step = (o, dt) => step(o, dt);   // v79 events.js(샴페인 쇼)가 웨이터를 잠깐 빌려 씀 — state 'show' 동안은 이 파일의 상태 머신이 건드리지 않음
 function walkTo(o, to, speed) { o.path = NC.NPC && NC.NPC.planPath ? NC.NPC.planPath(o, to) : [to]; if (!o.path || !o.path.length) o.path = [to]; o.speed = speed || o.speed; }
 function step(o, dt) {   // 경로 따라 걷기 → 도착하면 true
   const p = o.path && o.path[0]; if (!p) { o.g.userData.moving = false; return true; }
