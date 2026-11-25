@@ -73,6 +73,8 @@ box.addEventListener('click', e => {
   const n = (NC.npcs || []).find(x => String(x.id) === row.dataset.id); if (!n) return;
   if (pickCb) { const cb = pickCb; endPick(false); cb(n); return; }   // 부킹 지목
   if (NC.Rooms && NC.Rooms.current && NC.Rooms.current() || (NC.Karaoke && NC.Karaoke.inRoom)) return NC.ui.toast(`📍 ${n.name} — ${whereN(n)} (방 밖으로 나가면 찾아갈 수 있어요 · 🔔 웨이터로 부킹 가능)`);
+  if (n.stay === 'smoke' && NC.Rooms && NC.Rooms.go) { NC.ui.toast(`🚬 ${n.name}님은 흡연실에 있어요 — 흡연실로 안내할게요`); return NC.Rooms.go(NC.Rooms.smoke); }   // v77 홀에 없는 손님: 있는 곳으로 안내
+  if (n.stay || !n.g.visible) return NC.ui.toast(`📍 ${n.name} — ${whereN(n)} (지금은 홀에 없어요 · 🔔 웨이터로 부킹 가능)`);
   goTo({ n, name: n.name, pos: () => ({ x: n.x, z: n.z }) });
 });
 

@@ -279,7 +279,7 @@ function smoke() { const P = NC.player; Mo.play(P.group, 'smoke'); puff(P.group)
 /* 흡연실 손님 배치 */
 let smokeT = 2;
 function initSmokers() {   // v24 흡연 손님 2명(남·여)을 채움 — 비어 있으면 몇 초마다 다시 시도
-  const pool = (NC.npcs || []).filter(n => (n.role === 'crowd' || n.role === 'persona') && n.enabled && !n.stay && !n.gone && !n.g.userData.vrm && !n.booked && !['seated', 'talk', 'escort', 'off', 'stay', 'party'].includes(n.state) && !(NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.n === n));
+  const pool = (NC.npcs || []).filter(n => (n.role === 'crowd' || n.role === 'persona') && n.enabled && !(n.def && (n.def.always || n.def.wardrobe)) && !n.stay && !n.gone && !n.g.userData.vrm && !n.booked && !['seated', 'talk', 'escort', 'off', 'stay', 'party'].includes(n.state) && !(NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.n === n));
   ['m', 'f'].forEach(gd => { if (SM.npcs.length >= 2 || SM.npcs.some(o => o.gender === gd)) return; const n = pool.find(o => o.gender === gd && o.role === 'crowd' && !SM.npcs.includes(o)) || pool.find(o => o.gender === gd && !SM.npcs.includes(o)); if (!n) return;   // 일반 손님 우선, 없으면 주요 인물
     const used = SM.npcs.map(o => o.smokeTable), k = [0, 1, 2].find(q => !used.includes(q)), t = SM.tables[k];
     n.stay = 'smoke'; n.smokeTable = k; n.booked = true; n.state = 'stay'; n.aff = n.aff ?? 40; n.x = SM.cx + t.x + .55; n.z = SM.cz + t.z + .2; n.g.position.set(n.x, 0, n.z); n.g.rotation.y = -Math.PI / 2; n.g.visible = cur === SM; n.g.userData.lookAt = null; n.g.userData.moving = false; SM.npcs.push(n); });

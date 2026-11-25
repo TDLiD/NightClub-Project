@@ -26,7 +26,9 @@ whenCfg().then(C => {
   /* 지금 고른 모델: 회원(characterNo) → cfg.full.realModel → 마지막 선택 → 성별 풀 첫 번째 */
   const current = g => { g = g || cfg.gender; const f = cfg.full; if (f && f.realModel && f.gender === g && M(f.realModel)) return f.realModel;
     const r = cfg.realM[g]; if (r && M(r) && M(r).gender === g) return r; const P = pool(g); return P[U.hash(String(cfg.seed)) % Math.min(6, P.length)]; };
-  const select = (g, id) => { cfg.gender = g; cfg.realM[g] = id; cfg.full = lookFor(g, id); cfg.styleName = labelOf(id); try { U.store.set('nc_look', cfg); } catch (e) { } E.renderCustom(); refreshChip(); };
+  const select = (g, id) => { cfg.gender = g; cfg.realM[g] = id; cfg.full = lookFor(g, id); cfg.styleName = labelOf(id); try { U.store.set('nc_look', cfg); } catch (e) { } E.renderCustom(); refreshChip();
+    /* v77 게임 중(내 사진 칩 → 스타일 바꾸기)에 고르면 화면 속 내 캐릭터도 바로 그 모델로 — 전에는 시작 화면 설정만 바뀌어 고른 것과 보이는 게 달랐음 */
+    if (NC.started && NC.rebuildPlayer) { const pl = NC.player && NC.player.group, cur0 = pl && pl.userData.look && pl.userData.look.realModel; if (cur0 !== id) NC.rebuildPlayer(Object.assign({}, cfg.full)); } };
 
   /* ── 번호 체계(회원 DB characterNo 1..N = playerPool 순서) ── */
   const origThumb = E.thumb;
@@ -76,7 +78,8 @@ whenCfg().then(C => {
   }
   document.addEventListener('click', e => { if (e.target.closest('#cGender button, #authTabs button, #lgOut, #lgChar')) setTimeout(refreshChip, 80); }, true);
   { const st = $('#start'); if (st) { const mo = new MutationObserver(() => { if ($('#lgPh') && $('#lgPh').style.display !== 'none') refreshChip(); }); mo.observe(st, { childList: true, subtree: true }); NC.on && NC.on('start', () => mo.disconnect()); } }
-  NC.on && NC.on('player:look', L => { const pg = NC.player && NC.player.group; if (!pg || !L || !L.realModel) return; pg.userData.look.photo = photoOf(L.realModel); if (NC.settings.look) NC.settings.look.photo = pg.userData.look.photo; Pf && Pf.decorate(pg); });
+  NC.on && NC.on('player:look', L => { if (L && L.realModel && M(L.realModel)) { const g0 = M(L.realModel).gender; cfg.gender = g0; cfg.realM[g0] = L.realModel; cfg.full = lookFor(g0, L.realModel); cfg.styleName = labelOf(L.realModel); try { U.store.set('nc_look', cfg); } catch (e) { } }   /* v77 어느 경로로 바꿔도 시작 화면·다음 입장 설정과 일치 */
+    const pg = NC.player && NC.player.group; if (!pg || !L || !L.realModel) return; pg.userData.look.photo = photoOf(L.realModel); if (NC.settings.look) NC.settings.look.photo = pg.userData.look.photo; Pf && Pf.decorate(pg); });
 
   /* ── 입장 직전: 내 look 에 모델·사진 확정(프로필 훅보다 뒤) ── */
   NC.hooks.beforeStart.push(async () => { const L = NC.settings.look; if (!L) return; const g = L.gender || cfg.gender, id = (L.realModel && M(L.realModel) && M(L.realModel).gender === g) ? L.realModel : current(g);

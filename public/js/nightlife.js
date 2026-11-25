@@ -52,8 +52,11 @@ const spicyLine = n => { const a = n.aff || 40; return U.pick(a >= 80 ? SPICY.hi
 
 /* ── ① 스테이지 10초 대기 → 여성이 먼저 접근 ── */
 let idleSince = 0, lastPos = null, coolUntil = performance.now() + 20000, approaching = null;   // 실제 시각(ms) 기준 — 프레임이 느려도 '10초'가 정확
-function startApproach() {
-  const p = P(), cands = (NC.npcs || []).filter(n => female(n) && free(n) && (n.cool || 0) <= 0);
+/* v77 역부킹: 홀 어디서든 무작위 시각(2~5분)에 무작위 여성 손님이 먼저 다가와 부킹을 제안 */
+const BOOK_ASK = ['혼자 오셨어요? 저랑 부킹하실래요? 🍸', '저기요~ 아까부터 눈에 띄던데… 우리 합석할래요? 😊', '오빠, 저 지금 일행이 없는데 같이 놀래요? 💃', '웨이터 기다리기 지루해서 제가 먼저 왔어요 ㅎㅎ 부킹 어때요?', '노래 한 곡 같이 부를 사람 찾고 있었는데… 같이 갈래요? 🎤'];
+let approachKind = 'stage', revNext = performance.now() + (120 + Math.random() * 180) * 1000;
+function startApproach(kind = 'stage') {
+  approachKind = kind; const p = P(), cands = (NC.npcs || []).filter(n => female(n) && free(n) && (n.cool || 0) <= 0 && n.g.visible && (kind === 'stage' || Math.hypot(n.x - p.x, n.z - p.z) < 26));
   if (!cands.length) return; const n = cands.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[Math.floor(Math.random() * Math.min(3, cands.length))];
   summon(n, p.x + 5, p.z + 4); approaching = n; n.cool = 0;
   const ang = p.ry || 0, tx = p.x + Math.sin(ang) * .95, tz = p.z + Math.cos(ang) * .95;
@@ -62,16 +65,20 @@ function startApproach() {
     approaching = null; if (NC.Dialog.cur || P().busy) { NC.NPC.release(n); return; }
     n.aff = Math.max(n.aff || 40, 52); n.bl = n.bl || { kissed: false, warned: 0 };
     n.g.userData.lookAt = P().group.position; Mo.play(n.g, 'wave'); bubble(n.g, '저기요~ 💋');
-    setTimeout(() => { if (!NC.Dialog.cur) NC.Dialog.open(n, { intro: U.pick(APPROACH) }); }, 700);
+    if (kind === 'book') { n.aff = Math.max(n.aff, 60); n._revBook = true; bubble(n.g, '저기요~ 혼자 오셨어요? 💋'); }
+    setTimeout(() => { if (!NC.Dialog.cur) NC.Dialog.open(n, { intro: kind === 'book' ? U.pick(BOOK_ASK) : U.pick(APPROACH) }); }, 700);
   }, 2.4);
 }
 NC.tickers.push(dt => {
   const p = P(); if (!p || !p.group) return;
-  if (approaching) { const n = approaching; if (Math.hypot(n.x - p.x, n.z - p.z) > 9 || NC.Dialog.cur || p.zone !== 'stage') { approaching = null; if (!NC.Dialog.cur || NC.Dialog.cur.n !== n) NC.NPC.release(n); } return; }
+  if (approaching) { const n = approaching; if (Math.hypot(n.x - p.x, n.z - p.z) > (approachKind === 'book' ? 30 : 9) || NC.Dialog.cur || (approachKind === 'stage' && p.zone !== 'stage') || p.room >= 0) { approaching = null; if (!NC.Dialog.cur || NC.Dialog.cur.n !== n) NC.NPC.release(n); } return; }
   const moved = !lastPos || Math.hypot(p.x - lastPos.x, p.z - lastPos.z) > .05; lastPos = { x: p.x, z: p.z };
   const quiet = p.zone === 'stage' && !moved && !p.seat && !p.busy && !NC.Dialog.cur && !p.autoPath && !(NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n);
   const now = performance.now(); if (!quiet) idleSince = now; else if (!idleSince) idleSince = now;
   if (quiet && now - idleSince > 10000 && now > coolUntil) { idleSince = now; coolUntil = now + 60000; startApproach(); }
+  /* 역부킹(로그인·손님 모두): 홀에 있고 한가할 때만 — 방·대화·블루스·이동 중엔 미룸 */
+  const hall = p.room < 0 && !(NC.Karaoke && NC.Karaoke.inRoom) && !(NC.Rooms && NC.Rooms.current && NC.Rooms.current()) && !((NC.world && NC.world.extraZones) || []).some(e => e.test(p.x, p.z));
+  if (now > revNext) { if (hall && !p.busy && !NC.Dialog.cur && !(NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n) && !(NC.PairWalk && NC.PairWalk.active && NC.PairWalk.active())) { revNext = now + (120 + Math.random() * 180) * 1000; coolUntil = Math.max(coolUntil, now + 30000); startApproach('book'); } else revNext = now + 15000; }
 });
 
 /* ── ② 술 취한 아가씨 ── */
@@ -162,5 +169,6 @@ NC.interactProviders.push(() => {
   return [{ label: NC.goldenFree() ? `🔔 골든벨 ALL PAY 진행 중 (${Math.ceil((freeUntil - performance.now()) / 1000)}초)` : `🔔 골든벨 울리기 (🪙${bellCost()})`, dist: d - .3, run: () => { if (NC.goldenFree()) return NC.ui.toast('🔔 이미 ALL PAY 진행 중이에요! 마음껏 주문하세요 🥂'); ringBell(); } }];
 });
 NC.Nightlife = { bubble, makeDrunk, startApproach, ringBell, dash, BELL, resetCool: () => { coolUntil = 0; } };
+NC.Nightlife = Object.assign(NC.Nightlife || {}, { reverseBook: () => startApproach('book') });
 console.info('[nightlife] 골든벨 · 취한 손님 · 먼저 말 거는 손님 준비 완료');
 })();

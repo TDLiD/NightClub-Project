@@ -251,7 +251,14 @@ NC.tickers.push(dt => {
   const sw = innerWidth, sh = innerHeight, talk = document.getElementById('talk'), lim = talk && talk.offsetParent ? talk.getBoundingClientRect().left - 8 : sw - 8;
   const cw = card.offsetWidth || 190, ch = card.offsetHeight || 220; let x = (v3.x * .5 + .5) * sw + 34, y = (-v3.y * .5 + .5) * sh - ch * .35;
   if (x + cw > lim) x = Math.max(8, Math.min(lim - cw, (v3.x * .5 + .5) * sw - cw - 34)); y = Math.max(54, Math.min(sh - ch - 70, y));
-  card.style.transform = `translate(${x | 0}px, ${y | 0}px)`; card.style.opacity = '1';
+  if (dancing) {   /* v76 블루스 중 커서를 올리면: 얼굴을 가리지 않게 머리 위에(작게) — 위쪽 공간이 없으면 얼굴 옆으로 비켜서 */
+    const hgt = (n.g.userData.look && n.g.userData.look.height) || 1.65, hp = n.g.position, tp = v3.set(hp.x, hp.y + hgt + .12, hp.z).project(cam), tx = (tp.x * .5 + .5) * sw, ty = (-tp.y * .5 + .5) * sh;
+    const fc = new T.Vector3(hp.x, hp.y + hgt - .1, hp.z).project(cam), fy = (-fc.y * .5 + .5) * sh, headPx = Math.max(40, (fy - ty) * 1.4), sc = .82, w2 = cw * sc, h2 = ch * sc;
+    x = tx - w2 / 2; y = ty - h2 - 10;
+    if (y < 8) { y = Math.max(8, ty - 10); x = tx + headPx + 18; if (x + w2 > lim) x = tx - headPx - 18 - w2; }
+    x = Math.max(8, Math.min(lim - w2, x));
+    card.style.transformOrigin = '0 0'; card.style.transform = `translate(${x | 0}px, ${y | 0}px) scale(${sc})`; card.style.opacity = '1'; return; }
+  card.style.transformOrigin = ''; card.style.transform = `translate(${x | 0}px, ${y | 0}px)`; card.style.opacity = '1';
 });
 
 /* 스타일 */

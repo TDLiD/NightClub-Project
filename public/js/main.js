@@ -82,10 +82,15 @@ function clickMove(v, r) {
   if (P.seat) NC.requestStand();
   const path = !inExtra && NC.Path ? NC.Path.find(P, to) : null;
   if (path) { sitAfter = path.snapped; const end = path[path.length - 1];
-    NC.walkPlayer(path, () => { if (!sitAfter) return; const a = computeAct(x => /앉기/.test(x.label)); if (a && !(NC.isGuest && NC.isGuest())) a.run(); });
+    NC.walkPlayer(path, () => { stageView(); if (!sitAfter) return; const a = computeAct(x => /앉기/.test(x.label)); if (a && !(NC.isGuest && NC.isGuest())) a.run(); });
     P.autoSpeed = P.speed; marker.position.set(end.x, NC.groundY(end.x, end.z) + .03, end.z); marker.material.opacity = .9; }
-  else { P.autoPath = null; P.target = to; marker.position.set(to.x, .03, to.z); marker.material.opacity = .9; }
+  else { P.autoPath = null; P.target = to; P._stageView = !inExtra; marker.position.set(to.x, .03, to.z); marker.material.opacity = .9; }
 }
+/* v77 클릭으로 이동해 도착하면: 무대 정면이 보이게(무대 반대편 뒤에서) 적당히 당겨 잡은 시점으로 1.2초 동안 부드럽게 — 메인 홀에서만, 화면을 끌면 즉시 멈춤 */
+function stageView() { const sz = W.zones && W.zones.stage; if (!sz || P.room >= 0 || (W.extraZones || []).some(e => e.test(P.x, P.z)) || (NC.Karaoke && NC.Karaoke.inRoom) || P.y > 3) return;
+  const sx = (sz.x0 + sz.x1) / 2, szc = (sz.z0 + sz.z1) / 2, d = Math.hypot(P.x - sx, P.z - szc); if (d < 1.5) return;
+  NC._camTween = { t: 0, yaw: Math.atan2(P.x - sx, P.z - szc), dist: U.clamp(d * .32 + 3.2, 4.5, 8), pitch: .42 }; }
+NC.stageView = stageView;
 NC.tickers.push(dt => { if (marker.material.opacity > 0) { marker.material.opacity = Math.max(0, marker.material.opacity - dt * (P.autoPath || P.target ? .25 : 2)); marker.scale.setScalar(1 + .15 * Math.sin(performance.now() / 120)); } });
 if (matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window) {
   const jb = $('#joy'), jk = jb.firstElementChild; let jid = null;
@@ -166,7 +171,7 @@ function frame() {
       let mx = 0, mz = 0, sp = P.speed;
       if (kl > .1 && !P.busy) { const l = Math.min(1, kl), sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw); mx = ((kx / kl) * cy + (ky / kl) * -sy) * l; mz = ((kx / kl) * -sy + (ky / kl) * -cy) * l; moving = true; }
       else if (P.autoPath) { const p = P.autoPath[0]; if (!p) { const f = P.onAuto; P.autoPath = null; P.onAuto = null; f && f(); } else { const dx = p.x - P.x, dz = p.z - P.z, d = Math.hypot(dx, dz); if (d < .35 || P.autoStuck > 1.2) { if (P.autoStuck > 1.2 && NC.Path && !P.replanned) { const last = P.autoPath[P.autoPath.length - 1], np = NC.Path.find(P, last); P.replanned = true; if (np) P.autoPath = np; else P.autoPath.shift(); } else P.autoPath.shift(); P.autoStuck = 0; if (!P.autoPath.length) P.replanned = false; } else { mx = dx / d; mz = dz / d; moving = true; sp = P.autoSpeed || 4.2; } } }
-      else if (P.target && !P.busy) { const dx = P.target.x - P.x, dz = P.target.z - P.z, d = Math.hypot(dx, dz); if (d < .25) P.target = null; else { mx = dx / d; mz = dz / d; moving = true; } }
+      else if (P.target && !P.busy) { const dx = P.target.x - P.x, dz = P.target.z - P.z, d = Math.hypot(dx, dz); if (d < .25) { P.target = null; if (P._stageView) { P._stageView = false; stageView(); } } else { mx = dx / d; mz = dz / d; moving = true; } }
       if (moving) { const px = P.x, pz = P.z; P.x += mx * sp * dt; P.z += mz * sp * dt; NC.collide(P, .4); const moved = Math.hypot(P.x - px, P.z - pz); if (moved < sp * dt * .25) { P.autoStuck += dt; if (P.target) P.target = null; } P.ry = U.lerpAngle(P.ry, Math.atan2(mx, mz), Math.min(1, dt * 12)); P.group.rotation.y = P.ry; }
       const gy = NC.groundOverride ? NC.groundOverride(P.x, P.z) : null; P.y += ((gy != null ? gy : NC.groundY(P.x, P.z)) - P.y) * Math.min(1, dt * 12);   // v18: 테이블 위 등 임시 바닥
       P.group.position.set(P.x, P.y, P.z); P.group.userData.moving = moving;
@@ -189,7 +194,8 @@ function frame() {
     } else if (dlgCam.armed) { dlgCam.on = false; dlgCam.armed = false; }
     if (f) { camTarget.set(f.tx, f.ty, f.tz); camPos.set(f.cx, f.cy, f.cz);
       if (innerWidth > 800 && !f.free) { let dx = f.tx - f.cx, dz = f.tz - f.cz; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; camTarget.x += -dz * .95; camTarget.z += dx * .95; camPos.x += -dz * .95; camPos.z += dx * .95; } }   // 오른쪽 대화 패널을 피해 인물을 왼쪽에 배치
-    else { const tx = P.group.position.x, tz = P.group.position.z, ty = 1.4 + P.y, inner = P.room >= 0 || P.zone === 'karaoke', dist = ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? Math.min(cam.dist, 4.2) : P.room >= 0 ? Math.min(cam.dist, 8) : cam.dist;
+    else { if (NC._camTween) { const tw = NC._camTween; if (pt.down || f) NC._camTween = null; else { tw.t += dt; const k = Math.min(1, dt * 3.2); cam.yaw = U.lerpAngle(cam.yaw, tw.yaw, k); cam.dist += (tw.dist - cam.dist) * k; cam.pitch += (tw.pitch - cam.pitch) * k; if (tw.t > 1.2) NC._camTween = null; } }
+      const tx = P.group.position.x, tz = P.group.position.z, ty = 1.4 + P.y, inner = P.room >= 0 || P.zone === 'karaoke', dist = ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? Math.min(cam.dist, 4.2) : P.room >= 0 ? Math.min(cam.dist, 8) : cam.dist;
       camTarget.set(tx, ty, tz); camPos.set(tx + Math.sin(cam.yaw) * Math.cos(cam.pitch) * dist, ty + Math.sin(cam.pitch) * dist, tz + Math.cos(cam.yaw) * Math.cos(cam.pitch) * dist); camPos.y = Math.min(camPos.y, ['karaoke', 'restroom', 'smoke'].includes(P.zone) ? 2.75 : W.ROOM.h - .5); void inner;
       if (W.clampCam && !W.extraZones.some(e => e.test(P.x, P.z))) W.clampCam(camTarget, camPos, P.y > 3);
       /* v28 실내(노래방·VIP·흡연실·화장실·로비 등): 카메라를 방 상자 안으로 → 벽에 막혀 캐릭터가 안 보이던 문제(특히 세로 화면) */
@@ -268,9 +274,9 @@ NC.rebuildPlayer = look => {
   const old = P.group; if (!old) return; NC.settings.look = look;
   const RH = NC.RealHuman, rm = RH && RH.active && RH.active() && look && look.realModel && RH.modelOf(look.realModel);
   const g = NC.Avatar.create({ name: NC.settings.name + ' (나)', look, seed: cfg.seed, expr: 'smile', hiRes: !rm });
+  g.position.copy(old.position); g.rotation.y = old.rotation.y; NC.scene.add(g); NC.scene.remove(old); P.group = g;   // v77 먼저 '내 캐릭터'로 등록한 뒤 모델을 입힘 — 전에는 등록 전에 입혀서 얼굴 중복 방지(unique.js)가 다른 손님 취급 → 고른 것과 다른 모델로 바뀌었음
   if (rm && !(NC.VRMKit && NC.VRMKit.playerUrl)) { g.visible = false; RH.attach(g, rm.url, { noSkin: ['_body'], skin: ['_head'] }).finally(() => { g.visible = true; }); }   // v48 바꾼 실사 캐릭터를 바로 입힘(절차적 몸이 잠깐 보이지 않게)
   if (NC.VRMKit && NC.VRMKit.playerUrl) { if (/\.glb$/i.test(NC.VRMKit.playerName || '') && NC.RealHuman) NC.RealHuman.pin(g, NC.VRMKit.playerUrl); else NC.VRMKit.attach(g, NC.VRMKit.playerUrl); }
-  g.position.copy(old.position); g.rotation.y = old.rotation.y; NC.scene.add(g); NC.scene.remove(old); P.group = g;
   NC.emit('player:look', look);
 };
 $('#go').onclick = async () => {

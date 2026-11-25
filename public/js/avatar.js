@@ -471,13 +471,14 @@ const REAL_SSS = (() => { const c = T.ShaderChunk.lights_physical_pars_fragment,
     #endif
     reflectedLight.directDiffuse += (irradiance * mix(1.0, 0.78, gSkin) + sssI) * BRDF_Diffuse_Lambert( material.diffuseColor ); }`) : null; })();
 /* v73 손 접촉 국소 변형(옷감 눌림·당김 + 주름 파동) — 접촉 2곳: 스키닝 후 메시 객체 공간의 중심·반경(uCt) / 변위 벡터(uCv). w=0 이면 꺼짐 (clothtouch.js 가 매 프레임 채움) */
-function contactUniforms(cu) { if (!cu.uCt) { cu.uCt = { value: [new T.Vector4(0, 0, 0, 0), new T.Vector4(0, 0, 0, 0)] }; cu.uCv = { value: [new T.Vector3(), new T.Vector3()] }; } return cu; }
-function patchContact(sh, cu) { sh.uniforms.uCt = cu.uCt; sh.uniforms.uCv = cu.uCv;
-  sh.vertexShader = 'uniform vec4 uCt[2]; uniform vec3 uCv[2];\n' + sh.vertexShader.replace('#include <skinning_vertex>', `#include <skinning_vertex>
+function contactUniforms(cu) { if (!cu.uCt) { cu.uCt = { value: [new T.Vector4(0, 0, 0, 0), new T.Vector4(0, 0, 0, 0)] }; cu.uCv = { value: [new T.Vector3(), new T.Vector3()] }; } if (!cu.uInfl) cu.uInfl = { value: new T.Vector3() }; return cu; }   // v77 uInfl: 체형(배·가슴어깨·팔다리 부풀림, 메시 로컬 단위)
+function patchContact(sh, cu) { sh.uniforms.uCt = cu.uCt; sh.uniforms.uCv = cu.uCv; sh.uniforms.uInfl = cu.uInfl || { value: new T.Vector3() };
+  sh.vertexShader = 'uniform vec4 uCt[2]; uniform vec3 uCv[2]; uniform vec3 uInfl; attribute vec3 aInfl;\n' + sh.vertexShader.replace('#include <skinning_vertex>', `#include <skinning_vertex>
+    transformed += normalize(objectNormal) * dot(aInfl, uInfl);   // v77 체형 변형(aInfl: 부위 가중치 — bodytype.js)
     for (int ci = 0; ci < 2; ci++) { vec4 c = uCt[ci]; if (c.w > 0.0) { float d = length(transformed - c.xyz); float f = 1.0 - smoothstep(0.0, c.w, d); f = f * f * (3.0 - 2.0 * f);
       float a = length(uCv[ci]); transformed += uCv[ci] * f + normalize(objectNormal) * a * 0.35 * sin(d / c.w * 9.4248) * f * (1.0 - f); } }`); }
 /* 옷이 그려진 몸 재질(피부 셰이더를 안 씌우는 _body)에도 접촉 변형만 — 원래 셰이딩은 그대로 */
-function contactMat(m) { const cu = contactUniforms(m.userData.ccu || (m.userData.ccu = {})); const prev = m.onBeforeCompile; m.onBeforeCompile = (sh, r) => { if (prev && prev !== contactMat._noop) prev(sh, r); patchContact(sh, cu); }; m.customProgramCacheKey = () => 'contact73'; m.needsUpdate = true; return cu; }
+function contactMat(m) { const cu = contactUniforms(m.userData.ccu || (m.userData.ccu = {})); const prev = m.onBeforeCompile; m.onBeforeCompile = (sh, r) => { if (prev && prev !== contactMat._noop) prev(sh, r); patchContact(sh, cu); }; m.customProgramCacheKey = () => 'contact77'; m.needsUpdate = true; return cu; }
 contactMat._noop = function () { };
 function realBodyMat(m) {
   const cu = m.userData.cu || (m.userData.cu = { uClothHue: { value: 0 }, uClothSat: { value: 1 }, uClothRough: { value: 1.18 } });
@@ -496,7 +497,7 @@ function realBodyMat(m) {
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
       roughnessFactor = mix(clamp(roughnessFactor * uClothRough, 0.0, 1.0), roughnessFactor, gSkin);`)
       .replace('#include <tonemapping_fragment>', `{ vec3 vd = normalize(vViewPosition); float rim = pow(1.0 - clamp(dot(normal, vd), 0.0, 1.0), 2.6); gl_FragColor.rgb += vec3(1.0,0.45,0.35) * rim * 0.16 * gSkin * diffuseColor.rgb; }\n#include <tonemapping_fragment>`); };
-  m.customProgramCacheKey = () => 'realBody73'; m.needsUpdate = true; return cu; }
+  m.customProgramCacheKey = () => 'realBody77'; m.needsUpdate = true; return cu; }
 /* v42 실제 피부 반사율: 팔레트의 아주 밝고 채도 낮은 색(인형·마네킹처럼 보이던 원인)을 실제 피부 알베도 범위로 — 명도 ↓ · 채도 ↑ (어두운 피부는 거의 그대로) */
 function realSkin(hex) { const c = new T.Color(hex), h = {}; c.getHSL(h); const l2 = h.l > .5 ? h.l - (h.l - .5) * .42 : h.l, s2 = Math.min(.62, h.s * (h.l > .5 ? 1.35 : 1.1) + .04); return '#' + c.setHSL(h.h, s2, l2).getHexString(); }
 function skinMat(skin, map) {

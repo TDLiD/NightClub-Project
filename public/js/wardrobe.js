@@ -209,6 +209,48 @@ const SPECS = {
     { const G = bob(A, { thick: .015, len: .2, layer: .02, face: 46, brow: .085, vol: .012, curl: .04 }); const r = G && rigid(A, G, Bn.head, A.head); if (r) out.push({ name: 'WR_hair', ...r, mat: mat({ map: hairTex('hairBrown', '#3a2a1e', '#5e4632', '#7a5c42', '25,16,10', '170,140,110'), side: T.DoubleSide, roughness: .6 }) }); }
     return out;
   } },
+  /* v76 Alex Kim: 회색 트위드 블레이저(앞 V 열림) + 흰 셔츠(깃) + 네이비·흰 줄무늬 행커치프 + 무테 안경 — 바지·구두·곱슬기 있는 머리는 바탕 모델 */
+  alex_tweed: { outfit: 'main', width: 1.0, height: 1.72, clothTone: [0, 0], build(A) {
+    const out = [], Bn = A.Bn, W = (v, ...k) => k.reduce((s, x) => s + (v.W[x] || 0), 0), armsW = v => W(v, 'uaL', 'uaR', 'faL', 'faR'), handW = v => W(v, 'handL', 'handR'), legW = v => W(v, 'thighL', 'thighR', 'calfL', 'calfR');
+    const H = v => A.H(v.bw), hipH = A.H(A.P(Bn.hips)), neckH = A.H(A.P(Bn.neck)), waist = hipH + .1, s2 = (pk, off, uv) => shell(A, A.body, A.BV, pk, off, uv || null, 2);
+    const elbowQ = (v, s) => { const a = A.P(Bn['ua' + s]), h = A.P(Bn['hand' + s]); if (!a || !h) return 0; const ax = V().subVectors(h, a); return v.bw.clone().sub(a).dot(ax) / ax.lengthSq(); }, side = v => (W(v, 'uaL', 'faL', 'handL') > W(v, 'uaR', 'faR', 'handR') ? 'L' : 'R');
+    const isTorso = v => armsW(v) < .45 && handW(v) < .2 && W(v, 'head') < .15 && legW(v) < .5;
+    const tweed = canvasTex('tweedGray', 256, 256, (g, w, h) => { g.fillStyle = '#3b3f47'; g.fillRect(0, 0, w, h); for (let i = 0; i < 12000; i++) { const x = rnd() * w, y = rnd() * h, l = 1.5 + rnd() * 3.5, c = rnd(); g.strokeStyle = c < .35 ? 'rgba(210,214,222,.22)' : c < .7 ? 'rgba(18,20,26,.4)' : 'rgba(110,116,128,.3)'; g.lineWidth = .8; g.beginPath(); if (rnd() < .5) { g.moveTo(x, y); g.lineTo(x + l, y); } else { g.moveTo(x, y); g.lineTo(x, y + l); } g.stroke(); } }, true);
+    const vOpen = v => A.F(v.bw) > 0 && H(v) > neckH - .28 && Math.abs(A.L(v.bw)) < (H(v) - (neckH - .28)) * .24 + .006;   // 재킷 앞 V(셔츠가 보이는 곳)
+    const jk = s2(v => { if (handW(v) > .25) return false; const h = H(v); if (armsW(v) > .45) return elbowQ(v, side(v)) < .95; if (W(v, 'neck') > .45) return h < neckH + .03 && A.F(v.bw) < A.F(A.P(Bn.neck)); return isTorso(v) && h > hipH - .12 && h < neckH + .03 && !vOpen(v); }, v => .014 + (armsW(v) > .45 ? .002 : 0));
+    if (jk) out.push({ name: 'OUT_main_blazer', ...jk, mat: mat({ map: tweed, roughness: .9 }) });
+    const sh = s2(v => isTorso(v) && vOpen(v) && H(v) < neckH + .02 || (W(v, 'neck') > .45 && H(v) < neckH + .055 && A.F(v.bw) >= A.F(A.P(Bn.neck)) - .01), .009);
+    if (sh) out.push({ name: 'OUT_main_shirt', ...sh, mat: mat({ color: 0xf4f5f7, roughness: .7 }) });
+    // 행커치프: 왼쪽 가슴(본인 기준 왼쪽 = up×앞)
+    { const left = V().crossVectors(A.up, A.fwd).normalize(), hp0 = A.P(Bn.hips), lw = v => v.bw.clone().sub(hp0).dot(left) / A.U, cand = A.BV.filter(v => isTorso(v) && A.F(v.bw) > 0 && Math.abs(H(v) - (neckH - .15)) < .035 && Math.abs(lw(v) - .11) < .04); if (cand.length) { const f = cand.reduce((m, v) => (A.F(v.bw) > A.F(m.bw) ? v : m)), pp = f.bw.clone().addScaledVector(A.fwd, .02 * A.U).addScaledVector(A.up, .012 * A.U);
+      const sq = canvasTex('pocketSq', 64, 32, (g, w, h) => { g.fillStyle = '#1b2650'; g.fillRect(0, 0, w, h); g.strokeStyle = '#f2f2f2'; g.lineWidth = 3; for (let x = -h; x < w; x += 9) { g.beginPath(); g.moveTo(x, h); g.lineTo(x + h, 0); g.stroke(); } });
+      const G = new T.BoxGeometry(.075 * A.U, .022 * A.U, .006 * A.U); G.applyMatrix4(new T.Matrix4().makeBasis(A.lat, A.up, A.fwd)); G.translate(pp.x, pp.y, pp.z); const r = rigid(A, G, Bn.chest || Bn.spine); if (r) out.push({ name: 'OUT_main_pocket', ...r, mat: mat({ map: sq, roughness: .7 }) }); } }
+    // 무테 안경: 은색 다리·브리지 + 옅은 렌즈
+    { const hv = A.HV.filter(v => (v.W.head || 0) > .6), top = Math.max(...hv.map(v => A.H(v.bw))), eyeH = top - .135, metal = mat({ color: 0xd8dadf, roughness: .2, metalness: .9, emissive: 0x303236 }), lens = new T.MeshStandardMaterial({ color: 0xdfe8ee, roughness: .05, metalness: 0, transparent: true, opacity: .16, depthWrite: false, skinning: true });
+      const pos = []; for (const sg of [1, -1]) { const band = hv.filter(v => Math.abs(A.H(v.bw) - eyeH) < .012 && Math.abs(A.L(v.bw) - sg * .034) < .014); if (!band.length) continue; pos.push(band.reduce((m, v) => (A.F(v.bw) > A.F(m.bw) ? v : m)).bw.clone().addScaledVector(A.fwd, .013 * A.U)); }
+      if (pos.length === 2) { const basis = new T.Matrix4().makeBasis(A.lat, A.up, A.fwd), mid = pos[0].clone().add(pos[1]).multiplyScalar(.5);
+        for (const p of pos) { const L0 = new T.PlaneGeometry(.05 * A.U, .028 * A.U); L0.applyMatrix4(basis); L0.translate(p.x, p.y, p.z); const r = rigid(A, L0, Bn.head, A.head); if (r) out.push({ name: 'WR_glasses', ...r, mat: lens, order: 2 }); }
+        const br = new T.CylinderGeometry(.0012 * A.U, .0012 * A.U, pos[0].distanceTo(pos[1]) - .045 * A.U, 5); br.applyMatrix4(new T.Matrix4().makeRotationZ(Math.PI / 2)); br.applyMatrix4(basis); br.translate(mid.x, mid.y + .008 * A.U, mid.z); { const r = rigid(A, br.toNonIndexed(), Bn.head, A.head); if (r) out.push({ name: 'WR_glasses', ...r, mat: metal }); }
+        for (const p of pos) { const sg = Math.sign(A.L(p) - A.L(mid)) || 1, a0 = p.clone().addScaledVector(A.lat, sg * .026 * A.U).addScaledVector(A.up, .006 * A.U), a1 = a0.clone().addScaledVector(A.fwd, -.1 * A.U).addScaledVector(A.lat, sg * .008 * A.U), d = a1.clone().sub(a0), tm = new T.CylinderGeometry(.0013 * A.U, .0013 * A.U, d.length(), 5); tm.applyMatrix4(new T.Matrix4().makeRotationFromQuaternion(new T.Quaternion().setFromUnitVectors(V().set(0, 1, 0), d.clone().normalize()))); const c = a0.clone().add(a1).multiplyScalar(.5); tm.translate(c.x, c.y, c.z); const r = rigid(A, tm.toNonIndexed(), Bn.head, A.head); if (r) out.push({ name: 'WR_glasses', ...r, mat: metal }); } } }
+    return out;
+  } },
+  /* v77 부킹 웨이터 제복: 흰 셔츠(긴소매) + 검정 넥타이 + 검정 바지 — 바탕 모델(얼굴)은 무엇이든 */
+  waiter_shirt: { outfit: 'main', width: 1.0, height: 1.75, clothTone: [0, 0], build(A) {
+    const out = [], Bn = A.Bn, W = (v, ...k) => k.reduce((s, x) => s + (v.W[x] || 0), 0), armsW = v => W(v, 'uaL', 'uaR', 'faL', 'faR'), handW = v => W(v, 'handL', 'handR'), legW = v => W(v, 'thighL', 'thighR', 'calfL', 'calfR'), footW = v => W(v, 'footL', 'footR');
+    const H = v => A.H(v.bw), hipH = A.H(A.P(Bn.hips)), neckH = A.H(A.P(Bn.neck)), waist = hipH + .1, s2 = (pk, off) => shell(A, A.body, A.BV, pk, off, null, 2);
+    const elbowQ = (v, s) => { const a = A.P(Bn['ua' + s]), h = A.P(Bn['hand' + s]); if (!a || !h) return 0; const ax = V().subVectors(h, a); return v.bw.clone().sub(a).dot(ax) / ax.lengthSq(); }, side = v => (W(v, 'uaL', 'faL', 'handL') > W(v, 'uaR', 'faR', 'handR') ? 'L' : 'R');
+    const isTorso = v => armsW(v) < .45 && handW(v) < .2 && W(v, 'head') < .15 && legW(v) < .5;
+    const sh = s2(v => { if (handW(v) > .25) return false; if (armsW(v) > .45) return elbowQ(v, side(v)) < .96; if (W(v, 'neck') > .45) return H(v) < neckH + .05; return isTorso(v) && H(v) > waist - .04 && H(v) < neckH + .05; }, .011);
+    if (sh) out.push({ name: 'OUT_main_shirt', ...sh, mat: mat({ map: canvasTex('shirtWhite', 64, 64, (g, w, h) => { g.fillStyle = '#f3f4f6'; g.fillRect(0, 0, w, h); g.fillStyle = 'rgba(180,186,196,.25)'; for (let y = 0; y < h; y += 4) g.fillRect(0, y, w, 1); }, true), roughness: .75 }) });
+    const pa = s2(v => armsW(v) < .2 && handW(v) < .2 && footW(v) < .3 && H(v) < waist - .03 && (legW(v) > .4 || W(v, 'torso') > .5), .01);
+    if (pa) out.push({ name: 'OUT_main_pants', ...pa, mat: mat({ color: 0x121216, roughness: .6 }) });
+    const sk = s2(v => footW(v) > .25, .008); if (sk) out.push({ name: 'OUT_main_shoes', ...sk, mat: mat({ color: 0x08080a, roughness: .3, metalness: .2 }) });
+    { const fr = A.BV.filter(v => isTorso(v) && Math.abs(A.L(v.bw)) < .025 && A.F(v.bw) > 0), topV = fr.filter(v => Math.abs(H(v) - (neckH - .05)) < .02), botV = fr.filter(v => Math.abs(H(v) - (neckH - .38)) < .03);
+      if (topV.length && botV.length) { const a = topV.reduce((m, v) => (A.F(v.bw) > A.F(m.bw) ? v : m)).bw.clone().addScaledVector(A.fwd, .016 * A.U), b = botV.reduce((m, v) => (A.F(v.bw) > A.F(m.bw) ? v : m)).bw.clone().addScaledVector(A.fwd, .016 * A.U), d = b.clone().sub(a), L0 = d.length();
+        const G = new T.BoxGeometry(.06 * A.U, L0, .006 * A.U); G.applyMatrix4(new T.Matrix4().makeBasis(A.lat, d.clone().normalize().negate(), A.fwd)); const c = a.clone().add(b).multiplyScalar(.5); G.translate(c.x, c.y, c.z); const r = rigid(A, G, Bn.chest || Bn.spine); if (r) out.push({ name: 'OUT_main_tie', ...r, mat: mat({ color: 0x0c0c10, roughness: .35, metalness: .1 }), order: 1 });
+        const K = new T.BoxGeometry(.045 * A.U, .035 * A.U, .02 * A.U); K.applyMatrix4(new T.Matrix4().makeBasis(A.lat, A.up, A.fwd)); K.translate(a.x, a.y, a.z); const rk = rigid(A, K, Bn.neck || Bn.chest); if (rk) out.push({ name: 'OUT_main_knot', ...rk, mat: mat({ color: 0x0c0c10, roughness: .35 }), order: 1 }); } }
+    return out;
+  } },
 };
 
 /* 원래 머리 메시에서 단발 밖으로 나오는 꽁지머리 정점(뒤통수보다 뒤·아래)을 머리 속 한 점으로 접음 — 이 인스턴스의 지오메트리 사본만 바꿈 */
