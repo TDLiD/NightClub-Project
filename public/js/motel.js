@@ -285,12 +285,15 @@ function buildRoom(cat) {
   // 욕실(남서쪽 유리 칸막이) · 자쿠지
   ad(new T.Mesh(box(.05, 2.4, 2.0), new T.MeshStandardMaterial({ color: 0xc0d8e8, transparent: true, opacity: .25, roughness: .1, metalness: .2 })), -1.6, 1.2, RHZ - 1.0); ad(new T.Mesh(box(2.8, 2.4, .05), new T.MeshStandardMaterial({ color: 0xc0d8e8, transparent: true, opacity: .25, roughness: .1 })), -3.0, 1.2, RHZ - 2.0);
   ROOM.rects.push([-RHX, RHZ - 2.05, -1.55, RHZ]);
-  if (th.jac) { ad(new T.Mesh(cyl(.95, .95, .55, 36), std('#f4f4f6', { roughness: .2 })), 2.6, .28, 2.3); const wtr = ad(new T.Mesh(new T.CircleGeometry(.85, 36), new T.MeshStandardMaterial({ color: 0x5ad8ff, emissive: 0x0a6a8a, emissiveIntensity: .6, roughness: .05, transparent: true, opacity: .8 })), 2.6, .5, 2.3); wtr.rotation.x = -Math.PI / 2; RV.water = wtr; ROOM.rects.push([1.6, 1.3, 3.6, 3.3]); RV.spots.jac = { x: 1.4, z: 2.3 }; }
+  /* v74 자쿠지를 문 앞(2.6, 2.3)에서 방 남쪽 가운데로 — 예전 자리는 문·냉장고 사이를 막아 입장하자마자 갇혔음(문↔욕조 0.5m, 욕조↔냉장고 0.24m) */
+  RV.jacC = { x: .9, z: 2.65 };
+  if (th.jac) { ad(new T.Mesh(cyl(.95, .95, .55, 36), std('#f4f4f6', { roughness: .2 })), RV.jacC.x, .28, RV.jacC.z); const wtr = ad(new T.Mesh(new T.CircleGeometry(.85, 36), new T.MeshStandardMaterial({ color: 0x5ad8ff, emissive: 0x0a6a8a, emissiveIntensity: .6, roughness: .05, transparent: true, opacity: .8 })), RV.jacC.x, .5, RV.jacC.z); wtr.rotation.x = -Math.PI / 2; RV.water = wtr; ROOM.rects.push([RV.jacC.x - .98, RV.jacC.z - .98, RV.jacC.x + .98, RV.jacC.z + .98]); RV.spots.jac = { x: RV.jacC.x + 1.3, z: RV.jacC.z }; }
   else RV.water = null;
   // 소품: 미니 냉장고 · 장미 · 샴페인 · 바
   ad(new T.Mesh(box(.5, .6, .5), std('#e8e8ea', { roughness: .3 })), RHX - .3, .3, 1.4); RV.spots.fridge = { x: RHX - .9, z: 1.4 }; ROOM.rects.push([RHX - .56, 1.14, RHX, 1.66]);
   if (cat === 'rom' || cat === 'vip' || cat === 'jac') { const petal = std('#c0102a', { roughness: .5 }); for (let i = 0; i < 26; i++) { const p = ad(new T.Mesh(new T.CircleGeometry(.035, 6), petal), (Math.random() - .5) * 1.6, .6 + (th.round ? -.0 : .03), bz + (Math.random() - .3) * 1.2); p.rotation.x = -Math.PI / 2; p.position.y = th.round ? .59 : .67; } }
-  if (th.bar) { ad(new T.Mesh(box(1.6, 1.0, .5), wood), 2.4, .5, 2.9); ROOM.rects.push([1.55, 2.6, 3.25, RHZ]); ad(new T.Mesh(cyl(.12, .1, .25, 14), std('#c8ccd4', { metalness: 1, roughness: .15 })), 2.1, 1.12, 2.9); ad(new T.Mesh(cyl(.035, .045, .34, 10), std('#1a3a1a', { roughness: .1 })), 2.1, 1.3, 2.9); }
+  /* v74 VIP 바도 입구(3.5, 3.1) 바로 옆(0.25m)이라 입장 즉시 막혔음 → 서쪽으로 1.2m */
+  if (th.bar) { ad(new T.Mesh(box(1.6, 1.0, .5), wood), 1.2, .5, 2.9); ROOM.rects.push([.35, 2.6, 2.05, RHZ]); ad(new T.Mesh(cyl(.12, .1, .25, 14), std('#c8ccd4', { metalness: 1, roughness: .15 })), .9, 1.12, 2.9); ad(new T.Mesh(cyl(.035, .045, .34, 10), std('#1a3a1a', { roughness: .1 })), .9, 1.3, 2.9); }
   if (th.led) { const lm = glow(th.accent, 2.2); for (const [x, z, w, d] of [[0, -RHZ + .05, RHX * 2, .04], [0, RHZ - .05, RHX * 2, .04], [-RHX + .05, 0, .04, RHZ * 2], [RHX - .05, 0, .04, RHZ * 2]]) RV.lights.push(ad(new T.Mesh(box(w, .03, d), lm), x, RH - .05, z)); }
   // 문(남쪽 동쪽)
   ad(new T.Mesh(box(1, 2.1, .06), pbr('wood', { repeat: [1, 2], roughness: .5, gen: { a: '#3a1a10', b: '#6a3a22' } })), RHX - .9, 1.05, RHZ - .03);

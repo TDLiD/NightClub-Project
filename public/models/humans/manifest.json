@@ -932,7 +932,7 @@
   "jiho": "m_09",
   "sua": "f_09",
   "minhyuk": "m_10",
-  "jihyun": "f_19",
+  "jihyun": "f_25",
   "subin": "f_07",
   "minjae": "m_20",
   "haneul": "f_27",
@@ -962,7 +962,8 @@
   "junho": "m_36",
   "marco": "m_24",
   "kenji": "m_35",
-  "joyeosa": "f_22"
+  "joyeosa": "f_22",
+  "jaesuki": "f_19"
  },
  "guestPlan": {
   "_설명": "v55 테이블 손님 이름·모델 고정. 성별별 순서대로 배정(모바일은 앞쪽 일부만 등장). [이름, 모델id]. 동양:서양 = 7:3",
