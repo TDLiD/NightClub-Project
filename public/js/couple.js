@@ -254,9 +254,9 @@ function tickBlues() {
   const ma = mix(oa, leadA), mb = mix(ob, !leadA);
   /* v56 얼굴 접촉(실사 모델 머리·목·가슴 CCD, humanglb faceIK): 키스는 입술끼리 가운데서 만나고 서로 반대로 고개 기울임 · 이마는 이마끼리 · 볼 키스는 리드 입술 → 상대 볼 · 귓속말은 리드 입 → 상대 귀 */
   { const acc = !act ? false : (ua.bAct ? ua.bAct.out : 'accept') === 'accept', now = performance.now();
-    const set = (g, partner, ee, isLead) => { const u = g.userData; if (!act || !acc || !HEAD_ACTS.has(act.k)) { u.faceTgt = null; return; }
+    const set = (g, partner, ee, isLead) => { const u = g.userData; if (!act || !acc || !(HEAD_ACTS.has(act.k) || act.kissy)) { u.faceTgt = null; return; }
       const hh = (g.userData.look && g.userData.look.height || 1.7) - (partner.userData.look && partner.userData.look.height || 1.7), sh = U.clamp(.5 + hh * 1.6, .3, .7);   // 키 큰 사람이 더 많이 숙이고 작은 사람은 덜 듦(목이 과하게 젖혀지지 않게)
-      const k = act.k, w = env(ee, act.hit * .5, act.hit + .1, act.dur - .9, act.dur - .25); let o = null;
+      const k = act.kissy ? 'kiss' : act.k, w = act.kissy ? env(ee, act.hit + .2, act.hit + 1.1, act.dur - 1.2, act.dur - .4) : env(ee, act.hit * .5, act.hit + .1, act.dur - .9, act.dur - .25); let o = null;   // v85 딥 키스: 다 눕힌 뒤 입맞춤
       if (k === 'kiss' || k === 'deepkiss') { const deep = k === 'deepkiss', ph = now / 1000;
         /* v82 사람 같은 키스: 입술을 '눌렀다 살짝 떼는' 리듬(0.4~0.5초 주기, 두 사람 같은 박자) + 고개 기울기가 숨 쉬듯 커졌다 작아짐.
          *  딥키스는 3초쯤마다 고개 방향을 반대로 천천히 바꿈(코가 부딪치지 않게 서로 반대쪽 유지) · 기울기 크기도 더 큼 */

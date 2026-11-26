@@ -378,10 +378,10 @@ function legGuard(r, u, dt) {
     _lx.copy(_lc).sub(_la); const len = _lx.length(); if (len < 1e-4) continue; _lx.divideScalar(len);
     _lk.copy(_lb).sub(_la); _lk.addScaledVector(_lx, -_lk.dot(_lx)); const kl = _lk.length();
     const bend = Math.PI - _la.clone().sub(_lb).angleTo(_lc.clone().sub(_lb)); if (bend > maxBend) maxBend = bend;
-    if (kl < .012 || bend < .12) continue;                                  // 거의 펴진 다리는 방향이 의미 없음
-    const out = sd === 'L' ? .28 : -.28; _lp.set(fx + lx * out, 0, fz + lz * out); _lp.addScaledVector(_lx, -_lp.dot(_lx)); if (_lp.lengthSq() < 1e-6) continue; _lp.normalize(); _lk.divideScalar(kl);
+    if (kl < .008 || bend < .08) continue;                                  // 거의 펴진 다리는 방향이 의미 없음
+    const out = (sd === 'L' ? 1 : -1) * (RH.kneeOut ?? .14); _lp.set(fx + lx * out, 0, fz + lz * out); _lp.addScaledVector(_lx, -_lp.dot(_lx)); if (_lp.lengthSq() < 1e-6) continue; _lp.normalize(); _lk.divideScalar(kl);   // v85 무릎은 거의 정면(8°만 바깥, 전엔 16°)
     let ang = Math.acos(U.clamp(_lk.dot(_lp), -1, 1)); const sgn = Math.sign(_lx.dot(_lk.clone().cross(_lp))) || 1;
-    if (ang <= .45) continue; const rot = (ang - .45) * sgn;   // v81 앞쪽 ±0.45rad 밖이면 그 프레임에 바로 전부 되돌림(자세가 매 프레임 새로 정해지므로 일부만 고치면 늘 남아 있었음)
+    if (ang <= (RH.kneeTol ?? .16)) continue; const rot = (ang - (RH.kneeTol ?? .16)) * sgn;   // v85 허용 ±26°→±9°: 노래방 블루스에서 무릎이 41°까지 바깥으로 벌어져 다리가 뒤틀려 보였음   // v81 앞쪽 ±0.45rad 밖이면 그 프레임에 바로 전부 되돌림(자세가 매 프레임 새로 정해지므로 일부만 고치면 늘 남아 있었음)
     A.getWorldQuaternion(_lg); _lgi.copy(_lg).invert(); _lq.setFromAxisAngle(_lx, rot); A.quaternion.multiply(_lgi.clone().multiply(_lq).multiply(_lg)); A.updateMatrixWorld(true); fixed++;
   }
   RH.stats.knee = (RH.stats.knee || 0) + fixed; RH.stats.kneeMax = Math.max(RH.stats.kneeMax || 0, +maxBend.toFixed(2));

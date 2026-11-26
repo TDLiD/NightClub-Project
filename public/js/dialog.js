@@ -45,6 +45,7 @@ D.close = function (reason) {
   if (window.speechSynthesis) speechSynthesis.cancel();
   if (n._seatTalk) { n._seatTalk = false; }   // v48 앉은 손님과의 대화: 끝나도 손님·나 모두 자리 유지
   else if (n.state === 'seated' || P.seat) { if (NC.VIP) NC.VIP.endSession(n, reason); }
+  else if (n.karaoke && n.state === 'talk' && NC.Karaoke && NC.Karaoke.inRoom && NC.Karaoke.seatGuest) { NC.Karaoke.seatGuest(n); n.state = 'seated'; }   // v85 노래방 룸 손님은 대화가 끝나면 소파로(룸 안을 돌아다니며 벽을 뚫고 나가지 않게)
   else { n.state = 'wander'; n.pause = 1.5; n.wp = null; }
   if (reason === 'left') n.cool = 60; else if (reason !== 'switch') n.cool = Math.max(n.cool, 8);
   NC.emit('dialog:close', n, reason);

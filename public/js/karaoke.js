@@ -443,7 +443,7 @@ function leave() {
   });
 }
 K.serveItem = it => serveK(it, '사장님');   // v25 노래방 건물 카운터에서 미리 주문한 술·안주를 방에 들여옴
-K.isGuest = n => isGuest(n);
+K.isGuest = n => isGuest(n); K.seatGuest = n => seatGuest(n);
 K.stand = s => { occ[s.s] = null; const seat = SEATS[s.s]; return { x: seat.x + Math.sin(seat.ry) * .9, z: seat.z + Math.cos(seat.ry) * .9 }; };
 K.enter = enter; K.leave = leave; K.play = play; K.stop = stop; K.box = { cx: KX, cz: KZ, hx: HX, hz: HZ, h: H };   // v28 카메라가 방 벽 밖으로 나가지 않게
 NC.on && NC.on('music:user', () => { const st = K.playing; if (st && !K.inRoom && (st.singer === 'band' || st.singer === 'blues')) stop(true); BL.prevVol = null; });   // v20.1 사용자가 고른 스테이지 음악이 우선
@@ -595,10 +595,40 @@ function clubMood(on) {                                  // 클럽: DJ 블루스
   if (on) { BL.prevTheme = W.themeId; if (W.setTheme) W.setTheme('house');   /* v52 블루스 기본 조명 = 💡 전등만 */ NC.ui.toast('🎧 DJ: "자~ 블루스 타임입니다. 분위기 있게 즐기세요 💗"'); }
   else { if (BL.prevTheme && W.setTheme) W.setTheme(BL.prevTheme); BL.prevVol = null; }
 }
-function startBlues(n) {
+/* v85 손잡고 무대(댄스플로어 가운데)로 나가기 — 다른 사람·커플이 적은 자리를 골라 경로(A*)로 함께 걸어가 도착하면 그 자리에서 블루스 */
+const LEAD_ZONES = ['hall', 'corridor', 'bar', 'tables', 'dj'];
+BL.lead = null;
+function floorSpot() {
+  const Z = W.zones.dance, cx = (Z.x0 + Z.x1) / 2, cz = (Z.z0 + Z.z1) / 2 + .6, others = (NC.npcs || []).filter(m => m.g && m.g.visible && m.state !== 'off');
+  let best = { x: cx, z: cz }, bs = -1;
+  for (let i = 0; i < 13; i++) { const a = i * 2.4, r = i ? 1.1 + (i % 3) * .9 : 0, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r * .7;
+    let dmin = 9; for (const m of others) dmin = Math.min(dmin, Math.hypot(m.x - x, m.z - z)); const sc = Math.min(dmin, 2.2) - r * .15; if (sc > bs) { bs = sc; best = { x, z }; } }
+  return best;
+}
+function leadToFloor(n) {
+  const P = NC.player, D = NC.Dialog, PW = NC.PairWalk; if (!PW || !NC.walkPlayer || !NC.Path) return false;
+  const to = floorSpot(), path = NC.Path.find({ x: P.x, z: P.z }, to); if (!path || !path.length) return false;
+  D.npcSay(n.aff >= 75 ? U.pick(['좋아요… 나가요 💗', '(손을 잡으며) 이 노래 좋다, 가요!']) : U.pick(['한 곡만이에요? ㅎㅎ 가요', '부르스 진짜 오랜만이다 ㅋㅋ']), 'shy');
+  D.sys('🤝 손을 잡고 댄스플로어 가운데로 나가요');
+  const L = BL.lead = { n, to, t0: performance.now() };
+  setTimeout(() => {
+    if (BL.lead !== L) return;
+    if (D.cur && D.cur.n === n) D.close('bye');
+    if (!PW.start(n, 'hand', true)) { BL.lead = null; return; }
+    NC.walkPlayer(path, () => {
+      if (BL.lead !== L) return; BL.lead = null; if (PW.n !== n) return;
+      PW.stop(true); P.ry = Math.atan2(n.x - P.x, n.z - P.z); P.group.rotation.y = P.ry;
+      D.open(n, { intro: U.pick(['(손을 놓지 않고 마주 서며) …천천히 리드해 줘요', '여기 좋다… 가까이 와요 💗']) });
+      startBlues(n, { here: true });
+    }); P.autoSpeed = 1.7;   // 손잡고 걷는 보통 걸음
+  }, 900);
+  return true;
+}
+function startBlues(n, opt = {}) {
   const D = NC.Dialog, P = NC.player; if (BL.n) return;
   n.bl = n.bl || { kissed: false, warned: 0 }; BL.gap = 0; BL.gapS = 0;
   if (n.aff < 45) { D.npcSay(U.pick(['부르스요? 음… 아직 좀 어색해요. 조금 더 얘기해요 ㅎㅎ', '헉 벌써요? 조금만 더 친해지고요~', '…부르스는 좀. 짠부터 해요.']), 'shy'); NC.Motion.play(n.g, 'headshake'); aff(n, -1); return; }
+  if (!opt.here && !K.inRoom && LEAD_ZONES.includes(P.zone) && leadToFloor(n)) return;   // v85 테이블·바·통로 등에서 신청하면 손잡고 댄스플로어 가운데로 나가서 춤(노래방 룸·VIP룸은 그 자리에서)
   /* v28 어느 장소에서나: 노래방 룸 · 스테이지/댄스플로어(DJ 블루스 타임 연출) · 그 밖의 곳(테이블·VIP·바·통로·흡연실·라운지·거리·로비 등)은 두 사람 사이 빈자리에서 */
   BL.where = K.inRoom ? 'karaoke' : CLUB_ZONES.includes(P.zone) ? 'club' : 'any';
   if (BL.where === 'karaoke') BL.c = { x: KX + .9, z: KZ - .1 };
@@ -690,6 +720,7 @@ const ACT = {   // v40 실제 사람 타이밍으로 조정(다가가는 시간�
   waist: { dur: 3.4, hit: .9, close: .09, desc: '🤲 허리를 감싼 손으로 몸을 바짝 끌어당긴다' },
   spin: { dur: 3.0, hit: 1.7, close: 0, spin: true, desc: '💫 손을 들어 올려 한 바퀴 돌린다' },
   dip: { dur: 4.2, hit: 1.5, close: .08, desc: '💃 허리를 받치고 뒤로 천천히 눕힌다' },
+  dipkiss: { dur: 6.4, hit: 1.6, close: .08, mk: 'dip', kissy: true, desc: '💃💋 허리를 받쳐 뒤로 눕히고, 그대로 몸을 숙여 입을 맞춘다' },   // v85 로맨틱 딥 & 키스: 딥 자세를 유지한 채 입맞춤(전엔 딥이 끝난 뒤 키스를 따로 불러 키스가 묻혔음)
   forehead: { dur: 4.0, hit: 1.3, close: .11, desc: '💗 이마를 살며시 맞댄다' },
   cheek: { dur: 3.0, hit: 1.0, close: .07, desc: '😚 볼에 가볍게 입을 맞춘다' },
   hug: { dur: 4.0, hit: .9, close: .08, desc: '🤗 두 팔로 꼭 끌어안는다' },
@@ -712,6 +743,7 @@ const ACTIONS = {
   waist: { id: 'WAIST_PULL', stance: { d: .125, pre: .31 } },
   spin: { id: 'PARTNER_SPIN', stance: { d: .27 } },
   dip: { id: 'DANCE_DIP', stance: { d: .19, pitchN: -.3, pitchP: .1 } },
+  dipkiss: { id: 'DIP_KISS', stance: { d: .15, pitchN: -.2, pitchP: .42 } },   // v85 리드가 따라 숙여 젖혀진 상대 입술에 닿음(딥보다 덜 젖히고 더 숙임)
   forehead: { id: 'FOREHEAD_TOUCH', stance: { d: .15 } },
   cheek: { id: 'CHEEK_KISS', stance: { d: .165, lat: .1 } },
   hug: { id: 'FULL_HUG', stance: { d: .125, lat: .13, par: true } },   // 머리가 서로 어깨 너머로: 몸은 나란히 마주 서되 옆으로 엇갈림(서로 정면으로 머리를 부딪치지 않게)   // 머리가 서로 어깨 너머로 + 몸을 비스듬히 돌려 꼭 껴안음
@@ -731,7 +763,7 @@ function bluesAct(kind, forced) {
   if (BL.busy) bluesCancel();
   const n = BL.n; if (!n) return; const D = NC.Dialog, P = NC.player, r = forced || REACT[kind](n), a = ACT[kind], t0 = performance.now(); BL.tm = BL.tm || [];
   const dur = r.kiss ? Math.max(a.dur, r.kiss + a.hit + .6) : a.dur;
-  BL.busy = true; BL.act = { k: kind, t0, dur, close: r.out === 'refuse' && !r.kiss ? Math.min(a.close, .03) : a.close, flip: a.flip && r.out === 'accept', spin: a.spin, hit: a.hit, dip: kind === 'dip' && r.out === 'accept',
+  BL.busy = true; BL.act = { k: kind, t0, dur, close: r.out === 'refuse' && !r.kiss ? Math.min(a.close, .03) : a.close, flip: a.flip && r.out === 'accept', spin: a.spin, hit: a.hit, dip: (kind === 'dip' || kind === 'dipkiss') && r.out === 'accept', kissy: !!a.kissy && r.out === 'accept',
     vr: { amp: .88 + Math.random() * .24, lag: .13 + Math.random() * .11, sway: (Math.random() - .5) * .5, side: Math.random() < .5 ? 1 : -1, hug: (BL.n && BL.n.aff >= 80) ? 'romantic' : (BL.n && BL.n.aff >= 55) ? 'warm' : 'friend' } };   // v56 side = 키스 때 고개 기울이는 방향(매번 다름) · hug = 호감도별 포옹(친구·따뜻한·연인)   // v55 매번 조금씩 다른 세기·반응 지연(같은 동작이 똑같이 반복되지 않게)
   const mk = a.mk || kind; BL.act.k = mk; BL.act.id = (ACTIONS[kind] || {}).id || kind; BL.act.btn = kind; BL.act.st = (ACTIONS[kind] || ACTIONS[mk] || {}).stance || null;
   { const rs = P.group.userData.rig && P.group.userData.rig.shR, ax = n.x - P.x, az = n.z - P.z, l = Math.hypot(ax, az) || 1; if (rs) { const w = rs.getWorldPosition(new T.Vector3()); BL.act.latS = Math.sign((w.x - P.x) * (-az / l) + (w.z - P.z) * (ax / l)) || 1; } else BL.act.latS = 1; }   // 리드의 rig R 어깨 쪽으로 비켜섬(couple.js 의 상대 귀·볼 sR 쪽과 일치)
@@ -775,8 +807,7 @@ function premium(kind) {
   NC.ui.toast(`💎 프리미엄 로맨스 · 🪙-${PREMIUM_COST}`);
   const after = (ms, f) => setTimeout(() => { if (BL.n === n || kind === 'sofa') f(); }, ms);
   switch (kind) {
-    case 'dipKiss': bluesAct('dip', yes(U.pick(['꺅… (목에 팔을 감으며) 이대로 멈춰 줘요 💗', '(눈을 감고 기대며) 놓치면 안 돼요…']), 'laugh', 4));
-      after(ACT.dip.dur * 1000 + 200, () => { bluesAct('kiss', yes(U.pick(['……💋 영화 속 한 장면 같아요', '(수줍게 웃으며) 오늘 밤 잊지 못할 것 같아요 💗']), 'kiss', 5, { kiss: 3 })); after(1400, () => hearts(n.g, 12)); }); break;
+    case 'dipKiss': bluesAct('dipkiss', yes(U.pick(['……💋 (목에 팔을 감으며) 영화 속 한 장면 같아요', '(눈을 감고 기대며) 오늘 밤 잊지 못할 것 같아요 💗']), 'kiss', 5, { kiss: 3.6 })); after(2600, () => hearts(n.g, 12)); break;   // v85 딥 + 키스 한 동작
     case 'foreKiss': bluesAct('forehead', yes(U.pick(['(눈을 감고 미소 짓는다) …이마 키스가 제일 설레요', '헤헤… 소중히 대해 주는 느낌이에요 💗']), 'shy', 4)); after(1200, () => hearts(n.g, 8)); break;
     case 'backhugLong': bluesAct('backhug', yes(U.pick(['(손을 포개며) 노래 끝날 때까지 이대로 있어요…', '뒤에서 안아 주니까 세상에 둘만 있는 것 같아요 💗']), 'shy', 5)); after(1600, () => hearts(n.g, 8)); break;
     case 'sweetKiss': bluesAct('kiss', yes(U.pick(['……💋 (볼이 빨개진다)', '(살짝 웃으며 한 번 더 다가온다) 💗']), 'kiss', 5, { kiss: 3.2 })); after(1300, () => hearts(n.g, 12)); break;

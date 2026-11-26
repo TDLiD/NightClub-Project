@@ -12,7 +12,7 @@
 'use strict';
 const NC = window.NC; if (!NC) return;
 const T = NC.THREE, U = NC.util, V = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z), UP = V(0, 1, 0);
-const GAP = { hand: .52, arm: .38, hug: .34 }, BACK = { hand: 0, arm: .06, hug: .02 };
+const GAP = { hand: .52, arm: .4, hug: .34 }, BACK = { hand: 0, arm: .03, hug: .02 };   // v85 팔짱: 나란히(반 걸음 뒤 → 거의 옆)
 const PACE = 1.5;   // 둘이 붙어 걷는 보통 걸음(m/s)
 const NAME = { hand: '🤝 손잡기', arm: '💞 팔짱', hug: '🤗 허리 감싸 안기' };
 const S = NC.PairWalk = { n: null, style: 'hand', side: 1, t: 0, w: 0, talk: false, stats: { frames: 0, ik: 0 } };
@@ -78,12 +78,14 @@ function arms(n, dt) {
     C.ikArm(A.R, sdA, m.clone().addScaledVector(toB, -.025), w, V(0, -1, 0).addScaledVector(fwd, -.4), B);
     C.ikArm(B.R, sdB, m.clone().addScaledVector(toB, .025), w, V(0, -1, 0).addScaledVector(fwd, -.4), A);
   } else if (S.style === 'arm') {
-    const out = sideOn(A, B.chest);                                                               // 상대 쪽(+1/-1, A.tr 기준)
-    const hA = A.hips.clone().addScaledVector(A.tu, .2 * A.sc).addScaledVector(A.tf, A.rzF + .07 * A.sc).addScaledVector(A.tr, out * A.rx * .25);   // 내 손: 배 앞
-    C.ikArm(A.R, sdA, hA, w, A.tr.clone().multiplyScalar(out).add(V(0, -.7, 0)), B);             // 팔꿈치를 상대 쪽으로 벌림 → 팔 사이 고리
+    /* v85 자연스러운 팔짱: 내 팔은 옆구리에서 팔꿈치를 90°쯤 굽혀 아래팔이 앞을 향하고(고리), 상대는 그 고리에 팔을 끼워 손을 내 아래팔 위에 얹음
+     *  전엔 내 손 목표가 배 한가운데라 팔이 몸 앞을 가로지르고, 상대 손이 그 팔을 쫓아 쭉 펴져 '일자' 팔이 됐음 */
+    const out = sideOn(A, B.chest), sc = A.sc;
+    const sa = A.R['sh' + sdA].getWorldPosition(V()), hA = sa.clone().addScaledVector(UP, -.27 * sc).addScaledVector(fwd, .3 * sc).addScaledVector(A.tr, -out * .05 * sc);   // 내 손: 어깨에서 27cm 아래 · 30cm 앞(팔꿈치 90° · 아래팔이 수평으로 앞을 향함)
+    C.ikArm(A.R, sdA, hA, w, A.tr.clone().multiplyScalar(out * .35).add(V(0, -1, 0)).addScaledVector(fwd, -.55), B);   // 팔꿈치: 아래·뒤(옆구리에 붙임)
     A.R['el' + sdA].updateMatrixWorld(true); const el = A.R['el' + sdA].getWorldPosition(V());
-    const hB = el.clone().lerp(hA, .4).addScaledVector(UP, .035 * A.sc).addScaledVector(fwd, .02);    // 상대 손: 내 아래팔 위
-    C.ikArm(B.R, sdB, hB, w, V(0, -1, 0).addScaledVector(fwd, -.6), A);
+    const hB = el.clone().lerp(hA, .55).addScaledVector(UP, .045 * sc);   // 상대 손: 내 아래팔 가운데 위에 살포시
+    C.ikArm(B.R, sdB, hB, w, V(0, -1, 0).addScaledVector(fwd, -.7).addScaledVector(A.tr, -out * .25), A);   // 상대 팔꿈치: 아래·뒤·바깥(자기 몸 쪽) → 팔이 굽은 채 고리에 걸림
     if (C.aimHead) C.aimHead(B.R, A.head, w * .25 * (mv ? .6 : 1));
   } else {
     const fB = -sideOn(B, A.chest), fA = -sideOn(A, B.chest);                                     // 각자 '먼 쪽'
