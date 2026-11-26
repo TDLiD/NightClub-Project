@@ -135,14 +135,22 @@ function fetchGuest(n, tip = TIP, rec) {
   if (c && c.kind === 'hall' && inHall() && hallNpc(n)) {
     const o = c.o; cur = null; o.g.userData.lookAt = null;
     const r1 = (NC.Path && NC.Path.find({ x: o.x, z: o.z }, { x: n.x + .9, z: n.z + .3 })) || [{ x: n.x + .9, z: n.z + .3 }];
-    NC.Waiters.walk(o, r1, () => {
+    say(o.g, '네! 바로 모셔 올게요~ 🏃', 1.6);
+    NC.Waiters.walk(o, NC.Nav ? NC.Nav.refine(o, r1) : r1, () => {   /* v84 달려감(3.6m/s) */
       o.g.userData.lookAt = n.g.position; Mo.play(o.g, 'point'); say(o.g, `${n.name} 님~ 저쪽 손님이 꼭 모시고 싶대요 😉`, 2.4);
       setTimeout(() => {
         if (!ok) { say(n.g, U.pick(['아… 지금은 친구들이랑 있어서요 😅', '오늘은 그냥 놀래요~ 죄송해요!']), 2.2); Mo.play(n.g, 'headshake'); fail(); o.busy = false; busy = false; o.state = 'idle'; return; }
         say(n.g, U.pick(['어머 저요? ㅎㅎ 가 볼까요?', '음… 한번 가 볼게요 💕', '진짜요? 어디요어디요?']), 2); detach(n); n.booked = true;
-        bringTo(n, () => { o.busy = false; busy = false; o.state = 'idle'; });
+        /* v84 웨이터가 손님 손을 잡고 달려서 플레이어 곁으로 → 도착하면 손을 놓고 인사, 손님은 옆자리/앞으로 */
+        const ES = NC.Escort, pp = P();
+        if (ES && ES.lead && inHall()) { const seat = pp.seat && NC.Episodes && NC.Episodes.freeSeatNear ? NC.Episodes.freeSeatNear() : null, dest = seat ? { x: seat.pos.x, z: seat.pos.z } : { x: pp.x + Math.sin(pp.ry) * 1.6, z: pp.z + Math.cos(pp.ry) * 1.6 };
+          Mo.play(o.g, 'wave'); say(o.g, '자~ 이쪽이에요! 🏃', 1.4);
+          ES.lead(o, n, dest, () => { say(o.g, U.pick(['모셔 왔습니다~ 좋은 시간 되세요 😉', '자, 인사들 나누세요~ 😄']), 2.2); busy = false;
+            if (seat) { seat.mark('npc'); NC.NPC.sit(n, seat.pos.x, seat.pos.z, seat.pos.ry, seat.pos.h); n.bookSeat = seat; } else { n.state = 'idle'; n.g.userData.moving = false; }
+            arrive(n); }, 3.0);
+        } else bringTo(n, () => { o.busy = false; busy = false; o.state = 'idle'; });
       }, 2400);
-    }, 3.2);
+    }, 3.6);
     return;
   }
   // 그 밖(방 안 · 손님이 방에 있음): 웨이터가 다녀온 뒤 문으로 들어옴
@@ -273,6 +281,6 @@ NC.tickers.push(dt => {
 #guestList.picking .glRow{cursor:pointer;outline:1px dashed rgba(255,140,210,.4)}#guestList.picking .glRow:hover{background:rgba(255,61,154,.35)}
 @media (max-width:640px){#profCard{width:160px;font-size:10px}#profCard .pcRow em{flex-basis:56px}}`; document.head.appendChild(st); }
 
-NC.Service = { call, pickBooking, fetchGuest, willCome, detach, whereOf, profile };
+NC.Service = { call, pickBooking, fetchGuest, willCome, detach, whereOf, profile, get cur() { return cur; }, unbusy() { busy = false; } };   // v84 cur·unbusy: nav.js 가 '할 일 끝났는데 서 있는' 웨이터를 풀어 줌
 console.info('[service] 🔔 어디서나 웨이터 · 👥 지목 부킹 · 💳 프로필 카드 준비 완료');
 })();

@@ -173,7 +173,7 @@ function plan(A, B, lead, act, e) {
       o.head = B.head.clone().lerp(A.head, .2); o.wHead = .35; } }   // 고개를 살짝 돌려 뒤의 상대 쪽을 봄
   else if (k === 'kiss' || k === 'deepkiss') { const deep = k === 'deepkiss';
     if (lead) { o.R = P.cheek(B, sR); o.L = deep ? P.cheek(B, sL) : P.lowBack(B, sL); o.hp = { R: 'cup', L: deep ? 'cup' : 'touch' }; } else if (acc) { o.L = P.neckBack(B, sL); o.R = deep ? P.neckBack(B, sR) : P.upperBack(B, sR); }
-    o.head = P.lips(B); o.wHead = 1; o.tilt = (lead ? .24 : -.24); }
+    o.head = P.lips(B); o.wHead = 1; o.tilt = .24; }   // v84 두 사람 같은 부호(각자 자기 쪽) → 마주 보면 반대로 기울어 코가 엇갈림
   /* v69 신체 접촉 3종: 손이 실제 접촉점(옷 위)으로 감 — 전에는 손 목표가 없어 홀드 자세(허리) 그대로였음 */
   else if (k === 'butt') { if (lead) { o.R = P.buttock(B, sR); o.L = SELF.rest(A, 'L'); o.selfL = true; o.hp = { R: 'touch' }; o.head = P.lips(B); o.wHead = .4; } else if (acc) { o.L = P.palmChest(B, sL); o.R = P.shoulderTop(B, sR); o.head = P.buttock(A, sR).lerp(A.hips, .3); o.wHead = .35; o.lean = .05; } }   // v69 한 손만 엉덩이(다른 손은 내림) · 상대는 고개를 살짝 돌려 그 손을 보며 리드 가슴·어깨에 손
   else if (k === 'chest') { if (lead) { o.R = P.chestFront(B, sR); o.L = P.waistSide(B, sL); o.hp = { R: 'touch' }; } else if (acc) { o.R = P.upperArm(B, sR); o.L = SELF.rest(A, 'L'); o.selfL = true; } }
@@ -260,8 +260,8 @@ function tickBlues() {
       if (k === 'kiss' || k === 'deepkiss') { const deep = k === 'deepkiss', ph = now / 1000;
         /* v82 사람 같은 키스: 입술을 '눌렀다 살짝 떼는' 리듬(0.4~0.5초 주기, 두 사람 같은 박자) + 고개 기울기가 숨 쉬듯 커졌다 작아짐.
          *  딥키스는 3초쯤마다 고개 방향을 반대로 천천히 바꿈(코가 부딪치지 않게 서로 반대쪽 유지) · 기울기 크기도 더 큼 */
-        const press = .5 + .5 * Math.sin(ph * (deep ? 2.4 : 2.0)), side = deep ? Math.tanh(2.6 * Math.sin(ph * 1.05)) : 1, amp = (deep ? .16 : .09) * ((act.vr && act.vr.amp) || 1) * (1 + .3 * Math.sin(ph * 1.3));
-        o = { mode: 'lips', share: sh, tilt: (isLead ? 1 : -1) * amp * side, gap: (deep ? .001 + .007 * press : .006 + .006 * press) + .022 * (1 - Math.abs(side)) }; }   // 고개 방향을 바꾸는 순간엔 입술을 살짝 떼어 코가 부딪치지 않게
+        const press = .5 + .5 * Math.sin(ph * (deep ? 2.4 : 2.0)), side = deep ? Math.tanh(2.6 * Math.sin(ph * 1.05)) : 1, amp = (deep ? .3 : .22) * ((act.vr && act.vr.amp) || 1) * (1 + .2 * Math.sin(ph * 1.3));   // v84 25° 안팎(사람 키스 각도)
+        o = { mode: 'lips', share: sh, tilt: amp * side,   /* v84 두 사람 모두 '자기 쪽' 같은 부호 → 마주 본 상태에선 서로 반대로 기울어 코가 X자로 엇갈림(전엔 부호가 반대라 두 머리가 나란히 같은 쪽으로 기울어 코·이마·머리카락이 겹쳤음) */ gap: (deep ? .006 + .006 * press : .01 + .006 * press) + .03 * (1 - Math.abs(side)), yaw: (deep ? .4 : .34) * Math.abs(side) }; }   // v84 yaw: 머리를 옆으로 비켜 얼굴이 비스듬히 엇갈림   // 고개 방향을 바꾸는 순간엔 입술을 살짝 떼어 코가 부딪치지 않게
       else if (k === 'forehead') o = { mode: 'brow', share: sh, tilt: 0, gap: .006 };
       else if (k === 'cheek') o = isLead ? { mode: 'cheek', side: 1, share: .85, tilt: .12, gap: .008 } : { mode: 'lips', share: 0, tilt: -.1, gap: .05 };
       else if (k === 'whisper') o = isLead ? { mode: 'ear', side: 1, share: .85, tilt: .08, gap: .03 } : null;

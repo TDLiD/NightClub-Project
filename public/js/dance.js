@@ -292,7 +292,17 @@ function spinTick(dt) {
     if (s.hop) { g.position.y = s.y0 + Math.sin(k * Math.PI) * s.hop; if (NC.Pose && NC.Pose.claim) NC.Pose.claim(g, 'dance-spin', 'custom', .25); }
     if (k >= 1) { if (s.hop) g.position.y = s.y0; SPN.delete(g); } }
 }
+/* ═════ 5. v84 무대 위에서 5초 동안 아무것도 안 하면 → 내 캐릭터가 혼자 신나게 춤(강한 춤 + 턴·점프) · 움직이거나 무대를 벗어나면 멈춤 ═════ */
+const STG = NC.StageSolo = { idle: 0, on: false };
+function stageSoloTick(dt) {
+  const p = P(); if (!p || !p.group) return; const u = p.group.userData;
+  const ok = p.zone === 'stage' && !u.moving && !p.autoPath && !p.target && !p.seat && !p.busy && !(NC.Dialog && NC.Dialog.cur) && !SD.on && !DK.phase && !(NC.Karaoke && NC.Karaoke.BL && NC.Karaoke.BL.n) && !(NC.PairWalk && NC.PairWalk.n);
+  if (!ok) { STG.idle = 0; if (STG.on) { STG.on = false; flairOff(p.group); if (u.dance === 'showDance') u.dance = p.zone === 'stage' ? 'stageDance' : null; p.danceUntil = 0; p.ry = p.group.rotation.y; } return; }
+  if (!STG.on) { STG.idle += dt; if (STG.idle > 5) { STG.on = true; flairOn(p.group, p.ry || p.group.rotation.y, { big: true }); NC.ui.toast('💃 무대 위에서 신나게 혼자 춤춰요 — 움직이면 멈춰요'); } return; }
+  u.dance = 'showDance'; p.danceUntil = performance.now() + 1500;
+}
 NC.tickers.push(dt => { if (!dt) return; dt = Math.min(dt, .1);
+  try { stageSoloTick(dt); } catch (e) { console.warn('[dance] stage solo', e); }
   try { showTick(dt); } catch (e) { console.error('[dance] show', e); try { SD.stop(true); } catch (e2) { SD.on = null; } }
   try { dkTick(dt); if (DK.S && DK.S.t > 60 + DK.S.cont.length * (DK.DUR + 25)) { console.warn('[dance] 댄싱 킹/퀸 시간 초과 → 정리'); DK.stop(); } }
   catch (e) { console.error('[dance] dk', e); try { DK.stop(); } catch (e2) { DK.phase = null; DK.S = null; } btnBar.style.display = 'none'; }   // v79 오류가 나도 이벤트·버튼이 남지 않게

@@ -1,0 +1,57 @@
+import asyncio, json
+from playwright.async_api import async_playwright
+SESS = "localStorage.setItem('nc_session', JSON.stringify({uid:'u_test',id:'tester',nickname:'테스터',gender:'남성',characterNo:1,role:'admin'})); localStorage.setItem('nc_adult19','1');"
+CAM = "window._cam=null; NC.tickers.push(()=>{ const c=window._cam; if(c){ NC.camera.position.set(c[0],c[1],c[2]); NC.camera.lookAt(c[3],c[4],c[5]); } });"
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--use-angle=swiftshader','--enable-unsafe-swiftshader'])
+        pg = await (await b.new_context(viewport={'width':480,'height':300})).new_page(); pg.set_default_timeout(900000)
+        errs=[]; pg.on('pageerror', lambda e: errs.append(str(e)[:200]))
+        await pg.goto('http://localhost:3100/?mode=demo', wait_until='domcontentloaded')
+        await pg.evaluate("localStorage.clear();"+SESS); await pg.reload(wait_until='domcontentloaded'); await pg.wait_for_timeout(4000)
+        await pg.evaluate("document.querySelector('#go').click()"); await pg.wait_for_function("NC.player && NC.npcs && NC.npcs.length>10 && NC.started && NC.player.group.userData.real", polling=1000)
+        await pg.evaluate(CAM); await pg.evaluate("NC.Events.next=1e12")
+        await pg.wait_for_function("NC.npcs.filter(n=>n.gender==='f'&&n.state==='wander'&&n.g.visible&&n.g.userData.real&&!n.g.userData.real.pending&&!n.g.userData.wardrobe).length>=2", polling=2000, timeout=600000)
+        R={}
+        # 5) 노래방 칩: 대화(앉아 있을 때 포함)
+        await pg.evaluate("(()=>{ const P=NC.player; P.x=2; P.z=-3; P.group.position.set(2,0,-3); const n=NC.npcs.find(n=>n.gender==='f'&&n.state==='wander'&&n.g.visible&&n.g.userData.real&&!n.g.userData.wardrobe); n.x=2.6; n.z=-3.2; n.g.position.set(2.6,0,-3.2); n.aff=100; window._k=n; NC.Dialog.open(n); })()")
+        await pg.wait_for_timeout(1500)
+        print('step1', flush=True)
+        R['chipsDialog']=await pg.evaluate("[...document.querySelectorAll('button')].map(b=>b.textContent).filter(t=>/노래방/.test(t))")
+        await pg.evaluate("NC.Karaoke.startBlues(window._k)"); await pg.wait_for_timeout(4000)
+        print(json.dumps(R, ensure_ascii=False), flush=True)
+        await pg.evaluate("(()=>{ if(!NC.Dialog.cur) NC.Dialog.open(window._k); return 1; })()"); await pg.wait_for_timeout(1500)
+        R['chipsBlues']=await pg.evaluate("[...document.querySelectorAll('#dlg button')].map(b=>b.textContent).filter(t=>/노래방|키스/.test(t))")
+        print(json.dumps(R, ensure_ascii=False), flush=True)
+        # 3) 키스: 고개 기울기 부호·머리 거리
+        await pg.evaluate("(()=>{ window._k.bl.kissed=true; NC.Karaoke.bluesAct('kiss'); return [!!NC.Karaoke.BL.n, NC.Karaoke.BL.busy]; })()")
+        await pg.wait_for_function("NC.Karaoke.BL.kiss>0", polling=100, timeout=60000)
+        await pg.wait_for_timeout(600)
+        R['kiss']=await pg.evaluate("""(()=>{ const a=NC.player.group.userData, b=window._k.g.userData, h=g=>{const r=g.userData.real; return r.Bn.head.getWorldPosition(new NC.THREE.Vector3());}; return {tiltMe:a.faceTgt&&+a.faceTgt.tilt.toFixed(2), tiltHer:b.faceTgt&&+b.faceTgt.tilt.toFixed(2), headDist:+h(NC.player.group).distanceTo(h(window._k.g)).toFixed(3)}; })()""")
+        await pg.screenshot(path='/tmp/v84s/kiss.png')
+        await pg.wait_for_function("NC.Karaoke.BL.kiss<=0", polling=300, timeout=200000)
+        await pg.evaluate("NC.Karaoke.endBlues('stop')"); await pg.wait_for_timeout(1500)
+        # 4) 무대 위 혼자 춤
+        await pg.evaluate("(()=>{ const P=NC.player, S=NC.world.zones.stage; const x=(S.x0+S.x1)/2+1.5, z=(S.z0+S.z1)/2+1; P.x=x; P.z=z; P.group.position.set(x,P.group.position.y,z); P.target=null; P.autoPath=null; })()")
+        await pg.wait_for_timeout(12000)
+        R['stageSolo']=await pg.evaluate("({zone:NC.player.zone, on:NC.StageSolo.on, idle:+NC.StageSolo.idle.toFixed(1), dance:NC.player.group.userData.dance})")
+        await pg.evaluate("(()=>{ const P=NC.player; window._cam=[P.x+2.4,P.group.position.y+1.6,P.z+3,P.x,P.group.position.y+1,P.z]; })()"); await pg.wait_for_timeout(2000); await pg.screenshot(path='/tmp/v84s/stage_solo.png'); await pg.evaluate("window._cam=null")
+        # 1) 웨이터가 손잡고 데려옴(지목 부킹)
+        await pg.evaluate("(()=>{ const P=NC.player; P.x=0; P.z=-2; P.group.position.set(0,0,-2); P.ry=0; })()")
+        await pg.evaluate("NC.Service.call()")
+        await pg.wait_for_function("NC.Service.cur", polling=500, timeout=300000)
+        await pg.evaluate("NC.ui.hideDlg(); NC.player.busy=false; const n=NC.npcs.find(n=>n.gender==='f'&&n.state==='wander'&&n.g.visible&&n.g.userData.real&&n!==window._k&&Math.hypot(n.x,n.z+2)>5); n.aff=100; window._b=n; NC.Service.fetchGuest(n,15)")
+        await pg.wait_for_function("NC.Escort.leads.length>0", polling=300, timeout=300000)
+        await pg.wait_for_timeout(2000)
+        R['lead']=await pg.evaluate("(()=>{ const L=NC.Escort.leads[0]; const n=L.n; const ha=L.g.userData.real&&L.g.userData.real.Bn, hb=n.g.userData.real&&n.g.userData.real.Bn; const d=(ha&&hb)?Math.min(...['L','R'].flatMap(a=>['L','R'].map(b=>ha['hand'+a].getWorldPosition(new NC.THREE.Vector3()).distanceTo(hb['hand'+b].getWorldPosition(new NC.THREE.Vector3()))))):null; return {waiter:L.title, girl:n.name, gap:+Math.hypot(L.x-n.x,L.z-n.z).toFixed(2), hands:d&&+d.toFixed(3), speed:L.speed}; })()")
+        await pg.evaluate("(()=>{ const L=NC.Escort.leads[0]; NC.tickers.push(()=>{ if(!L) return; const mx=(L.x+L.n.x)/2, mz=(L.z+L.n.z)/2; window._cam=[mx+2.6,2.0,mz+2.6,mx,1.0,mz]; }); })()")
+        await pg.wait_for_timeout(1500); await pg.screenshot(path='/tmp/v84s/lead.png')
+        await pg.wait_for_function("NC.Escort.leads.length===0", polling=500, timeout=400000)
+        await pg.evaluate("window._cam=null")
+        R['arrive']=await pg.evaluate("({dist:+Math.hypot(window._b.x-NC.player.x, window._b.z-NC.player.z).toFixed(2), state:window._b.state, dlg:!!NC.Dialog.cur})")
+        # 2) 자유의지: 대화 닫고 기다리기
+        await pg.evaluate("NC.Dialog.cur && NC.Dialog.close('bye')")
+        await pg.wait_for_timeout(30000)
+        R['after']=await pg.evaluate("({girl:window._b.state, booked:window._b.booked, waitersBusy:NC.Waiters.list.filter(o=>o.busy).map(o=>o.def.title+':'+o.state), freed:NC.Nav.stats.freed||0, wFreed:NC.Nav.stats.waiterFreed||0, idleNpc:NC.npcs.filter(n=>n.state==='idle').length})")
+        R['errors']=errs[:6]; print(json.dumps(R, ensure_ascii=False)); await b.close()
+asyncio.run(main())

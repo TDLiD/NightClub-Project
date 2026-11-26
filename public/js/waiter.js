@@ -77,6 +77,7 @@ function walk(o, pts, done, speed = 2.6) { o.path = pts.slice(); o.done = done; 
 function updateWaiters(dt, cam) {
   waiters.forEach(o => {
     const u = o.g.userData; o.t += dt;
+    if (o.state === 'lead') { Mo.update(o.g, dt, { near: cam.position.distanceTo(o.g.position) < 16 }); NC.Avatar.fitLabel(o.g, cam); return; }   // v84 손님 손잡고 데려오는 중(escort.js ES.lead 가 움직임)
     if (o.state === 'path') {
       const p = o.path[0];
       if (!p) { o.state = 'idle'; u.moving = false; const f = o.done; o.done = null; f && f(); }

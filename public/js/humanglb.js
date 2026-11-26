@@ -414,6 +414,15 @@ function faceIK(r, u) {
     qa.setFromUnitVectors(va.normalize(), vb.normalize()); qa.slerp(qb.identity(), .35);   // 감쇠
     const wq = J.getWorldQuaternion(new T.Quaternion()), pq = J.parent.getWorldQuaternion(new T.Quaternion()).invert(); J.quaternion.copy(pq.multiply(qa.multiply(wq)));
     const ang = q0[i].angleTo(J.quaternion), lim = FACE_LIM[i]; if (ang > lim) J.quaternion.copy(q0[i]).slerp(J.quaternion.clone(), lim / ang); J.updateMatrixWorld(true); }
+  /* v84 사람 같은 키스: 입술은 가운데서 만나되 머리(두개골)는 '기울이는 쪽'으로 비켜 섬 → 얼굴이 서로 비스듬히 엇갈려 이마·코·머리카락이 겹치지 않음
+   *  ① 머리를 기울일 반대쪽으로 고개를 돌림(yaw) ② 목·가슴을 다시 풀어 입술을 만나는 점에 되돌림(→ 머리 관절이 옆으로 비켜남) */
+  if (F.yaw && F.tilt && me === 'lips' && chain.length > 1) { const H = r.Bn.head; H.updateMatrixWorld(true);
+    const upW = r.huL.clone().applyQuaternion(H.getWorldQuaternion(new T.Quaternion())); upW.y = Math.max(upW.y, .5); upW.normalize();
+    const wq = H.getWorldQuaternion(new T.Quaternion()), pq = H.parent.getWorldQuaternion(new T.Quaternion()).invert();
+    H.quaternion.copy(pq.multiply(new T.Quaternion().setFromAxisAngle(upW, Math.sign(F.tilt) * F.yaw * (RH.kissYaw ?? 1)).multiply(wq))); H.updateMatrixWorld(true);
+    for (let it = 0; it < 5; it++) for (let i = 1; i < chain.length; i++) { const J = chain[i]; J.updateMatrixWorld(true); J.getWorldPosition(jp); const c = cur(); va.copy(c).sub(jp); vb.copy(tgt).sub(jp); if (va.lengthSq() < 1e-8 || vb.lengthSq() < 1e-8) continue;
+      qa.setFromUnitVectors(va.normalize(), vb.normalize()); const wq2 = J.getWorldQuaternion(new T.Quaternion()), pq2 = J.parent.getWorldQuaternion(new T.Quaternion()).invert(); J.quaternion.copy(pq2.multiply(qa.multiply(wq2)));
+      const ang = q0[i].angleTo(J.quaternion), lim = FACE_LIM[i] + .1; if (ang > lim) J.quaternion.copy(q0[i]).slerp(J.quaternion.clone(), lim / ang); J.updateMatrixWorld(true); } }
   /* 고개 기울임: 상대를 향한 축으로 회전(코가 엇갈림) */
   if (F.tilt && r.Bn.head) { const H = r.Bn.head; H.updateMatrixWorld(true); const ax = other.clone().sub(H.getWorldPosition(new T.Vector3())).normalize(), wq = H.getWorldQuaternion(new T.Quaternion()), pq = H.parent.getWorldQuaternion(new T.Quaternion()).invert();
     H.quaternion.copy(pq.multiply(new T.Quaternion().setFromAxisAngle(ax, F.tilt).multiply(wq))); }

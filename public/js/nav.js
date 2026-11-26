@@ -43,5 +43,27 @@ Nav.unstick = (o, dt) => {
   if (np && np.length) { o.path = np; Nav.stats.repath++; return true; }
   return false;
 };
-console.info('[nav] v83 길찾기 보강 (A* 구간 보정 · 막힘 재탐색)');
+/* v84 자유의지: 옵션·부킹·안내가 끝났는데 아무도 '쥐고 있지 않은' 사람이 멈춰 서 있으면 다시 스스로 돌아다니게
+ *  · 손님: 'idle'(도착 후 할 일 없음) 8초 · 'escort'(안내받던 중 손 놓음) 10초 넘게 멈춰 있으면 → 부킹 표시를 풀고 돌아다님
+ *    (대화 중·블루스·같이 걷기·웨이터가 데려가는 중·노래방 룸 손님·이벤트 참가·앉아 있는 사람은 그대로)
+ *  · 웨이터: 메뉴도 이동도 안내도 아닌데 '바쁨' 상태로 20초 넘게 서 있으면 → 바쁨을 풀어 자기 자리/순찰로 돌아감 */
+function owned(n) {
+  const D = NC.Dialog && NC.Dialog.cur, K = NC.Karaoke;
+  return (D && D.n === n) || (K && K.BL && K.BL.n === n) || (NC.PairWalk && NC.PairWalk.n === n) || n._escortBy || n._dk || n._sd || n._bring || n.roomGuest
+    || (K && K.inRoom && (K.guests || []).includes(n)) || (NC.Motel && NC.Motel.on && NC.Motel.n === n) || n.party || n.stay === 'smoke' || n.stay === 'outing' || n.stay === 'arrest';
+}
+let fwT = 0;
+function freeWill(dt) {
+  fwT += dt; if (fwT < .5) return; const step = fwT; fwT = 0;
+  for (const n of NC.npcs || []) { const u = n.g && n.g.userData; if (!u || n.enabled === false) continue;
+    const stuck = (n.state === 'idle' || (n.state === 'escort' && !u.moving)) && !u.seated && !owned(n);
+    n._fw = stuck ? (n._fw || 0) + step : 0;
+    if (n._fw > (n.state === 'escort' ? 10 : 8)) { n._fw = 0; if (!n.bookSeat) n.booked = false; if (n.stay === 'escortW') n.stay = null; n.state = 'wander'; n.pause = 1 + Math.random() * 3; n.wp = null; n.wpath = null; n.path = null; u.lookAt = null; Nav.stats.freed = (Nav.stats.freed || 0) + 1; } }
+  const S = NC.Service, cur = S && S.cur;
+  for (const o of (NC.Waiters && NC.Waiters.list) || []) { const idleBusy = o.busy && o.state !== 'path' && o.state !== 'lead' && !(cur && cur.o === o) && !(NC.ui && NC.ui.dlgOpen && NC.ui.dlgOpen());
+    o._fw = idleBusy ? (o._fw || 0) + step : 0;
+    if (o._fw > 20) { o._fw = 0; o.busy = false; o.state = 'idle'; o.g.userData.lookAt = null; if (S && !cur && S.unbusy) S.unbusy(); Nav.stats.waiterFreed = (Nav.stats.waiterFreed || 0) + 1; } }
+}
+(NC.tickers = NC.tickers || []).push(dt => { try { freeWill(Math.min(dt || .016, .2)); } catch (e) { console.warn('[nav freewill]', e); } });
+console.info('[nav] v84 길찾기 보강 (A* 구간 보정 · 막힘 재탐색) · 자유의지(할 일 끝나면 다시 돌아다님)');
 })();

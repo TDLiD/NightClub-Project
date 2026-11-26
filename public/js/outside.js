@@ -238,14 +238,17 @@ NC.interactProviders.push(() => {
 
 /* ═════ 6. 부킹 대화 칩: 🎤 노래방 갈래요? ═════ */
 (NC.dialogChips = NC.dialogChips || []).push((n, CHIP) => {
-  if (n.gender !== 'f' || (NC.Karaoke && NC.Karaoke.inRoom) || R_.current() || KS.comp === n || P().seat) return;
-  CHIP('🎤 노래방 갈래요?', () => {
+  if (n.gender !== 'f' || (NC.Karaoke && NC.Karaoke.inRoom) || R_.current() || KS.comp === n) return;   // v84 앉아 있을 때도(테이블 부킹 중) 보이게 — 전엔 P().seat 이면 숨겨서 '노래방 가기'가 안 보였음
+  CHIP('🎤 노래방 갈래요?', () => inviteKaraoke(n));
+});
+function inviteKaraoke(n) {
+  {
     const D = NC.Dialog, ok = n.aff >= 65 || (n.aff >= 45 && Math.random() < .55);
     if (!ok) { n.aff = U.clamp(n.aff - 2, 0, 100); D.npcSay(U.pick(['노래방이요? 음… 아직은 좀 이른 것 같아요 ㅎㅎ', '오늘은 여기서 더 놀래요~ 다음에요!', '저 노래 진짜 못해서… 다음에 가요 ㅠㅠ']), 'shy'); D.floatDelta && D.floatDelta(-2); return; }
     D.npcSay(U.pick(['노래방이요? 완전 좋아요!! 마이크 제가 먼저 잡을래요 🎤', '좋아요~ 길 건너 별빛 노래방 알아요? 거기 가요!', '…가요! 대신 듀엣 한 곡은 꼭 해야 돼요 ㅎㅎ']), 'joy');
-    setTimeout(() => { D.close('bye'); attachComp(n); NC.ui.toast(`💗 ${n.name}님과 길 건너 별빛 노래방으로 함께 걸어가요`); walkOut(); }, 1600);
-  });
-});
+    setTimeout(() => { const K0 = NC.Karaoke; if (K0 && K0.BL && K0.BL.n === n && K0.endBlues) K0.endBlues('karaoke'); if (P().seat && NC.requestStand) NC.requestStand(); D.close('bye'); attachComp(n); NC.ui.toast(`💗 ${n.name}님과 길 건너 별빛 노래방으로 함께 걸어가요`); walkOut(); }, 1600);
+  }
+}
 /* v67 노래방 가는 길: 페이드로 순간이동하지 않고 둘이 함께 걸어서 → 클럽 출입구 → 거리 → 노래방 문 (도중에 직접 조작하면 자동 걷기는 멈추고 문 앞 E 로 이어감) */
 function walkOut() { const p = P(); if (!NC.walkPlayer || !NC.NPC || !NC.NPC.planPath) return goLobbyWith();
   NC.walkPlayer(NC.NPC.planPath(p, { x: ENT.x, z: ENT.z }), () => { if (R_.current() || !KS.comp) return; goStreet();
@@ -271,6 +274,6 @@ NC.tickers.push((dt, t) => {
       n.g.position.set(n.x, 0, n.z); n.g.visible = true; }
   }
 });
-NC.Outside = { street: ST, lobby: KL, KS, goStreet, goLobby, backToClub, attachComp, ownerMenu, episodes: EPIS };
+NC.Outside = { street: ST, lobby: KL, KS, goStreet, goLobby, backToClub, attachComp, ownerMenu, episodes: EPIS, inviteKaraoke };
 console.info('[outside] 🚪 출입구 · 🌃 거리 · 🎤 별빛 노래방(사장님 스토리·방 배정·주문·에피소드) 준비 완료');
 })();

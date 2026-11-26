@@ -48,7 +48,7 @@ function follow(o, dt) {
   let tx = o.x + rx * side * .52, tz = o.z + rz * side * .52;
   if (NC.Path && NC.Path.isBlocked && NC.Path.isBlocked(tx, tz)) { tx = o.x - fx * .5 + rx * side * .18; tz = o.z - fz * .5 + rz * side * .18; }   // v83 옆자리가 탁자·벽이면 반 걸음 뒤에서 따라감(좁은 통로)
   const dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz);
-  if (d > 3) { n.x = tx; n.z = tz; } else { const k = 1 - Math.exp(-dt * 6), mx = 2.2 * dt; let sx = dx * k, sz = dz * k; const sl = Math.hypot(sx, sz); if (sl > mx) { sx *= mx / sl; sz *= mx / sl; } n.x += sx; n.z += sz; }
+  if (d > 3) { n.x = tx; n.z = tz; } else { const k = 1 - Math.exp(-dt * (o.followK || 6)), mx = (o.followMax || 2.2) * dt; let sx = dx * k, sz = dz * k; const sl = Math.hypot(sx, sz); if (sl > mx) { sx *= mx / sl; sz *= mx / sl; } n.x += sx; n.z += sz; }
   if (NC.collide) NC.collide(n, .24);
   n.g.position.set(n.x, NC.groundY ? NC.groundY(n.x, n.z) : 0, n.z); u.moving = o.g.userData.moving || d > .14;
   n.g.rotation.y = U.lerpAngle(n.g.rotation.y, o.g.userData.moving ? ry : Math.atan2(o.x - n.x, o.z - n.z), Math.min(1, dt * 6));
@@ -89,7 +89,24 @@ function tick(dt) {
     o.g.position.set(o.x, NC.groundY ? NC.groundY(o.x, o.z) : 0, o.z);
   });
 }
-NC.tickers.push(dt => { try { tick(dt); } catch (e) { if (!ES.err) { ES.err = String(e); console.warn('[escort]', e); } } });
+/* v84 다른 웨이터(서비스 호출 웨이터)도 '손잡고 데려오기' — 지목 부킹에서 웨이터가 손님 손을 잡고 달려서 플레이어 곁으로
+ *  ES.lead(o, n, dest, done, speed): o = NC.Waiters 의 웨이터(x·z·g) · 같은 follow(옆에서 따라오기)·hands(손잡기 IK)·A* 경로 · 막히면 다시 찾기 */
+const LEADS = ES.leads = [];
+ES.lead = (o, n, dest, done, speed = 3.0) => {
+  const L = { o, g: o.g, x: o.x, z: o.z, n, side: 1, w: 0, speed, followMax: speed + .6, followK: 12, done, t: 0, title: (o.def && o.def.title) || '웨이터' };
+  walkTo(L, dest, speed); n._escortBy = L; n.state = 'escort'; n.path = null; n.g.userData.dance = null; n.g.userData.lookAt = null;
+  o.state = 'lead'; o.busy = true; LEADS.push(L); return L; };
+function leadTick(dt) {
+  for (let i = LEADS.length - 1; i >= 0; i--) { const L = LEADS[i], o = L.o, n = L.n; L.t += dt;
+    const lost = !n || n._escortBy !== L || (NC.Dialog && NC.Dialog.cur && NC.Dialog.cur.n === n) || L.t > 60;
+    if (lost) { LEADS.splice(i, 1); if (n && n._escortBy === L) { n._escortBy = null; if (n.state === 'escort') n.state = 'wander'; } o.state = 'idle'; o.busy = false; o.g.userData.armOffL = o.g.userData.armOffR = false; continue; }
+    L.w = Math.min(1, L.w + dt * 2.5); const arrived = step(L, dt); o.x = L.x; o.z = L.z; o.g.position.set(o.x, NC.groundY ? NC.groundY(o.x, o.z) : 0, o.z);
+    follow(L, dt); hands(L, dt);
+    if (arrived) { LEADS.splice(i, 1); o.g.userData.moving = false; n._escortBy = null; n.g.userData.armOffL = n.g.userData.armOffR = false; o.g.userData.armOffL = o.g.userData.armOffR = false;
+      o.state = 'idle'; Mo.play && Mo.play(o.g, 'bow'); try { L.done && L.done(); } catch (e) { console.warn('[escort lead]', e); }
+      setTimeout(() => { o.busy = false; o.state = 'idle'; }, 1200); } }
+}
+NC.tickers.push(dt => { try { tick(dt); } catch (e) { if (!ES.err) { ES.err = String(e); console.warn('[escort]', e); } } try { leadTick(dt); } catch (e) { console.warn('[escort lead]', e); LEADS.length = 0; } });
 ES.spawn = spawn;
 { const iv = setInterval(() => { if (NC.started && NC.scene && NC.npcs && NC.npcs.length) { clearInterval(iv); setTimeout(() => { if (!ES.list.length) spawn(); }, 2500); } }, 1000); }   // 입장 뒤 한 번
 console.info('[escort] v77 부킹 웨이터(강호동·강쇠·먹쇠) 손잡고 안내');

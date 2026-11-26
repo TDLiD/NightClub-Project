@@ -812,6 +812,7 @@ NC.dialogChipsOverride = (n, CHIP) => {
   else if (AD) CHIP('🔞 19+ 스킨십 (성인 확인)', () => AD.verify().then(ok => ok && NC.Dialog.chips()));
   if (n.g.userData.undressed) CHIP('👕 옷 다시 입혀 주기', () => bluesAct('dress'));
   if (BL.where === 'karaoke' || K.inRoom) PREMIUM.forEach(([l, k]) => CHIP(`${NC.account ? '💎' : '🔒'} ${l} 🪙${PREMIUM_COST}`, () => premium(k)));
+  else if (!BL.busy && n.gender === 'f' && NC.Outside && NC.Outside.inviteKaraoke) CHIP('🎤 노래방 갈래요?', () => NC.Outside.inviteKaraoke(n));   // v84 브루스 도중 2차 노래방 제안
   CHIP('⏹ 브루스 그만', () => endBlues('stop'));
   return true;
 };
