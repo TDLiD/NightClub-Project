@@ -97,11 +97,17 @@ function setOut(w, v, wear) { Z.out[w] = clamp(v, 0, 5); if (wear !== undefined)
 const QX = new T.Quaternion().setFromAxisAngle(V3(1, 0, 0), -Math.PI / 2), QZ = new T.Quaternion(), ZA = V3(0, 0, 1);
 function bedTop() { return RV.round ? .6 : .62; }
 function lie(spec) {   // spec: { me:{x, roll, prone}, n:{...}, sheet:bool } — 머리는 베개(북쪽) 쪽
-  const p = P(), n = S.n; endStanding(); stopHand(); if (p.seat) NC.requestStand(); if (n.state === 'seated') NC.unseatAvatar(n.g); try { NC.Couple && (NC.Couple.ST.sofa = null); } catch (e) { }
-  n.state = 'lying'; n.g.userData.moving = false; S.follow = false; Z.lie = spec; Z.pin = null; setSheet(!!spec.sheet);
+  const p = P(), n = S.n; endStanding(); stopHand(); if (p.seat) { NC.requestStand(); p.seat = null; p.group.userData.seated = false; } if (n.state === 'seated') NC.unseatAvatar(n.g); try { NC.Couple && (NC.Couple.ST.sofa = null); } catch (e) { }
+  n.state = 'lying'; n.g.userData.moving = false; S.follow = false; P().autoPath = null; Z.lie = spec; Z.pin = null; setSheet(false);
+  /* v86 누울 땐 둘 다 속옷 차림(가운·잠옷 등은 벗어 둠, 이미 수건·이불로 가린 상태면 그대로) — 일어나면 원래 차림으로 */
+  if (!Z.preLie) Z.preLie = { out: { ...Z.out }, wear: { ...Z.wear } };
+  if (adultOk() && !no19P()) for (const w of ['me', 'n']) if (spec[w] && Z.out[w] < 5) setOut(w, 4, '');   // 성인 확인 · 19+ 제외 대상(실존 인물 캐릭터)은 옷 그대로
+  if (RV.duvet) RV.duvet.visible = false;   // v86 침대 위 이불 숨김(몸이 이불에 파묻혀 보였음)
 }
 function unlie() {
-  if (!Z.lie) return false; const sp = Z.lie; Z.lie = null; setSheet(false);
+  if (!Z.lie) return false; const sp = Z.lie; Z.lie = null; Z.lkiss = null; setSheet(false); if (RV.duvet) RV.duvet.visible = true;
+  for (const g of [P().group, S.n && S.n.g]) if (g) g.userData.faceTgt = null;
+  if (Z.preLie) { const pl = Z.preLie; Z.preLie = null; for (const w of ['me', 'n']) if (Z.out[w] === 4 && !Z.wear[w]) setOut(w, pl.out[w], pl.wear[w]); }   // v86 일어나면 누울 때 차림으로
   for (const w of ['me', 'n']) { if (!sp[w] || (w === 'n' && !S.n)) continue; const g = G(w); g.rotation.x = 0; g.rotation.z = 0; g.position.y = 0; if (NC.Pose) NC.Pose.release(g, 'motel-lie'); }
   const p = P(), b = RV.seats.bed; p.x = BX + b[0].x; p.z = CZ + b[0].z + .5; NC.collide(p, .38); p.group.position.set(p.x, 0, p.z);
   if (S.n) { placePartner(BX + b[1].x, CZ + b[1].z + .5, Math.PI); S.n.state = 'motel'; } S.follow = true; return true;
@@ -115,7 +121,7 @@ function lieTick() {
     g.userData.moving = false; if (NC.Pose) NC.Pose.claim(g, 'motel-lie', 'lying'); }   // v61 임대: 이 틱이 멈추면(어떤 경로로 빠져나가든) 0.4초 뒤 자세 관리자가 바로 세움
 }
 let sheetM = null;
-function setSheet(on) { if (sheetM) { if (sheetM.parent) sheetM.parent.remove(sheetM); sheetM.geometry.dispose(); sheetM = null; } if (!on || !RV.G) return;
+function setSheet(on) { if (sheetM) { if (sheetM.parent) sheetM.parent.remove(sheetM); sheetM.geometry.dispose(); sheetM = null; } on = false; if (!on || !RV.G) return;   // v86 이불은 표시하지 않음
   const len = 1.25, side = Z.lie && ((Z.lie.me && Z.lie.me.roll) || (Z.lie.n && Z.lie.n.roll));
   sheetM = new T.Mesh(new T.BoxGeometry(1.75, .09, len, 6, 1, 6), std('#f4efe6', { roughness: .95 })); const pa = sheetM.geometry.attributes.position;   // 가장자리가 처지는 이불
   for (let i = 0; i < pa.count; i++) { const x = pa.getX(i), zz = pa.getZ(i); pa.setY(i, pa.getY(i) - Math.pow(Math.abs(x) / .875, 3) * .14 - Math.pow(Math.max(0, zz / (len / 2)), 4) * .05 + Math.sin(x * 9 + zz * 7) * .008); } sheetM.geometry.computeVertexNormals();
@@ -481,8 +487,17 @@ async function slowDance(skipAsk) { if (!skipAsk) { const r = await ask('slowdan
 async function lieTogether() { const r = await ask('lieTogether', { trust: 50 }); if (r === 'no' || r === 'cond') return; await blink(() => lie({ me: { x: -.36 }, n: { x: .36 }, sheet: Z.out.me >= 4 || Z.out.n >= 4 })); nSay(byT({ shy: '…천장 거울에 우리 비친다 ㅎㅎ', cool: '…이렇게 누워 있으니까 좋네요.', playful: '침대 반 갈라서 넘어오면 벌금! ㅋㅋ', outgoing: '아 푹신해~ 이대로 자고 싶다' }), 'smile'); bump(5, 3); }
 async function lieCuddle() { const r = await ask('armpillow', { yes: false }); if (r === 'no') return; if (!Z.lie) await blink(() => lie({ me: { x: -.3, roll: -1.15 }, n: { x: .28, roll: 1.15 }, sheet: Z.out.me >= 4 || Z.out.n >= 4 })); else { Z.lie.me = { x: -.3, roll: -1.15 }; Z.lie.n = { x: .28, roll: 1.15 }; setSheet(!!sheetM); }
   nSay(pick(['…팔 안 저려요? ㅎㅎ', '심장 소리 들린다… 빨라요 ㅋㅋ']), 'shy'); expr(S.n.g, 'shy', 6); bump(6, 4); }
-async function lieKiss() { const r = await ask('lieKiss', { trust: 60, mood: 55 }); if (r === 'no' || r === 'cond') return; const sh = Z.out.me >= 4 || Z.out.n >= 4 || !!sheetM; await blink(() => lie({ me: { x: -.2, roll: -1.25 }, n: { x: .18, roll: 1.25 }, sheet: sh }));
-  expr(P().group, 'kiss', 3); expr(S.n.g, 'kiss', 3); await wait(2800); nSay(pick(['……하아. 이불 속이라 다행이다 ㅎㅎ', '(입술을 떼고 웃는다) …또 하고 싶다 💗']), 'shy'); bump(9, 4); await secondThought('lieKiss'); }
+async function lieKiss() { const r = await ask('lieKiss', { trust: 60, mood: 55 }); if (r === 'no' || r === 'cond') return; await blink(() => lie({ me: { x: -.1, roll: -1.3 }, n: { x: .09, roll: 1.3 } }));
+  /* v86 마주 누워 실제로 입을 맞춤(얼굴 IK) + 키스 장면 클로즈업 카메라 */
+  const my = Z.gen; Z.lkiss = { t0: performance.now(), dur: 5200 }; expr(P().group, 'kiss', 5); expr(S.n.g, 'kiss', 5); await wait(5200); if (Z.gen !== my) return; Z.lkiss = null;
+  nSay(pick(['……하아. 심장 터지는 줄 알았어요 ㅎㅎ', '(입술을 떼고 웃는다) …또 하고 싶다 💗']), 'shy'); bump(9, 4); await secondThought('lieKiss'); }
+function lkissTick() { const k = Z.lkiss, a = P().group, n = S.n; if (!k || !Z.lie || !n) { if (k && !Z.lie) Z.lkiss = null; return; } const e = (performance.now() - k.t0) / k.dur, w = Math.min(1, e / .15, (1 - e) / .12); if (e >= 1) { Z.lkiss = null; return; }
+  try { const RH = NC.RealHuman, la = RH.facePt(a.userData.real, 'lips'), lb = RH.facePt(n.g.userData.real, 'lips'); if (la && lb && la.y > .4) k.m = la.add(lb).multiplyScalar(.5); } catch (e) { }   // 카메라용(메인 루프 시점엔 몸이 아직 안 눕혀져 있어 여기서 기억)
+  const now = performance.now(); a.userData.faceTgt = { mode: 'lips', partner: n.g, w: Math.max(0, w), t: now, share: .5, gap: .006, tilt: .2, yaw: .3 }; n.g.userData.faceTgt = { mode: 'lips', partner: a, w: Math.max(0, w), t: now, share: .5, gap: .006, tilt: .2, yaw: .3 }; }
+function lkissCam() { const k = Z.lkiss; if (!k || !Z.lie || !S.n || !k.m) return null;
+  const m = k.m, e = Math.min(1, (performance.now() - k.t0) / 1800), ez = e * e * (3 - 2 * e), d = 1.3 - .62 * ez;   // 위에서 비스듬히 내려다보며 1.3m → 0.68m 로 다가감(몸·팔에 가리지 않게)
+  return { cx: m.x + .08, cy: m.y + d * .82, cz: m.z + d * .55, tx: m.x, ty: m.y, tz: m.z, free: true, kiss: true }; }
+{ const prev = NC.camOverride; NC.camOverride = () => lkissCam() || (prev ? prev() : null); }
 async function blindGuess() { const r = await ask('eyes', { yes: false }); if (r === 'no') return; await standPair('back', .36); touch('eyes', 3.2); meSay('누~구게? ㅎㅎ'); await wait(1200); nSay(byT({ shy: '…당신이잖아요 ㅎㅎ 손 따뜻하다.', cool: '여기 우리 둘밖에 없거든요 ㅎ', playful: '음… 룸서비스 아저씨? ㅋㅋㅋ', outgoing: '알지롱~ 손 냄새로 알았어요 ㅋㅋ' }), 'laugh'); await wait(2100); freePair(); bump(4, 3); }
 function whisper() { standAct('whisper'); meSay(pick(['(귓가에) …오늘 너무 예뻐요.', '(작게) 아까부터 계속 생각했어요.'])); setTimeout(() => nSay(pick(['…간지러워요 ㅎㅎ 한 번 더 말해 줘요.', '(귀가 빨개지며) …나도요.']), 'shy'), 1600); bump(4, 2); }
 function naughtyJoke() { meSay(pick(['이 방 거울… 왜 천장에 있는지 알아요? ㅎㅎ', '이 침대, 삐걱거리면 옆방에 다 들리겠다 ㅋㅋ'])); setTimeout(() => nSay(byT({ shy: '…! 그런 말 하지 마요 ㅎㅎ (베개로 얼굴을 가린다)', cool: '…그걸 지금 확인해 보자는 거예요? ㅎ', playful: 'ㅋㅋㅋㅋ 아 진짜 변태다~', outgoing: 'ㅋㅋㅋ 아 웃겨! 근데 은근 궁금하다?' }), 'laugh'), 1200); bump(3, 2); }
@@ -697,12 +712,16 @@ S.onCheckout = () => { stopAll(true); try { for (const g of [P().group, S.n && S
 let acc = 0;
 NC.tickers.push(dt => {
   if (!dt || !S.on) return; dt = Math.min(dt, .1);
-  if (S.step === 'room' || S.step === 'morning') { slideTick(dt); pinTick(); lieTick(); touchTick(dt); bathTick(dt); garmentTick();
+  if (S.step === 'room' || S.step === 'morning') { slideTick(dt); pinTick(); lieTick(); lkissTick(); touchTick(dt); bathTick(dt); garmentTick();
     try { sceneTick(dt); } catch (e) { console.warn('[scene]', e); }
     if (Z.jac.filling && RV.water) { Z.jac.fill = Math.min(1, (performance.now() - Z.jac.filling) / 18000); RV.water.position.y = .1 + .4 * Z.jac.fill; if (Z.jac.fill >= 1) { Z.jac.filling = false; waterSound(false); sys(L('🛁 자쿠지에 물이 가득 찼어요', '🛁 The jacuzzi is full')); } }
     acc += dt; if (acc > .6) { acc = 0; refreshAll(); } }
   else if (S.step === 'leaving' && (P().group.userData.m19 || (S.n && S.n.g.userData.m19))) S.onCheckout();
 });
+S.unlie = () => { if (!Z.lie) return false; Z.gen++; Z.lkiss = null; return unlie(); };   // v86 motel.js 앉기·일어나기에서 먼저 호출
+/* v86 누워 있을 때 E: 침대에서 일어나기 · 침대에 걸터앉기 */
+NC.interactProviders && NC.interactProviders.push(() => { if (!S.on || S.step !== 'room' || !Z.lie || Z.running) return [];
+  return [{ label: L('🛏 침대에서 일어나기 (E)', '🛏 Get up (E)'), dist: 0, run: () => { S.unlie(); freePair(); } }, { label: L('🛏 침대에 나란히 앉기', '🛏 Sit up on the bed'), dist: .1, run: () => X.sitBoth('bed') }]; });
 S.x19 = { SC, Z, ask, refreshAll, visualOf, stopAll, GROUPS, lie, unlie, buildGarment, clearGarment, bonesOf };   // 시험·확장용
 S._z = { Z, setOut, refreshAll, layerOf, stateTxt };   // v72 시험·확장용
 console.info('[motel19] v60 🔥 19+ 프라이빗 익스피리언스 — 객실 전용');

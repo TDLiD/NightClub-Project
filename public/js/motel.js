@@ -256,8 +256,8 @@ function buildRoom(cat) {
   const wood = pbr('wood', { repeat: [1, 1], roughness: .5, gen: { a: '#2a140c', b: '#4a2618' } }), fabric = std(th.bed, { roughness: .85 });
   // 침대(북쪽 벽 가운데)
   const [bw, bl] = th.size, bz = -RHZ + bl / 2 + .05;
-  if (th.round) { ad(new T.Mesh(cyl(1.25, 1.25, .38, 40), fabric), 0, .19, bz + .1); ad(new T.Mesh(cyl(1.18, 1.18, .2, 40), std(th.duvet, { roughness: .9 })), 0, .48, bz + .1); ad(new T.Mesh(new T.TorusGeometry(1.26, .07, 10, 40), std('#d9b056', { metalness: .9, roughness: .25 })), 0, .4, bz + .1).rotation.x = Math.PI / 2; ROOM.rects.push([-1.25, -RHZ, 1.25, bz + 1.3]); }
-  else { ad(new T.Mesh(box(bw + .1, .35, bl), wood), 0, .18, bz); ad(new T.Mesh(box(bw, .24, bl - .05), std('#f6f2ea', { roughness: .95 })), 0, .47, bz); ad(new T.Mesh(box(bw + .02, .08, bl * .62), std(th.duvet, { roughness: .9 })), 0, .62, bz + bl * .18); ROOM.rects.push([-bw / 2 - .05, -RHZ, bw / 2 + .05, bz + bl / 2]); }
+  if (th.round) { ad(new T.Mesh(cyl(1.25, 1.25, .38, 40), fabric), 0, .19, bz + .1); RV.duvet = ad(new T.Mesh(cyl(1.18, 1.18, .2, 40), std(th.duvet, { roughness: .9 })), 0, .48, bz + .1); ad(new T.Mesh(new T.TorusGeometry(1.26, .07, 10, 40), std('#d9b056', { metalness: .9, roughness: .25 })), 0, .4, bz + .1).rotation.x = Math.PI / 2; ROOM.rects.push([-1.25, -RHZ, 1.25, bz + 1.3]); }
+  else { ad(new T.Mesh(box(bw + .1, .35, bl), wood), 0, .18, bz); ad(new T.Mesh(box(bw, .24, bl - .05), std('#f6f2ea', { roughness: .95 })), 0, .47, bz); RV.duvet = ad(new T.Mesh(box(bw + .02, .08, bl * .62), std(th.duvet, { roughness: .9 })), 0, .62, bz + bl * .18); ROOM.rects.push([-bw / 2 - .05, -RHZ, bw / 2 + .05, bz + bl / 2]); }
   ad(new T.Mesh(box(Math.max(bw, 2.2) + .3, 1.2, .12), th.round ? std('#5a0a20', { roughness: .6 }) : pbr('tufted', { repeat: [4, 1], color: th.bed, roughness: .8, gen: { leather: true, cells: 5 } })), 0, .9, -RHZ + .07);
   for (const x of [-.45, .45]) ad(new T.Mesh(box(.6, .14, .36), std('#ffffff', { roughness: .95 })), x, .66, -RHZ + .35);
   for (const s of [-1, 1]) { const x = s * (Math.max(bw / 2, 1.25) + .45); ad(new T.Mesh(box(.5, .5, .45), wood), x, .25, -RHZ + .35); ad(new T.Mesh(cyl(.13, .1, .3, 12), glow(th.accent, 1.3)), x, .68, -RHZ + .35); ROOM.rects.push([x - .27, -RHZ, x + .27, -RHZ + .6]); }
@@ -613,12 +613,13 @@ function applyMood() { const L2 = W.lights || {}, [c, i] = MOODS[S.mood] || MOOD
 /* 앉기·서기 */
 NC.standHandlers = NC.standHandlers || {}; NC.standHandlers.motel = s => ({ x: s.x + Math.sin(s.ry) * .75, z: s.z + Math.cos(s.ry) * .75 });
 function sitBoth(where) {
+  if (S.unlie) S.unlie();   // v86 누운 채로 앉기를 누르면 눕기 자세와 앉기 자세가 싸워 몸이 침대에 파묻혔음 → 먼저 일어남
   const seats = RV.seats[where]; if (!seats) return; const [a, b] = seats, p = P(), n = S.n; endStanding(); stopHand();
   const ax = BX + a.x, az = 90 + a.z, bx = BX + b.x, bz = 90 + b.z;
   NC.sitPlayer({ kind: 'motel', where, x: ax, z: az, ry: a.ry }, { x: ax, z: az, ry: a.ry, h: a.h }); p.group.position.set(ax, 0, az); p.group.rotation.y = a.ry;
   if (!S.space) { NC.NPC.sit(n, bx, bz, b.ry, b.h); n.g.userData.lookAt = p; p.group.userData.lookAt = n; } S.follow = false; S.seat = where;   // v72 서로 눈 맞춤(나도 상대를 봄)
 }
-function standBoth() { const p = P(); p.group.userData.lookAt = null; if (p.seat) NC.requestStand(); const n = S.n; if (n && n.state === 'seated') { NC.unseatAvatar(n.g, n.x + .6, n.z); n.state = 'motel'; } S.follow = true; S.seat = null; try { NC.Couple && (NC.Couple.ST.sofa = null); } catch (e) { } }
+function standBoth() { if (S.unlie) S.unlie(); const p = P(); p.group.userData.lookAt = null; if (p.seat) NC.requestStand(); const n = S.n; if (n && n.state === 'seated') { NC.unseatAvatar(n.g, n.x + .6, n.z); n.state = 'motel'; } S.follow = true; S.seat = null; try { NC.Couple && (NC.Couple.ST.sofa = null); } catch (e) { } }
 function endStanding() { try { if (K.BL && K.BL.n === S.n) K.endBlues('leave'); } catch (e) { } if (S.n && S.n.state === 'blues') S.n.state = 'motel'; }   // 'leave' = 블루스가 상대를 클럽 배회 상태로 돌려놓지 않음
 
 /* 동의 확인 — 편안함(comfort) · 경계심 · 반복 요청 */
@@ -686,7 +687,7 @@ const ACTS = {
     ['leave', L('🚪 체크아웃하고 나가기', '🚪 Check out and leave'), () => checkout()],
   ],
 };
-function sitPlayerOnly(where) { const a = RV.seats[where][0], p = P(); NC.sitPlayer({ kind: 'motel', where, x: BX + a.x, z: 90 + a.z, ry: a.ry }, { x: BX + a.x, z: 90 + a.z, ry: a.ry, h: a.h }); p.group.position.set(BX + a.x, 0, 90 + a.z); }
+function sitPlayerOnly(where) { if (S.unlie) S.unlie(); const a = RV.seats[where][0], p = P(); NC.sitPlayer({ kind: 'motel', where, x: BX + a.x, z: 90 + a.z, ry: a.ry }, { x: BX + a.x, z: 90 + a.z, ry: a.ry, h: a.h }); p.group.position.set(BX + a.x, 0, 90 + a.z); }
 const TOPICS = [
   [L('어릴 때 꿈이 뭐였어요?', 'What was your childhood dream?'), { shy: L('사서요… 조용한 데서 책 읽는 게 좋았거든요.', 'A librarian… I loved reading somewhere quiet.'), cool: L('건축가요. 지금도 멋진 건물 보면 멈춰 서요.', 'An architect. I still stop to look at great buildings.'), playful: L('개그우먼! 진짜로요 ㅋㅋ', 'A comedian! Seriously, haha'), outgoing: L('가수요! 그래서 노래방만 가면 신나요 ㅎㅎ', 'A singer! That’s why I love karaoke!') }],
   [L('90년대 노래 중에 제일 좋아하는 거?', 'Favorite 90s song?'), { shy: L('발라드요. 비 오는 날 들으면 딱이에요.', 'Ballads. Perfect on rainy days.'), cool: L('R&B요. 그 시절 그루브가 좋아요.', 'R&B. I love that era’s groove.'), playful: L('신나는 댄스곡! 지금 틀어 줘요 ㅋㅋ', 'Dance tracks! Play one now!'), outgoing: L('다 좋아요! 떼창 되는 노래면 최고!', 'All of them! Sing-alongs are the best!') }],
@@ -892,6 +893,10 @@ NC.tickers.push(dt => {
   if (!S.on) return;
   if (S.n && !S.alone && /^(wander|path|idle|talk|off)$/.test(S.n.state)) { S.n.state = 'motel'; S.n.g.visible = true; }   // 블루스가 끝나며(곡 끝 등) 상대를 클럽 배회로 돌려놓아도 모텔에선 곁에 남음
   try { followTick(dtF); handTick(dt); } catch (e) { }
+  /* v86 안전장치: 객실에 있는데 상대(또는 나)가 방 밖 멀리(클럽 자리 등)로 옮겨지면 바로 곁으로 데려옴 */
+  if (S.step === 'room' && S.area === ROOM) { const p = P(), far = (x, z) => Math.abs(x - BX) > RHX + .8 || Math.abs(z - 90) > RHZ + .8;
+    if (far(p.x, p.z) && !p.autoPath) { if (p.seat) NC.requestStand(); p.x = BX; p.z = 90 + 1; p.y = 0; p.group.position.set(p.x, 0, p.z); console.warn('[motel] 플레이어가 객실 밖으로 벗어나 되돌림'); }
+    const n = S.n; if (n && !S.alone && far(n.x, n.z)) { if (n.state === 'seated') NC.unseatAvatar(n.g); n._seatArgs = null; placePartner(p.x + .7, p.z, 0); console.warn('[motel] 상대가 객실 밖으로 벗어나 되돌림'); } }
   doorTick(LOBV, dt, 'x'); doorTick(CORV, dt, 'z');
   if (EXTV.rain.visible) { const a = EXTV.rain.geometry.attributes.position; for (let i = 0; i < a.count; i++) { let y = a.getY(i) - dt * 9; if (y < 0) y += 9; a.setY(i, y); } a.needsUpdate = true; }
   if (EXTV.taxi) { const tx = EXTV.taxi; tx.t += dt; if (tx.t > 2.5) { tx.g.position.x += dt * Math.min(9, (tx.t - 2.5) * 6); if (tx.g.position.x > BX + 12) { EXT.G.remove(tx.g); EXTV.taxi = null; } } }

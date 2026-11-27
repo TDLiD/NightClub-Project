@@ -628,7 +628,7 @@ function startBlues(n, opt = {}) {
   const D = NC.Dialog, P = NC.player; if (BL.n) return;
   n.bl = n.bl || { kissed: false, warned: 0 }; BL.gap = 0; BL.gapS = 0;
   if (n.aff < 45) { D.npcSay(U.pick(['부르스요? 음… 아직 좀 어색해요. 조금 더 얘기해요 ㅎㅎ', '헉 벌써요? 조금만 더 친해지고요~', '…부르스는 좀. 짠부터 해요.']), 'shy'); NC.Motion.play(n.g, 'headshake'); aff(n, -1); return; }
-  if (!opt.here && !K.inRoom && LEAD_ZONES.includes(P.zone) && leadToFloor(n)) return;   // v85 테이블·바·통로 등에서 신청하면 손잡고 댄스플로어 가운데로 나가서 춤(노래방 룸·VIP룸은 그 자리에서)
+  if (!opt.here && !K.inRoom && !(NC.Motel && NC.Motel.on) && !W.extraZones.some(e => e.test(P.x, P.z)) && LEAD_ZONES.includes(P.zone) && leadToFloor(n)) return;   // v86 모텔·외부 공간은 제외(모텔 '안아 주기'에서 클럽 플로어로 걸어가 버렸음)   // v85 테이블·바·통로 등에서 신청하면 손잡고 댄스플로어 가운데로 나가서 춤(노래방 룸·VIP룸은 그 자리에서)
   /* v28 어느 장소에서나: 노래방 룸 · 스테이지/댄스플로어(DJ 블루스 타임 연출) · 그 밖의 곳(테이블·VIP·바·통로·흡연실·라운지·거리·로비 등)은 두 사람 사이 빈자리에서 */
   BL.where = K.inRoom ? 'karaoke' : CLUB_ZONES.includes(P.zone) ? 'club' : 'any';
   if (BL.where === 'karaoke') BL.c = { x: KX + .9, z: KZ - .1 };

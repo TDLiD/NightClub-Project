@@ -221,7 +221,11 @@ function frame() {
       if (bx) { const m = .32; camPos.x = U.clamp(camPos.x, bx.cx - bx.hx + m, bx.cx + bx.hx - m); camPos.z = U.clamp(camPos.z, bx.cz - bx.hz + m, bx.cz + bx.hz - m); camPos.y = Math.min(camPos.y, (bx.h || 3.2) - .22);
         /* 벽에 막혀 카메라가 너무 붙으면(드래그 중이 아닐 때) 방 가운데 쪽으로 시점을 천천히 돌림 */
         const hd = Math.hypot(camPos.x - tx, camPos.z - tz), want = Math.cos(cam.pitch) * dist;
-        if (!pt.down && hd < want * .6) cam.yaw = U.lerpAngle(cam.yaw, Math.atan2(bx.cx - tx, bx.cz - tz), Math.min(1, dt * 1.6)); } }
+        /* v86 사용자가 마우스·휠·핀치로 시점을 한 번이라도 조정했으면 그 방에 있는 동안은 자동으로 돌리지 않고 그 시점을 고정(모텔 등 좁은 방에서 화면이 계속 가운데로 돌아가던 문제) */
+        const cp = NC._camPrev, user = pt.down || (cp && (cp.yaw !== cam.yaw || cp.dist !== cam.dist || cp.pitch !== cam.pitch));
+        if (user) NC._camHold = bx;
+        if (!pt.down && hd < want * .6 && NC._camHold !== bx) cam.yaw = U.lerpAngle(cam.yaw, Math.atan2(bx.cx - tx, bx.cz - tz), Math.min(1, dt * 1.6)); }
+      NC._camPrev = { yaw: cam.yaw, dist: cam.dist, pitch: cam.pitch }; }
     camera.position.lerp(camPos, Math.min(1, dt * (f && !f.free ? 3 : 8))); NC._look = NC._look || camTarget.clone(); NC._look.lerp(camTarget, Math.min(1, dt * 6)); camera.lookAt(NC._look);
     const doorOpen = P.room >= 0 ? W.vip[P.room].door.open : 0;
     NC.Audio.update(P, Math.atan2(camera.position.x - P.x, camera.position.z - P.z), P.zone, doorOpen);
