@@ -21,7 +21,7 @@ const rank = root => isPlayer(root) ? 4 : (root.userData._uPinned || root.userDa
 function usedBy(id, except) { const r = []; for (const g of live()) { if (g === except) continue; const u = g.userData; if (u._uid === id && (u.real || u._uPending)) r.push(g); } return r; }
 function pool(gender) { const C = RH.cfg || {}, P = C.playerPool || {}; return (P[gender] || []).slice(); }
 function pickFree(gender, except) { const busy = new Set(); for (const g of live()) if (g !== except && g.userData._uid) busy.add(g.userData._uid);
-  const cand = pool(gender).filter(i => !busy.has(i)); if (!cand.length) return null; const seed = [...String(except.uuid || '')].reduce((a, c) => a + c.charCodeAt(0), 0); return cand[seed % cand.length]; }
+  const cand = pool(gender).filter(i => !busy.has(i) && /^[fm]_\d{2}$/.test(i));   /* v87 체형 변형 항목(f_12_fat 등)은 별도 GLB 파일이 없음 — 얼굴 교체 후보에서 제외(그 파일을 찾다 실패해 옛 절차적 인형으로 남던 원인) */ if (!cand.length) return null; const seed = [...String(except.uuid || '')].reduce((a, c) => a + c.charCodeAt(0), 0); return cand[seed % cand.length]; }
 /* 같은 모델을 쓸 수밖에 없을 때: 키·체형 폭 변주(±3%) — 외형 지문(모델, 변주)이 겹치지 않게 */
 function variant(root, id) { const taken = new Set(); for (const g of usedBy(id, root)) taken.add(g.userData._uvar || 0); let v = 0; while (taken.has(v) && v < 8) v++; root.userData._uvar = v;
   if (v) { const s = [1, 1.03, .97, 1.015, .985, 1.03, .97, 1.02][v], w = [1, .97, 1.03, 1.02, .98, 1.03, .97, .99][v]; root.userData._uscale = [w, s, w]; } return v; }
